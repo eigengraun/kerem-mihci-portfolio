@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="vidBg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2C2D35"/>
+      <stop offset="100%" stop-color="#15161A"/>
+    </linearGradient>
+    <linearGradient id="vidAccent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3B82F6"/>
+      <stop offset="100%" stop-color="#1D4ED8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Base App Tile -->
+  <rect width="128" height="128" rx="28" fill="url(#vidBg)"/>
+  <rect x="0.5" y="0.5" width="127" height="127" rx="27.5" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+
+  <!-- Vertical 9:16 Cinema Reel / Frame -->
+  <rect x="42" y="24" width="44" height="80" rx="9" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-opacity="0.95"/>
+
+  <!-- Film Perforations / Framing Notches -->
+  <line x1="42" y1="38" x2="48" y2="38" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-opacity="0.8"/>
+  <line x1="80" y1="38" x2="86" y2="38" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-opacity="0.8"/>
+  <line x1="42" y1="90" x2="48" y2="90" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-opacity="0.8"/>
+  <line x1="80" y1="90" x2="86" y2="90" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-opacity="0.8"/>
+
+  <!-- Play Symbol Centered -->
+  <polygon points="59,54 75,64 59,74" fill="#FFFFFF"/>
+</svg>

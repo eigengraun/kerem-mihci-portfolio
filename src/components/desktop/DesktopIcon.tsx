@@ -5,7 +5,7 @@ import { Project } from "@/data/projects";
 import { useDesktopStore } from "@/store/desktopStore";
 import { useWindowStore } from "@/store/windowStore";
 import { useSessionStore } from "@/store/sessionStore";
-import { ResolvedDesktopPosition, resolveSafeDropPosition, getProjectFootprint } from "@/lib/desktopPlacement";
+import { ResolvedDesktopPosition, resolveSafeDropPosition } from "@/lib/desktopPlacement";
 import { toLocaleUpper } from "@/lib/casing";
 
 interface DesktopIconProps {
@@ -16,7 +16,7 @@ interface DesktopIconProps {
 export const DesktopIcon: React.FC<DesktopIconProps> = ({ project, resolvedPosition }) => {
   const { locale, activeWorkspace, theme } = useDesktopStore();
   const { openWindow, windows, closeWindow } = useWindowStore();
-  const { desktopPlacements, updateDesktopPosition, setIsDraggingProject } = useSessionStore();
+  const { updateDesktopPosition, setIsDraggingProject } = useSessionStore();
 
   const [isHovered, setIsHovered] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -143,15 +143,11 @@ export const DesktopIcon: React.FC<DesktopIconProps> = ({ project, resolvedPosit
     }
 
     if (ptr.hasExceededThreshold) {
-      // Drag finished: resolve nearest safe drop spot and update store
+      // Drag finished: resolve safe desktop bounds and update store (ignoring other projects for intentional overlap)
       const currentLiveX = ptr.initialPosX + (dragOffset?.x ?? 0);
       const currentLiveY = ptr.initialPosY + (dragOffset?.y ?? 0);
 
-      const wsPositions = desktopPlacements[activeWorkspace] || {};
-      const otherPlaced = Object.values(wsPositions).filter((p) => p.projectId !== project.id);
-      const footprint = getProjectFootprint(project);
-
-      const safeDropPos = resolveSafeDropPosition(currentLiveX, currentLiveY, project.id, otherPlaced, footprint);
+      const safeDropPos = resolveSafeDropPosition(currentLiveX, currentLiveY);
       updateDesktopPosition(activeWorkspace, project.id, safeDropPos);
     } else {
       // Pure click without dragging -> open project

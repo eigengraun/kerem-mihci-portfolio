@@ -30,9 +30,10 @@ export function createSeededRandom(seed: number) {
   };
 }
 
-// Safety margin constants for project icon + label bounding boxes (in % of viewport)
-export const COLLISION_X_MARGIN = 10.5; // ~150px in 1440px viewport (covers 120px icon/label + margin)
-export const COLLISION_Y_MARGIN = 14.5; // ~130px in 900px viewport (covers thumbnail + label + margin)
+// Minimal collision gap between neighboring project icon groups (approx 8px visual gap in reference 1440x900 viewport)
+export const COLLISION_GAP_PX = 8;
+export const COLLISION_X_MARGIN = ((130 + COLLISION_GAP_PX) / 1440) * 100; // ~9.58% in 1440px viewport
+export const COLLISION_Y_MARGIN = ((111 + COLLISION_GAP_PX) / 900) * 100;  // ~13.22% in 900px viewport
 
 export interface ProjectFootprint {
   halfWidth: number; // percentage of viewport width
@@ -41,6 +42,7 @@ export interface ProjectFootprint {
 
 /**
  * Calculates the aspect-aware spatial footprint for a project icon on the desktop
+ * based on actual rendered media dimensions, compact label height, and minimal ~8px safety gap.
  */
 export function getProjectFootprint(project?: Project): ProjectFootprint {
   let previewW = 130;
@@ -57,17 +59,22 @@ export function getProjectFootprint(project?: Project): ProjectFootprint {
     }
   }
 
-  const labelW = Math.max(previewW, 95);
-  const totalW = Math.max(previewW, labelW) + 24; // preview + safety margin
-  const totalH = previewH + 6 + 28 + 24; // preview + gap + label + safety margin
+  // Label width approximates rendered container (min 85px for narrow portrait, max 130px)
+  const visualW = Math.max(previewW, Math.min(130, 85));
+  // Thumbnail height + 6px gap + ~24px rendered label height
+  const visualH = previewH + 6 + 24;
+
+  // Total bounds include minimal collision padding (COLLISION_GAP_PX = 8px)
+  const totalW = visualW + COLLISION_GAP_PX;
+  const totalH = visualH + COLLISION_GAP_PX;
 
   // Reference viewport: 1440 x 900
   const halfWidthPercent = (totalW / 2 / 1440) * 100;
   const halfHeightPercent = (totalH / 2 / 900) * 100;
 
   return {
-    halfWidth: Math.max(5.0, halfWidthPercent),
-    halfHeight: Math.max(6.5, halfHeightPercent)
+    halfWidth: halfWidthPercent,
+    halfHeight: halfHeightPercent
   };
 }
 
@@ -105,6 +112,7 @@ export interface PlacedDesktopItem {
 
 /**
  * Checks if a candidate position collides with any already placed items using aspect-aware bounding boxes
+ * with minimal ~8px gap. Pure AABB (Axis-Aligned Bounding Box) for tight, natural organic packing.
  */
 export function hasProjectCollision(
   candidateX: number,
@@ -129,14 +137,8 @@ export function hasProjectCollision(
     const dx = Math.abs(candidateX - item.x);
     const dy = Math.abs(candidateY - item.y);
 
-    // Bounding-box rectangle overlap check including label dimensions
+    // Exact AABB intersection check with minimal safety gap
     if (dx < reqX && dy < reqY) {
-      return true;
-    }
-
-    // Elliptical safety envelope
-    const normalizedDist = Math.hypot(dx / reqX, dy / reqY);
-    if (normalizedDist < 1.08) {
       return true;
     }
   }
@@ -234,61 +236,32 @@ export function getResolvedDesktopPlacements(
 }
 
 /**
- * Resolves a dragged icon's drop position to the nearest safe, non-colliding spot.
+ * Clamps a manually dragged icon's drop position into safe desktop viewport bounds,
+ * ensuring it stays within accessible desktop area and does not get hidden behind the Dock,
+ * without restricting or correcting user-intended project-on-project overlaps.
  */
 export function resolveSafeDropPosition(
   proposedX: number,
-  proposedY: number,
-  projectId: string,
-  otherProjects: PlacedDesktopItem[],
-  footprint?: ProjectFootprint
+  proposedY: number
 ): { x: number; y: number } {
   // Clamp proposed position into global desktop safe boundaries
   const clampedX = Math.max(8.0, Math.min(86.5, proposedX));
-  const clampedY = Math.max(12.5, Math.min(67.0, proposedY));
+  let clampedY = Math.max(12.5, Math.min(67.0, proposedY));
 
-  // If already safe and non-colliding, return clamped point
-  if (isLocationInSafeZone(clampedX, clampedY) && !hasProjectCollision(clampedX, clampedY, otherProjects, footprint, projectId)) {
-    return { x: Number(clampedX.toFixed(2)), y: Number(clampedY.toFixed(2)) };
+  // Protect bottom Dock zone (Dock resides in x: 24% - 76%, y: > 64.0%)
+  if (clampedX >= 24.0 && clampedX <= 76.0 && clampedY > 64.0) {
+    clampedY = 64.0;
   }
 
-  // Expanding spiral search around the drop location
-  const radii = [2.0, 4.0, 6.5, 9.0, 12.0, 15.0, 18.5, 22.0, 26.0, 30.0];
-  const angleSteps = 16;
-
-  for (const r of radii) {
-    for (let i = 0; i < angleSteps; i++) {
-      const angle = (i * 2 * Math.PI) / angleSteps;
-      const testX = clampedX + r * Math.cos(angle);
-      const testY = clampedY + r * 0.9 * Math.sin(angle);
-
-      if (!isLocationInSafeZone(testX, testY)) continue;
-      if (!hasProjectCollision(testX, testY, otherProjects, footprint, projectId)) {
-        return { x: Number(testX.toFixed(2)), y: Number(testY.toFixed(2)) };
-      }
-    }
+  // Protect top-right controls zone (TR/EN, Theme toggle, System time in x: > 67.0%, y: < 22.0%)
+  if (clampedX > 67.0 && clampedY < 22.0) {
+    clampedY = 22.0;
   }
 
-  // Fallback grid scan if spiral search didn't find a spot
-  let bestDist = 9999;
-  let bestX = clampedX;
-  let bestY = clampedY;
-
-  for (let gy = 13.0; gy <= 66.0; gy += 3.0) {
-    for (let gx = 9.0; gx <= 85.0; gx += 3.0) {
-      if (!isLocationInSafeZone(gx, gy)) continue;
-      if (hasProjectCollision(gx, gy, otherProjects, footprint, projectId)) continue;
-
-      const dist = Math.hypot(gx - clampedX, gy - clampedY);
-      if (dist < bestDist) {
-        bestDist = dist;
-        bestX = gx;
-        bestY = gy;
-      }
-    }
-  }
-
-  return { x: Number(bestX.toFixed(2)), y: Number(bestY.toFixed(2)) };
+  return {
+    x: Number(clampedX.toFixed(2)),
+    y: Number(clampedY.toFixed(2))
+  };
 }
 
 function getWeightScale(weight?: string): number {

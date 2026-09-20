@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useDesktopStore, WorkspaceId } from "@/store/desktopStore";
 import { useWorkspaceNavigation } from "@/context/WorkspaceNavigationContext";
 import { workspacesData, WorkspaceConfig } from "@/data/workspaces";
@@ -40,23 +40,69 @@ export const DesktopWorkspace: React.FC = () => {
     return () => mediaQuery.removeEventListener("change", listener);
   }, []);
 
-  // Preload inactive wallpapers progressively to avoid network bottlenecks
+  // Priority 3: Non-blocking idle prefetch for inactive workspace wallpapers
+  const preloadedUrlsRef = useRef<Set<string>>(new Set());
+
   useEffect(() => {
-    const timer = setTimeout(() => {
+    if (typeof window === "undefined") return;
+
+    // Check for constrained network (save-data or 2G)
+    const nav = navigator as unknown as { connection?: { saveData?: boolean; effectiveType?: string } };
+    const conn = nav.connection;
+    if (conn && (conn.saveData || conn.effectiveType === "slow-2g" || conn.effectiveType === "2g")) {
+      return;
+    }
+
+    // Mark current workspace wallpapers as already loaded/rendered by the active scene
+    const currentWs = workspacesData.find((w) => w.id === activeWorkspace);
+    if (currentWs) {
+      if (currentWs.wallpaperLight) preloadedUrlsRef.current.add(currentWs.wallpaperLight);
+      if (currentWs.wallpaperDark) preloadedUrlsRef.current.add(currentWs.wallpaperDark);
+    }
+
+    const preloadInactiveWorkspaces = () => {
       workspacesData.forEach((ws) => {
-        if (ws.wallpaperLight) {
-          const imgLight = new Image();
-          imgLight.src = ws.wallpaperLight;
-        }
-        if (ws.wallpaperDark) {
+        if (ws.id === activeWorkspace) return;
+
+        if (ws.wallpaperDark && !preloadedUrlsRef.current.has(ws.wallpaperDark)) {
+          preloadedUrlsRef.current.add(ws.wallpaperDark);
           const imgDark = new Image();
           imgDark.src = ws.wallpaperDark;
         }
+        if (ws.wallpaperLight && !preloadedUrlsRef.current.has(ws.wallpaperLight)) {
+          preloadedUrlsRef.current.add(ws.wallpaperLight);
+          const imgLight = new Image();
+          imgLight.src = ws.wallpaperLight;
+        }
       });
-    }, 1200);
+    };
 
-    return () => clearTimeout(timer);
-  }, []);
+    // Schedule prefetch during browser idle AFTER critical initial load has settled (4500ms)
+    let idleHandle: number | null = null;
+    let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
+
+    fallbackTimer = setTimeout(() => {
+      if ("requestIdleCallback" in window) {
+        const winWithIdle = window as unknown as {
+          requestIdleCallback: (cb: () => void, opts?: { timeout: number }) => number;
+          cancelIdleCallback: (id: number) => void;
+        };
+        idleHandle = winWithIdle.requestIdleCallback(preloadInactiveWorkspaces, { timeout: 8000 });
+      } else {
+        preloadInactiveWorkspaces();
+      }
+    }, 4500);
+
+    return () => {
+      if (fallbackTimer !== null) {
+        clearTimeout(fallbackTimer);
+      }
+      if (idleHandle !== null && "cancelIdleCallback" in window) {
+        const winWithCancel = window as unknown as { cancelIdleCallback: (id: number) => void };
+        winWithCancel.cancelIdleCallback(idleHandle);
+      }
+    };
+  }, [activeWorkspace]);
 
   const { desktopPlacements } = useSessionStore();
   const workspacePlacements = desktopPlacements;

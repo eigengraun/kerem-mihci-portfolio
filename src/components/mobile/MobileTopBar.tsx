@@ -7,6 +7,8 @@ import { useWindowStore } from "@/store/windowStore";
 import { workspacesData } from "@/data/workspaces";
 import { getTranslation } from "@/lib/i18n";
 import { toLocaleUpper } from "@/lib/casing";
+import { AnalyticsSettingsModal } from "@/components/analytics/AnalyticsSettingsModal";
+import { useAnalyticsConsent } from "@/lib/analyticsConsent";
 
 export const MobileTopBar: React.FC = () => {
   const { activeWorkspace, setActiveWorkspace, theme, toggleTheme, locale, setLocale } = useDesktopStore();
@@ -14,6 +16,8 @@ export const MobileTopBar: React.FC = () => {
 
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
+  const consent = useAnalyticsConsent();
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -257,9 +261,54 @@ export const MobileTopBar: React.FC = () => {
                 </div>
               </button>
             </div>
+
+            {/* Privacy & Analytics Preferences Row */}
+            <div className="flex flex-col gap-2 pt-2 border-t border-black/10 dark:border-white/10">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium opacity-80">
+                  {locale === "tr" ? "Gizlilik" : "Privacy"}
+                </span>
+                <span
+                  className={`text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded ${
+                    consent === "accepted"
+                      ? "bg-emerald-500/20 text-emerald-500"
+                      : "bg-neutral-500/20 text-neutral-400"
+                  }`}
+                >
+                  {consent === "accepted"
+                    ? locale === "tr"
+                      ? "İzin Verildi"
+                      : "Allowed"
+                    : locale === "tr"
+                    ? "Reddedildi"
+                    : "Rejected"}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSettingsOpen(false);
+                  setAnalyticsModalOpen(true);
+                }}
+                className={`w-full py-1.5 px-2 rounded-lg text-[11px] font-medium transition-all text-center border cursor-pointer active:scale-98 ${
+                  isLight
+                    ? "bg-neutral-100 hover:bg-neutral-200/80 border-black/10 text-neutral-800"
+                    : "bg-white/10 hover:bg-white/15 border-white/10 text-white/90"
+                }`}
+              >
+                {locale === "tr" ? "Analitik Tercihleri" : "Analytics Preferences"}
+              </button>
+            </div>
           </div>
         )}
       </div>
+
+      {/* Analytics Settings Modal */}
+      <AnalyticsSettingsModal
+        isOpen={analyticsModalOpen}
+        onClose={() => setAnalyticsModalOpen(false)}
+      />
     </div>
   );
 };

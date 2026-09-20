@@ -5,14 +5,23 @@
  * Safe for production, SSR, and client-side App Router navigation.
  */
 
+import { getStoredConsent } from "./analyticsConsent";
+
 export const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 
 /**
- * Returns true only in production runtime when a valid GA Measurement ID is configured.
- * Guarantees that local development (`npm run dev`) never emits real analytics traffic.
+ * Returns true only in production runtime when:
+ * 1. A valid GA Measurement ID is configured
+ * 2. The visitor has explicitly granted analytics consent ("accepted")
+ *
+ * Guarantees Basic Consent Mode: zero analytics hits without explicit acceptance.
  */
 export function isAnalyticsActive(): boolean {
-  return process.env.NODE_ENV === "production" && Boolean(GA_MEASUREMENT_ID);
+  return (
+    process.env.NODE_ENV === "production" &&
+    Boolean(GA_MEASUREMENT_ID) &&
+    getStoredConsent() === "accepted"
+  );
 }
 
 // Lightweight window augmentation for gtag & dataLayer without external package bloat

@@ -3,15 +3,17 @@
 import React, { useState, useRef, useEffect } from "react";
 import { WindowInstance, useWindowStore } from "@/store/windowStore";
 import { useDesktopStore } from "@/store/desktopStore";
-import { ProjectApp } from "../applications/ProjectApp";
-import { ProjectsApp } from "../applications/ProjectsApp";
-import { GalleryApp } from "../applications/GalleryApp";
-import { NotesApp } from "../applications/NotesApp";
-import { ContactApp } from "../applications/ContactApp";
-import { ToolInfoApp } from "../applications/ToolInfoApp";
-import { TrashApp } from "../applications/TrashApp";
-import { AboutApp } from "../applications/AboutApp";
-import { VideoApp } from "../applications/VideoApp";
+import {
+  DynamicProjectApp,
+  DynamicProjectsApp,
+  DynamicGalleryApp,
+  DynamicNotesApp,
+  DynamicContactApp,
+  DynamicToolInfoApp,
+  DynamicTrashApp,
+  DynamicAboutApp,
+  DynamicVideoApp
+} from "../window-system/dynamicApps";
 import { projectsData } from "@/data/projects";
 import { toolInfoData } from "@/data/toolInfo";
 
@@ -222,26 +224,26 @@ export const MobileWindow: React.FC<MobileWindowProps> = ({ win }) => {
           projectsData.find((p) => p.slug === win.contentId) ||
           (win.extraData?.project as typeof projectsData[0]);
         if (!found) return <div className="p-4 text-xs font-mono text-neutral-400">Project Not Found</div>;
-        return <ProjectApp project={found} />;
+        return <DynamicProjectApp project={found} />;
       }
       case "projects":
-        return <ProjectsApp />;
+        return <DynamicProjectsApp />;
       case "gallery":
-        return <GalleryApp />;
+        return <DynamicGalleryApp />;
       case "video":
-        return <VideoApp />;
+        return <DynamicVideoApp />;
       case "notes":
-        return <NotesApp />;
+        return <DynamicNotesApp />;
       case "contact":
-        return <ContactApp />;
+        return <DynamicContactApp />;
       case "tool-info": {
         const toolObj = toolInfoData[win.contentId || "photoshop"] || toolInfoData.photoshop;
-        return <ToolInfoApp tool={toolObj} windowId={win.id} />;
+        return <DynamicToolInfoApp tool={toolObj} windowId={win.id} />;
       }
       case "trash":
-        return <TrashApp />;
+        return <DynamicTrashApp />;
       case "about":
-        return <AboutApp />;
+        return <DynamicAboutApp />;
       default:
         return <div className="p-4 text-xs font-mono text-neutral-400">Content loading...</div>;
     }

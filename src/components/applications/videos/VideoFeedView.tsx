@@ -176,26 +176,12 @@ export const VideoFeedView: React.FC<VideoFeedViewProps> = ({
         </div>
       )}
 
-      {/* Top-Right Minimal Library Icon Button (No Text Clutter) */}
-      <button
-        type="button"
-        onClick={onOpenLibrary}
-        aria-label={getTranslation(locale, "videos_view_library")}
-        title={getTranslation(locale, "videos_view_library")}
-        className="absolute top-3.5 right-3.5 sm:right-4 z-40 w-9 h-9 rounded-full bg-black/40 hover:bg-black/70 active:scale-90 backdrop-blur-md border border-white/20 text-white shadow-md flex items-center justify-center transition-all cursor-pointer"
-      >
-        {/* 4-Squares Grid Icon */}
-        <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-          <path d="M4 4h7v7H4V4zm9 0h7v7h-7V4zm-9 9h7v7H4v-7zm9 0h7v7h-7v-7z" />
-        </svg>
-      </button>
-
-      {/* Centered Single Reel Viewer Stage */}
-      <div className="relative flex items-center justify-center gap-2 sm:gap-4 z-10 w-full h-full max-w-full max-h-full min-h-0 overflow-hidden sm:overflow-visible">
+      {/* Centered Single Reel Viewer Stage: Mathematically Centered in Window Content */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 px-[58px] sm:px-14 py-2 sm:py-2 overflow-hidden">
         {/* Strictly SINGLE active 9:16 Video Frame with Smooth Glide Animation */}
         <div
           key={currentVideo.id}
-          className={`flex items-center justify-center h-full max-h-full min-h-0 min-w-0 max-w-[calc(100%-52px)] sm:max-w-full ${
+          className={`pointer-events-auto flex items-center justify-center w-full h-full max-h-full min-h-0 ${
             slideDirection === "up"
               ? "animate-reel-enter-up"
               : slideDirection === "down"
@@ -212,9 +198,29 @@ export const VideoFeedView: React.FC<VideoFeedViewProps> = ({
             locale={locale}
           />
         </div>
+      </div>
 
-        {/* Right-Side Navigation Rail in Window Gutter (Mobile & Desktop) */}
-        <div className="flex flex-shrink-0 w-11 sm:w-16 justify-center items-center overflow-visible z-20">
+      {/* Right-Side Unified Control Rail: Grid Button + Navigation Stack Share Single Vertical Axis */}
+      <div
+        className="absolute right-2 sm:right-3.5 inset-y-0 w-11 sm:w-14 flex flex-col items-center pointer-events-none z-30 py-3 sm:py-3.5"
+        data-reels-right-rail="true"
+      >
+        {/* Top: Minimal Grid/Library Icon Button */}
+        <button
+          type="button"
+          onClick={onOpenLibrary}
+          aria-label={getTranslation(locale, "videos_view_library")}
+          title={getTranslation(locale, "videos_view_library")}
+          className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-black/45 hover:bg-black/70 active:scale-90 backdrop-blur-md border border-white/20 text-white shadow-md flex items-center justify-center transition-all cursor-pointer pointer-events-auto flex-shrink-0"
+        >
+          {/* 4-Squares Grid Icon */}
+          <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" viewBox="0 0 24 24">
+            <path d="M4 4h7v7H4V4zm9 0h7v7h-7V4zm-9 9h7v7H4v-7zm9 0h7v7h-7v-7z" />
+          </svg>
+        </button>
+
+        {/* Center: Navigation Stack (Previous / Counter / Next) */}
+        <div className="my-auto pointer-events-auto flex flex-col items-center flex-shrink-0">
           <VideoNavigationControls
             currentIndex={safeIndex}
             totalCount={total}
@@ -223,6 +229,9 @@ export const VideoFeedView: React.FC<VideoFeedViewProps> = ({
             locale={locale}
           />
         </div>
+
+        {/* Bottom invisible balance spacer so my-auto centers the nav stack precisely relative to the window height */}
+        <div className="w-8 h-8 sm:w-9 sm:h-9 opacity-0 pointer-events-none flex-shrink-0" aria-hidden="true" />
       </div>
     </div>
   );

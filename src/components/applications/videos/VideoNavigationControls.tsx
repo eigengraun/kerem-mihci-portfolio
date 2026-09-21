@@ -25,7 +25,7 @@ export const VideoNavigationControls: React.FC<VideoNavigationControlsProps> = (
     <div
       data-reels-nav="true"
       data-prevent-workspace-wheel="true"
-      className="flex flex-col items-center gap-1.5 sm:gap-2 select-none opacity-85 sm:opacity-70 hover:opacity-100 transition-opacity duration-200 w-11 sm:w-16 min-w-[44px] sm:min-w-[64px] flex-shrink-0 overflow-visible"
+      className="flex flex-col items-center gap-1.5 sm:gap-2 select-none opacity-85 sm:opacity-70 hover:opacity-100 transition-opacity duration-200 w-11 sm:w-14 flex-shrink-0 overflow-visible"
     >
       {/* Up / Previous Reel Button */}
       <button
@@ -34,7 +34,7 @@ export const VideoNavigationControls: React.FC<VideoNavigationControlsProps> = (
         disabled={!canPrev}
         aria-label={getTranslation(locale, "videos_feed_prev")}
         title={getTranslation(locale, "videos_feed_prev")}
-        className={`w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-md border transition-all duration-200 cursor-pointer flex-shrink-0 ${
+        className={`w-8 h-8 sm:w-8.5 sm:h-8.5 rounded-full flex items-center justify-center backdrop-blur-md border transition-all duration-200 cursor-pointer flex-shrink-0 ${
           canPrev
             ? "bg-black/45 hover:bg-black/70 active:scale-90 text-white border-white/20 shadow-md hover:border-white/35"
             : "bg-black/20 text-white/25 border-white/10 cursor-not-allowed opacity-35"
@@ -46,7 +46,7 @@ export const VideoNavigationControls: React.FC<VideoNavigationControlsProps> = (
       </button>
 
       {/* Subtle Counter Pill: auto-expanding width, tabular numerals, perfectly centered */}
-      <div className="w-max min-w-[46px] sm:min-w-[50px] px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-black/45 backdrop-blur-md border border-white/15 text-[10px] font-mono font-medium tabular-nums text-white/90 shadow-xs inline-flex items-center justify-center text-center whitespace-nowrap overflow-visible leading-none flex-shrink-0">
+      <div className="w-max min-w-[42px] sm:min-w-[46px] px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-black/45 backdrop-blur-md border border-white/15 text-[10px] font-mono font-medium tabular-nums text-white/90 shadow-xs inline-flex items-center justify-center text-center whitespace-nowrap overflow-visible leading-none flex-shrink-0">
         <span>{currentIndex + 1}</span>
         <span className="opacity-40 mx-0.5 sm:mx-1">/</span>
         <span className="opacity-60">{totalCount}</span>
@@ -59,7 +59,7 @@ export const VideoNavigationControls: React.FC<VideoNavigationControlsProps> = (
         disabled={!canNext}
         aria-label={getTranslation(locale, "videos_feed_next")}
         title={getTranslation(locale, "videos_feed_next")}
-        className={`w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-md border transition-all duration-200 cursor-pointer flex-shrink-0 ${
+        className={`w-8 h-8 sm:w-8.5 sm:h-8.5 rounded-full flex items-center justify-center backdrop-blur-md border transition-all duration-200 cursor-pointer flex-shrink-0 ${
           canNext
             ? "bg-black/45 hover:bg-black/70 active:scale-90 text-white border-white/20 shadow-md hover:border-white/35"
             : "bg-black/20 text-white/25 border-white/10 cursor-not-allowed opacity-35"

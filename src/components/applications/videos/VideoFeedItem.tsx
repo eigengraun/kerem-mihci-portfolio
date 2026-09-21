@@ -124,7 +124,7 @@ export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({
 
   return (
     <div
-      className="relative h-full w-auto max-h-full max-w-full aspect-[9/16] sm:h-[530px] md:h-[570px] sm:max-h-[calc(100vh-140px)] sm:w-auto rounded-2xl overflow-hidden bg-black border border-white/15 dark:border-white/10 shadow-2xl flex items-center justify-center flex-shrink-0 select-none group cursor-pointer"
+      className="relative w-auto h-auto max-w-full max-h-full aspect-[9/16] sm:h-[530px] md:h-[570px] sm:max-h-[calc(100vh-140px)] sm:w-auto rounded-2xl overflow-hidden bg-black border border-white/15 dark:border-white/10 shadow-2xl flex items-center justify-center flex-shrink-0 select-none group cursor-pointer"
       onClick={handleTogglePlay}
       data-prevent-workspace-wheel="true"
     >

@@ -94,7 +94,7 @@ export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({
 
   return (
     <div
-      className="relative w-auto h-[480px] sm:h-[530px] md:h-[570px] max-h-[calc(100vh-140px)] aspect-[9/16] rounded-2xl overflow-hidden bg-black border border-white/15 dark:border-white/10 shadow-2xl flex items-center justify-center flex-shrink-0 select-none group cursor-pointer"
+      className="relative h-full w-auto max-h-full max-w-full aspect-[9/16] sm:h-[530px] md:h-[570px] sm:max-h-[calc(100vh-140px)] sm:w-auto rounded-2xl overflow-hidden bg-black border border-white/15 dark:border-white/10 shadow-2xl flex items-center justify-center flex-shrink-0 select-none group cursor-pointer"
       onClick={handleTogglePlay}
       data-prevent-workspace-wheel="true"
     >
@@ -120,7 +120,7 @@ export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({
               alt={title}
               fill
               sizes="320px"
-              className="object-cover w-full h-full opacity-80"
+              className="object-contain w-full h-full opacity-80"
               priority
             />
           ) : (
@@ -198,7 +198,7 @@ export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({
 
       {/* Bottom Minimal Portfolio Overlay (Title, Client · Year, Details CTA) */}
       <div
-        className="absolute bottom-0 inset-x-0 pt-14 pb-3.5 px-3.5 bg-gradient-to-t from-black/85 via-black/40 to-transparent flex flex-col gap-1 z-20 pointer-events-auto"
+        className="absolute bottom-0 inset-x-0 pt-10 sm:pt-14 pb-2.5 sm:pb-3.5 px-3 sm:px-3.5 bg-gradient-to-t from-black/85 via-black/40 to-transparent flex flex-col gap-1 z-20 pointer-events-auto"
         onClick={handleTogglePlay}
       >
         {/* Title */}

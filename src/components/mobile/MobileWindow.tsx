@@ -276,6 +276,7 @@ export const MobileWindow: React.FC<MobileWindowProps> = ({ win }) => {
       style={{
         width: "calc(100vw - 24px)",
         maxWidth: "480px",
+        height: win.type === "video" ? `${maxAvailableH}px` : undefined,
         maxHeight: getMaxHeightStyle(),
         transform: `translate3d(${currentX}px, ${currentY}px, 0)`,
         transition: isDragging ? "none" : "transform 150ms ease-out",
@@ -314,8 +315,14 @@ export const MobileWindow: React.FC<MobileWindowProps> = ({ win }) => {
         <div className="w-8 pointer-events-none" />
       </header>
 
-      {/* Internal Content Area — Scrollable */}
-      <div className="flex-1 min-h-0 overflow-y-auto app-scrollbar p-3 pb-6 text-[var(--app-text-primary)]">
+      {/* Internal Content Area — Scrollable or dedicated app stage */}
+      <div
+        className={`flex-1 min-h-0 text-[var(--app-text-primary)] ${
+          win.type === "video"
+            ? "overflow-hidden p-0"
+            : "overflow-y-auto app-scrollbar p-3 pb-6"
+        }`}
+      >
         {renderContent()}
       </div>
     </div>

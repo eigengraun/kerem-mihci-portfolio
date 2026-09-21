@@ -157,7 +157,7 @@ export const VideoApp: React.FC = () => {
 
   return (
     <div
-      className="flex flex-col h-full min-h-[480px] bg-[var(--app-surface)] text-[var(--app-text-primary)] select-none transition-colors duration-200"
+      className="flex flex-col h-full min-h-0 sm:min-h-[480px] bg-[var(--app-surface)] text-[var(--app-text-primary)] select-none transition-colors duration-200"
       data-prevent-workspace-wheel="true"
     >
       {/* Main Content: Immersive Feed or Adaptive Library */}

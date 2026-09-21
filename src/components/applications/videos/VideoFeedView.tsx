@@ -160,7 +160,7 @@ export const VideoFeedView: React.FC<VideoFeedViewProps> = ({
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       data-prevent-workspace-wheel="true"
-      className="relative w-full h-full flex items-center justify-center select-none p-1 sm:p-2 bg-[var(--app-surface)] overflow-hidden"
+      className="relative w-full h-full flex items-center justify-center select-none p-2 sm:p-2 bg-[var(--app-surface)] overflow-hidden"
     >
       {/* Extremely Subtle Ambient Background from Current Reel */}
       {currentVideo.poster && (
@@ -191,11 +191,11 @@ export const VideoFeedView: React.FC<VideoFeedViewProps> = ({
       </button>
 
       {/* Centered Single Reel Viewer Stage */}
-      <div className="relative flex items-center justify-center gap-3 sm:gap-4 z-10 max-w-full max-h-full overflow-visible">
+      <div className="relative flex items-center justify-center gap-3 sm:gap-4 z-10 w-full h-full max-w-full max-h-full min-h-0 overflow-hidden sm:overflow-visible">
         {/* Strictly SINGLE active 9:16 Video Frame with Smooth Glide Animation */}
         <div
           key={currentVideo.id}
-          className={`flex items-center justify-center ${
+          className={`flex items-center justify-center w-full h-full max-h-full min-h-0 ${
             slideDirection === "up"
               ? "animate-reel-enter-up"
               : slideDirection === "down"

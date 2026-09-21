@@ -12,6 +12,10 @@ interface VideoFeedItemProps {
   onToggleMute: (newMutedState: boolean) => void;
   onOpenDetail: (video: PortfolioVideo) => void;
   locale: "tr" | "en";
+  currentIndex: number;
+  totalCount: number;
+  onPrev: () => void;
+  onNext: () => void;
 }
 
 export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({
@@ -20,10 +24,16 @@ export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({
   isMuted,
   onToggleMute,
   onOpenDetail,
-  locale
+  locale,
+  currentIndex,
+  totalCount,
+  onPrev,
+  onNext
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [feedbackType, setFeedbackType] = useState<"play" | "pause" | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [hasError, setHasError] = useState<boolean>(false);
   const feedbackTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const title = locale === "tr" ? (video.shortTitleTR || video.titleTR) : (video.shortTitleEN || video.titleEN);
@@ -31,24 +41,40 @@ export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({
   const badgeLabel = isAi ? "AI REEL" : "REEL";
   const clientInfo = [video.client, video.year].filter(Boolean).join(" · ");
 
-  // Initial playback setup — runs strictly when video.id or isActive changes (never on mute toggle)
+  // Authoritative playback & stream lifecycle management
   useEffect(() => {
     const videoEl = videoRef.current;
     if (!videoEl) return;
 
+    setIsLoading(true);
+    setHasError(false);
+
     if (isActive) {
-      videoEl.currentTime = 0;
+      if (videoEl.readyState >= 3) {
+        setIsLoading(false);
+      }
       const playPromise = videoEl.play();
       if (playPromise !== undefined) {
         playPromise.catch(() => {
-          videoEl.muted = true;
-          videoEl.play().catch(() => {});
+          if (videoEl) {
+            videoEl.muted = true;
+            videoEl.play().catch(() => {});
+          }
         });
       }
     } else {
       videoEl.pause();
     }
-  }, [video.id, isActive]);
+
+    // Authoritative unmount stream cleanup: halts ongoing HTTP range downloads and frees connection
+    return () => {
+      if (videoEl) {
+        videoEl.pause();
+        videoEl.removeAttribute("src");
+        videoEl.load();
+      }
+    };
+  }, [video.id, video.src, isActive]);
 
   // Sync mute state changes in-place on the DOM element without reloading or seeking
   useEffect(() => {
@@ -56,6 +82,18 @@ export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({
       videoRef.current.muted = isMuted;
     }
   }, [isMuted]);
+
+  // Manual retry handler for failed streams
+  const handleRetry = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const videoEl = videoRef.current;
+    if (!videoEl) return;
+    setHasError(false);
+    setIsLoading(true);
+    videoEl.load();
+    videoEl.play().catch(() => {});
+  }, []);
 
   // Audio Toggle Handler — strictly toggles sound only, preserves currentTime
   const handleMuteClick = useCallback((e: React.MouseEvent) => {
@@ -98,6 +136,20 @@ export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({
       onClick={handleTogglePlay}
       data-prevent-workspace-wheel="true"
     >
+      {/* Underlying Poster Layer — remains visible while buffering */}
+      {video.poster && (
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <Image
+            src={video.poster}
+            alt={title}
+            fill
+            sizes="(max-width: 640px) 100vw, 400px"
+            className="object-contain w-full h-full"
+            priority
+          />
+        </div>
+      )}
+
       {/* Background Media / Native Video Element */}
       {video.src ? (
         <video
@@ -107,13 +159,23 @@ export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({
           poster={video.poster}
           loop
           playsInline
-          preload="metadata"
+          preload="auto"
           muted={isMuted}
-          className="w-full h-full object-contain bg-black pointer-events-none"
+          onWaiting={() => setIsLoading(true)}
+          onPlaying={() => {
+            setIsLoading(false);
+            setHasError(false);
+          }}
+          onCanPlay={() => setIsLoading(false)}
+          onError={() => {
+            setIsLoading(false);
+            setHasError(true);
+          }}
+          className="relative z-10 w-full h-full object-contain bg-transparent pointer-events-none"
         />
       ) : (
         /* Preview / Poster Fallback */
-        <div className="relative w-full h-full flex flex-col items-center justify-center bg-neutral-950 pointer-events-none">
+        <div className="relative z-10 w-full h-full flex flex-col items-center justify-center bg-neutral-950 pointer-events-none">
           {video.poster ? (
             <Image
               src={video.poster}
@@ -137,6 +199,29 @@ export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({
               {video.duration || "9:16 HD"}
             </span>
           </div>
+        </div>
+      )}
+
+      {/* Centered Buffering / Loading Indicator */}
+      {isLoading && !hasError && video.src && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+          <div className="w-9 h-9 rounded-full border-2 border-white/20 border-t-white animate-spin backdrop-blur-xs shadow-lg" />
+        </div>
+      )}
+
+      {/* Stream Failure / Retry UI */}
+      {hasError && video.src && (
+        <div className="absolute inset-0 z-25 flex flex-col items-center justify-center bg-black/60 backdrop-blur-xs p-4 text-center">
+          <p className="text-xs font-mono text-white/90 mb-2">
+            {locale === "tr" ? "Video yüklenemedi" : "Failed to load video"}
+          </p>
+          <button
+            type="button"
+            onClick={handleRetry}
+            className="px-3 py-1.5 rounded-md bg-white/20 hover:bg-white/30 text-white text-xs font-medium border border-white/30 backdrop-blur-md transition-all active:scale-95 cursor-pointer pointer-events-auto"
+          >
+            {locale === "tr" ? "Tekrar Dene" : "Retry"}
+          </button>
         </div>
       )}
 
@@ -179,7 +264,7 @@ export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({
             onClick={handleMuteClick}
             aria-label={isMuted ? getTranslation(locale, "videos_feed_unmute") : getTranslation(locale, "videos_feed_mute")}
             title={isMuted ? getTranslation(locale, "videos_feed_unmute") : getTranslation(locale, "videos_feed_mute")}
-            className="w-8 h-8 rounded-full bg-black/50 hover:bg-black/75 active:scale-90 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shadow-md transition-all pointer-events-auto cursor-pointer"
+            className="w-8 h-8 rounded-full bg-black/50 hover:bg-black/75 active:scale-90 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shadow-md transition-all pointer-events-auto cursor-pointer mr-11 sm:mr-0"
           >
             {isMuted ? (
               /* Speaker with Slash Icon */
@@ -194,6 +279,65 @@ export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({
             )}
           </button>
         )}
+      </div>
+
+      {/* Mobile Navigation Arrows & Counter (Strictly below sm breakpoint) */}
+      <div
+        className="sm:hidden absolute right-2.5 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-1.5 pointer-events-auto select-none"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Up / Previous Reel Button */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            if (currentIndex > 0) onPrev();
+          }}
+          disabled={currentIndex === 0}
+          aria-label={getTranslation(locale, "videos_feed_prev")}
+          title={getTranslation(locale, "videos_feed_prev")}
+          className={`w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-md border transition-all duration-200 cursor-pointer flex-shrink-0 ${
+            currentIndex > 0
+              ? "bg-black/50 hover:bg-black/75 active:scale-90 text-white border-white/25 shadow-md"
+              : "bg-black/20 text-white/20 border-white/10 opacity-30 cursor-not-allowed"
+          }`}
+        >
+          <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+            <path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z" />
+          </svg>
+        </button>
+
+        {/* Subtle Counter Pill */}
+        <div
+          className="px-2 py-0.5 rounded-full bg-black/50 backdrop-blur-md border border-white/15 text-[10px] font-mono font-medium tabular-nums text-white/90 shadow-xs select-none inline-flex items-center justify-center whitespace-nowrap leading-none"
+        >
+          <span>{currentIndex + 1}</span>
+          <span className="opacity-40 mx-0.5">/</span>
+          <span className="opacity-60">{totalCount}</span>
+        </div>
+
+        {/* Down / Next Reel Button */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            if (currentIndex < totalCount - 1) onNext();
+          }}
+          disabled={currentIndex >= totalCount - 1}
+          aria-label={getTranslation(locale, "videos_feed_next")}
+          title={getTranslation(locale, "videos_feed_next")}
+          className={`w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-md border transition-all duration-200 cursor-pointer flex-shrink-0 ${
+            currentIndex < totalCount - 1
+              ? "bg-black/50 hover:bg-black/75 active:scale-90 text-white border-white/25 shadow-md"
+              : "bg-black/20 text-white/20 border-white/10 opacity-30 cursor-not-allowed"
+          }`}
+        >
+          <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+            <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z" />
+          </svg>
+        </button>
       </div>
 
       {/* Bottom Minimal Portfolio Overlay (Title, Client · Year, Details CTA) */}

@@ -210,6 +210,10 @@ export const VideoFeedView: React.FC<VideoFeedViewProps> = ({
             onToggleMute={onToggleMute}
             onOpenDetail={onOpenDetail}
             locale={locale}
+            currentIndex={safeIndex}
+            totalCount={total}
+            onPrev={handlePrev}
+            onNext={handleNext}
           />
         </div>
 

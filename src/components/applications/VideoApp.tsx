@@ -94,10 +94,8 @@ export const VideoApp: React.FC = () => {
     return sortedVideos.filter((v) => activeFilter === "all" || v.type === activeFilter);
   }, [sortedVideos, activeFilter]);
 
-  // Filtered list for Reels Feed (Strictly portrait / vertical only)
-  const feedVideos = useMemo(() => {
-    return sortedVideos.filter((v) => (v.orientation ?? "portrait") === "portrait");
-  }, [sortedVideos]);
+  // List for Reels Feed (includes all videos; landscape videos display in Instagram-style reel format)
+  const feedVideos = sortedVideos;
 
   // Count calculations for filter badges in Library
   const totalCount = sortedVideos.length;

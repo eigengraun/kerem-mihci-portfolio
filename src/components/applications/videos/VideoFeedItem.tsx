@@ -26,7 +26,22 @@ export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({
   const [feedbackType, setFeedbackType] = useState<"play" | "pause" | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [hasError, setHasError] = useState<boolean>(false);
+  const [prevVideoId, setPrevVideoId] = useState(video.id);
+  const [isLandscape, setIsLandscape] = useState<boolean>(video.orientation === "landscape");
   const feedbackTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Sync orientation when video prop changes without cascading effect
+  if (video.id !== prevVideoId) {
+    setPrevVideoId(video.id);
+    setIsLandscape(video.orientation === "landscape");
+  }
+
+  const handleLoadedMetadata = useCallback((e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
+    const { videoWidth, videoHeight } = e.currentTarget;
+    if (videoWidth && videoHeight) {
+      setIsLandscape(videoWidth > videoHeight);
+    }
+  }, []);
 
   const title = locale === "tr" ? (video.shortTitleTR || video.titleTR) : (video.shortTitleEN || video.titleEN);
   const isAi = video.type === "ai-reel";
@@ -153,6 +168,7 @@ export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({
           playsInline
           preload="auto"
           muted={isMuted}
+          onLoadedMetadata={handleLoadedMetadata}
           onWaiting={() => setIsLoading(true)}
           onPlaying={() => {
             setIsLoading(false);
@@ -163,7 +179,7 @@ export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({
             setIsLoading(false);
             setHasError(true);
           }}
-          className="relative z-10 w-full h-full object-contain bg-transparent pointer-events-none"
+          className="relative z-10 w-full h-full object-contain bg-black pointer-events-none"
         />
       ) : (
         /* Preview / Poster Fallback */
@@ -236,9 +252,8 @@ export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({
         </div>
       )}
 
-      {/* Top Bar Overlay (Category Badge on Left & Audio Mute on Right) */}
-      <div className="absolute top-3.5 inset-x-3.5 flex items-center justify-between pointer-events-none z-20">
-        {/* Category Badge */}
+      {/* Category Badge — Top Left inside media card for both portrait and landscape */}
+      <div className="absolute top-3.5 left-3.5 z-20 pointer-events-none">
         <span
           className={`text-[9px] font-mono font-bold tracking-wider px-2 py-0.5 rounded-full backdrop-blur-md shadow-xs pointer-events-auto ${
             isAi
@@ -248,34 +263,66 @@ export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({
         >
           {badgeLabel}
         </span>
-
-        {/* Audio Mute/Unmute Button (Translucent Circle) */}
-        {video.src && (
-          <button
-            type="button"
-            onClick={handleMuteClick}
-            aria-label={isMuted ? getTranslation(locale, "videos_feed_unmute") : getTranslation(locale, "videos_feed_mute")}
-            title={isMuted ? getTranslation(locale, "videos_feed_unmute") : getTranslation(locale, "videos_feed_mute")}
-            className="w-8 h-8 rounded-full bg-black/50 hover:bg-black/75 active:scale-90 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shadow-md transition-all pointer-events-auto cursor-pointer"
-          >
-            {isMuted ? (
-              /* Speaker with Slash Icon */
-              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
-              </svg>
-            ) : (
-              /* Sound Active Waves Icon */
-              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
-              </svg>
-            )}
-          </button>
-        )}
       </div>
+
+      {/* Audio Mute/Unmute Button — Anchored to top-right of video */}
+      {video.src && (
+        <>
+          {isLandscape ? (
+            /* Landscape: Anchored to the centered 16:9 media rectangle */
+            <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 aspect-video pointer-events-none z-20">
+              <div className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 pointer-events-none">
+                <button
+                  type="button"
+                  onClick={handleMuteClick}
+                  aria-label={isMuted ? getTranslation(locale, "videos_feed_unmute") : getTranslation(locale, "videos_feed_mute")}
+                  title={isMuted ? getTranslation(locale, "videos_feed_unmute") : getTranslation(locale, "videos_feed_mute")}
+                  className="w-8 h-8 rounded-full bg-black/50 hover:bg-black/75 active:scale-90 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shadow-md transition-all pointer-events-auto cursor-pointer"
+                >
+                  {isMuted ? (
+                    <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                      <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                      <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* Portrait: Anchored to top-right of 9:16 card */
+            <div className="absolute top-3.5 right-3.5 z-20 pointer-events-none">
+              <button
+                type="button"
+                onClick={handleMuteClick}
+                aria-label={isMuted ? getTranslation(locale, "videos_feed_unmute") : getTranslation(locale, "videos_feed_mute")}
+                title={isMuted ? getTranslation(locale, "videos_feed_unmute") : getTranslation(locale, "videos_feed_mute")}
+                className="w-8 h-8 rounded-full bg-black/50 hover:bg-black/75 active:scale-90 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shadow-md transition-all pointer-events-auto cursor-pointer"
+              >
+                {isMuted ? (
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                    <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                    <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77z" />
+                  </svg>
+                )}
+              </button>
+            </div>
+          )}
+        </>
+      )}
 
       {/* Bottom Minimal Portfolio Overlay (Title, Client · Year, Details CTA) */}
       <div
-        className="absolute bottom-0 inset-x-0 pt-10 sm:pt-14 pb-2.5 sm:pb-3.5 px-3 sm:px-3.5 bg-gradient-to-t from-black/85 via-black/40 to-transparent flex flex-col gap-1 z-20 pointer-events-auto"
+        className={`absolute bottom-0 inset-x-0 ${
+          isLandscape
+            ? "pt-6 pb-3 sm:pb-3.5 px-3.5 sm:px-4"
+            : "pt-10 sm:pt-14 pb-2.5 sm:pb-3.5 px-3 sm:px-3.5"
+        } bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col gap-1 z-20 pointer-events-auto`}
         onClick={handleTogglePlay}
       >
         {/* Title */}

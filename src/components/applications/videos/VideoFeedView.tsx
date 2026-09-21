@@ -177,7 +177,7 @@ export const VideoFeedView: React.FC<VideoFeedViewProps> = ({
       )}
 
       {/* Centered Single Reel Viewer Stage: Mathematically Centered in Window Content */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 px-[58px] sm:px-14 py-2 sm:py-2 overflow-hidden">
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 px-[58px] sm:px-16 py-2 sm:py-2 overflow-hidden">
         {/* Strictly SINGLE active 9:16 Video Frame with Smooth Glide Animation */}
         <div
           key={currentVideo.id}
@@ -202,7 +202,7 @@ export const VideoFeedView: React.FC<VideoFeedViewProps> = ({
 
       {/* Right-Side Unified Control Rail: Grid Button + Navigation Stack Share Single Vertical Axis */}
       <div
-        className="absolute right-2 sm:right-3.5 inset-y-0 w-11 sm:w-14 flex flex-col items-center pointer-events-none z-30 py-3 sm:py-3.5"
+        className="absolute right-2.5 sm:right-4 inset-y-0 w-10 sm:w-11 flex flex-col items-center pointer-events-none z-30 py-3.5 sm:py-4"
         data-reels-right-rail="true"
       >
         {/* Top: Minimal Grid/Library Icon Button */}
@@ -211,7 +211,7 @@ export const VideoFeedView: React.FC<VideoFeedViewProps> = ({
           onClick={onOpenLibrary}
           aria-label={getTranslation(locale, "videos_view_library")}
           title={getTranslation(locale, "videos_view_library")}
-          className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-black/45 hover:bg-black/70 active:scale-90 backdrop-blur-md border border-white/20 text-white shadow-md flex items-center justify-center transition-all cursor-pointer pointer-events-auto flex-shrink-0"
+          className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-black/50 hover:bg-black/75 active:scale-90 backdrop-blur-md border border-white/20 text-white shadow-md flex items-center justify-center transition-all cursor-pointer pointer-events-auto flex-shrink-0"
         >
           {/* 4-Squares Grid Icon */}
           <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" viewBox="0 0 24 24">

@@ -83,6 +83,7 @@ export const VideoDetail: React.FC<VideoDetailProps> = ({ video, onBack, onOpenF
         services={services}
         videoRef={videoRef}
         onBack={handleBackClick}
+        onOpenFeed={onOpenFeed}
         handleOpenProject={handleOpenProject}
       />
     );
@@ -118,6 +119,7 @@ interface LandscapeVideoDetailProps {
   services?: string[];
   videoRef: React.RefObject<HTMLVideoElement | null>;
   onBack: () => void;
+  onOpenFeed?: (video: PortfolioVideo) => void;
   handleOpenProject: () => void;
 }
 
@@ -131,6 +133,7 @@ const LandscapeVideoDetail: React.FC<LandscapeVideoDetailProps> = ({
   services,
   videoRef,
   onBack,
+  onOpenFeed,
   handleOpenProject
 }) => {
   return (
@@ -303,32 +306,41 @@ const LandscapeVideoDetail: React.FC<LandscapeVideoDetailProps> = ({
           )}
 
           {/* Action Links */}
-          {(video.projectSlug || video.externalUrl) && (
-            <div className="pt-3 border-t border-[var(--app-divider)] flex flex-wrap items-center gap-2">
-              {video.projectSlug && (
-                <button
-                  type="button"
-                  onClick={handleOpenProject}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--app-surface-subtle)] hover:bg-[var(--app-surface-hover)] border border-[var(--app-border)] text-[var(--app-text-primary)] shadow-xs transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 active:scale-95"
-                >
-                  <span>{getTranslation(locale, "videos_view_project")}</span>
-                  <span>↗</span>
-                </button>
-              )}
+          <div className="pt-3 border-t border-[var(--app-divider)] flex flex-wrap items-center gap-2">
+            {onOpenFeed && (
+              <button
+                type="button"
+                onClick={() => onOpenFeed(video)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#1967E8] text-white hover:bg-blue-600 shadow-xs transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 active:scale-95"
+              >
+                <span>{getTranslation(locale, "videos_feed_open_in_reels")}</span>
+                <span>▶</span>
+              </button>
+            )}
 
-              {video.externalUrl && (
-                <a
-                  href={video.externalUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--app-surface-subtle)] hover:bg-[var(--app-surface-hover)] border border-[var(--app-border)] text-[var(--app-text-primary)] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 active:scale-95"
-                >
-                  <span>{getTranslation(locale, "videos_external_link")}</span>
-                  <span>↗</span>
-                </a>
-              )}
-            </div>
-          )}
+            {video.projectSlug && (
+              <button
+                type="button"
+                onClick={handleOpenProject}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--app-surface-subtle)] hover:bg-[var(--app-surface-hover)] border border-[var(--app-border)] text-[var(--app-text-primary)] shadow-xs transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 active:scale-95"
+              >
+                <span>{getTranslation(locale, "videos_view_project")}</span>
+                <span>↗</span>
+              </button>
+            )}
+
+            {video.externalUrl && (
+              <a
+                href={video.externalUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--app-surface-subtle)] hover:bg-[var(--app-surface-hover)] border border-[var(--app-border)] text-[var(--app-text-primary)] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 active:scale-95"
+              >
+                <span>{getTranslation(locale, "videos_external_link")}</span>
+                <span>↗</span>
+              </a>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -540,7 +552,7 @@ const PortraitVideoDetail: React.FC<PortraitVideoDetailProps> = ({
 
           {/* Action Links */}
           <div className="pt-3 border-t border-[var(--app-divider)] flex flex-wrap items-center gap-2">
-            {onOpenFeed && (video.orientation ?? "portrait") === "portrait" && (
+            {onOpenFeed && (
               <button
                 type="button"
                 onClick={() => onOpenFeed(video)}

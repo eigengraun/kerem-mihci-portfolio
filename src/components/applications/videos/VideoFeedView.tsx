@@ -182,7 +182,7 @@ export const VideoFeedView: React.FC<VideoFeedViewProps> = ({
         onClick={onOpenLibrary}
         aria-label={getTranslation(locale, "videos_view_library")}
         title={getTranslation(locale, "videos_view_library")}
-        className="absolute top-3.5 right-4 z-40 w-9 h-9 rounded-full bg-black/40 hover:bg-black/70 active:scale-90 backdrop-blur-md border border-white/20 text-white shadow-md flex items-center justify-center transition-all cursor-pointer"
+        className="absolute top-3.5 right-3.5 sm:right-4 z-40 w-9 h-9 rounded-full bg-black/40 hover:bg-black/70 active:scale-90 backdrop-blur-md border border-white/20 text-white shadow-md flex items-center justify-center transition-all cursor-pointer"
       >
         {/* 4-Squares Grid Icon */}
         <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
@@ -191,11 +191,11 @@ export const VideoFeedView: React.FC<VideoFeedViewProps> = ({
       </button>
 
       {/* Centered Single Reel Viewer Stage */}
-      <div className="relative flex items-center justify-center gap-3 sm:gap-4 z-10 w-full h-full max-w-full max-h-full min-h-0 overflow-hidden sm:overflow-visible">
+      <div className="relative flex items-center justify-center gap-2 sm:gap-4 z-10 w-full h-full max-w-full max-h-full min-h-0 overflow-hidden sm:overflow-visible">
         {/* Strictly SINGLE active 9:16 Video Frame with Smooth Glide Animation */}
         <div
           key={currentVideo.id}
-          className={`flex items-center justify-center w-full h-full max-h-full min-h-0 ${
+          className={`flex items-center justify-center h-full max-h-full min-h-0 min-w-0 max-w-[calc(100%-52px)] sm:max-w-full ${
             slideDirection === "up"
               ? "animate-reel-enter-up"
               : slideDirection === "down"
@@ -210,15 +210,11 @@ export const VideoFeedView: React.FC<VideoFeedViewProps> = ({
             onToggleMute={onToggleMute}
             onOpenDetail={onOpenDetail}
             locale={locale}
-            currentIndex={safeIndex}
-            totalCount={total}
-            onPrev={handlePrev}
-            onNext={handleNext}
           />
         </div>
 
-        {/* Floating Right Navigation Controls on Desktop & Tablet */}
-        <div className="hidden sm:flex flex-shrink-0 w-16 min-w-[64px] justify-center items-center overflow-visible">
+        {/* Right-Side Navigation Rail in Window Gutter (Mobile & Desktop) */}
+        <div className="flex flex-shrink-0 w-11 sm:w-16 justify-center items-center overflow-visible z-20">
           <VideoNavigationControls
             currentIndex={safeIndex}
             totalCount={total}

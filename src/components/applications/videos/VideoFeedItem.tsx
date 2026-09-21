@@ -12,10 +12,6 @@ interface VideoFeedItemProps {
   onToggleMute: (newMutedState: boolean) => void;
   onOpenDetail: (video: PortfolioVideo) => void;
   locale: "tr" | "en";
-  currentIndex: number;
-  totalCount: number;
-  onPrev: () => void;
-  onNext: () => void;
 }
 
 export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({
@@ -24,11 +20,7 @@ export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({
   isMuted,
   onToggleMute,
   onOpenDetail,
-  locale,
-  currentIndex,
-  totalCount,
-  onPrev,
-  onNext
+  locale
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [feedbackType, setFeedbackType] = useState<"play" | "pause" | null>(null);
@@ -264,7 +256,7 @@ export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({
             onClick={handleMuteClick}
             aria-label={isMuted ? getTranslation(locale, "videos_feed_unmute") : getTranslation(locale, "videos_feed_mute")}
             title={isMuted ? getTranslation(locale, "videos_feed_unmute") : getTranslation(locale, "videos_feed_mute")}
-            className="w-8 h-8 rounded-full bg-black/50 hover:bg-black/75 active:scale-90 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shadow-md transition-all pointer-events-auto cursor-pointer mr-11 sm:mr-0"
+            className="w-8 h-8 rounded-full bg-black/50 hover:bg-black/75 active:scale-90 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shadow-md transition-all pointer-events-auto cursor-pointer"
           >
             {isMuted ? (
               /* Speaker with Slash Icon */
@@ -279,65 +271,6 @@ export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({
             )}
           </button>
         )}
-      </div>
-
-      {/* Mobile Navigation Arrows & Counter (Strictly below sm breakpoint) */}
-      <div
-        className="sm:hidden absolute right-2.5 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-1.5 pointer-events-auto select-none"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Up / Previous Reel Button */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            if (currentIndex > 0) onPrev();
-          }}
-          disabled={currentIndex === 0}
-          aria-label={getTranslation(locale, "videos_feed_prev")}
-          title={getTranslation(locale, "videos_feed_prev")}
-          className={`w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-md border transition-all duration-200 cursor-pointer flex-shrink-0 ${
-            currentIndex > 0
-              ? "bg-black/50 hover:bg-black/75 active:scale-90 text-white border-white/25 shadow-md"
-              : "bg-black/20 text-white/20 border-white/10 opacity-30 cursor-not-allowed"
-          }`}
-        >
-          <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-            <path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z" />
-          </svg>
-        </button>
-
-        {/* Subtle Counter Pill */}
-        <div
-          className="px-2 py-0.5 rounded-full bg-black/50 backdrop-blur-md border border-white/15 text-[10px] font-mono font-medium tabular-nums text-white/90 shadow-xs select-none inline-flex items-center justify-center whitespace-nowrap leading-none"
-        >
-          <span>{currentIndex + 1}</span>
-          <span className="opacity-40 mx-0.5">/</span>
-          <span className="opacity-60">{totalCount}</span>
-        </div>
-
-        {/* Down / Next Reel Button */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            if (currentIndex < totalCount - 1) onNext();
-          }}
-          disabled={currentIndex >= totalCount - 1}
-          aria-label={getTranslation(locale, "videos_feed_next")}
-          title={getTranslation(locale, "videos_feed_next")}
-          className={`w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-md border transition-all duration-200 cursor-pointer flex-shrink-0 ${
-            currentIndex < totalCount - 1
-              ? "bg-black/50 hover:bg-black/75 active:scale-90 text-white border-white/25 shadow-md"
-              : "bg-black/20 text-white/20 border-white/10 opacity-30 cursor-not-allowed"
-          }`}
-        >
-          <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-            <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z" />
-          </svg>
-        </button>
       </div>
 
       {/* Bottom Minimal Portfolio Overlay (Title, Client · Year, Details CTA) */}

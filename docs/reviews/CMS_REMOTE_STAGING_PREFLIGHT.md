@@ -45,20 +45,14 @@ Based on machine-readable reconciliation data ([`docs/reviews/cms-reconciliation
 ## 3. Cloudflare Account & CLI Preflight
 
 - **Installed Wrangler Version:** `4.151.2` (`npx wrangler --version`)
-- **Authentication Status:** Currently **Unauthenticated** (`npx wrangler whoami` reports `You are not authenticated. Please run wrangler login.`)
-- **Interactive Authentication Procedure:**
-  To authenticate safely without transmitting API tokens through the chat:
-  ```bash
-  cd /Volumes/EMIX_WORK/02_DEV/GEMINI/CreativePortfolio/cloudflare/portfolio-api
-  npx wrangler login
-  ```
-  This command will open an interactive browser tab to authenticate with your Cloudflare account.
-- **Account Identification Safety:**
-  After login, run:
-  ```bash
-  npx wrangler whoami
-  ```
-  If your account has multiple Account IDs or Organizations, Wrangler will display them. Staging commands must use the designated personal/portfolio account and must never guess or alter an unrelated organization.
+- **Authentication Status:** **Authenticated via OAuth** (`npx wrangler whoami`)
+- **Account Name:** `Kerem.mihci@ogr.iuc.edu.tr's Account`
+- **Account ID:** `9791a288e2e99e7f3403590480e3ad6f`
+- **Authenticated Email:** `kerem.mihci@ogr.iuc.edu.tr`
+- **Live Resource Preflight Checks:**
+  - **D1 Databases (`npx wrangler d1 list`):** `[]` (0 databases exist; `kerem-portfolio-db-staging` is completely clear to create).
+  - **Worker Deployments:** `code 10047: This Worker does not exist on your account` (`kerem-mihci-portfolio-api-staging` does not exist; clear to deploy).
+  - **R2 Storage (`npx wrangler r2 bucket list`):** Returned `code 10042: Please enable R2 through the Cloudflare Dashboard.` (R2 has not yet been activated on this Cloudflare account in the Cloudflare web dashboard).
 
 ---
 
@@ -245,19 +239,17 @@ Once staging infrastructure is provisioned, the following 20 acceptance tests wi
 ## 12. Explicit Approval Gate
 
 ### Current Status
-**Local Preflight Complete. Remote Mutation Halted.**
+**Authentication Confirmed (`kerem.mihci@ogr.iuc.edu.tr`). Remote Resource Mutation Halted Pending Approval.**
 
-### User Action Required
-1. Log in to your Cloudflare account in your terminal:
-   ```bash
-   cd /Volumes/EMIX_WORK/02_DEV/GEMINI/CreativePortfolio/cloudflare/portfolio-api
-   npx wrangler login
-   ```
-2. Verify your account with `npx wrangler whoami`.
-3. Provide explicit authorization to create the following staging resources:
-   - D1: `kerem-portfolio-db-staging`
-   - R2: `kerem-portfolio-media-staging`
-   - Worker: `kerem-mihci-portfolio-api-staging` (on `workers.dev`)
+### Action Required for R2
+`npx wrangler r2 bucket list` returned `code 10042: Please enable R2 through the Cloudflare Dashboard.`
+Before an R2 bucket can be provisioned via Wrangler, open the Cloudflare Dashboard for account `9791a288e2e99e7f3403590480e3ad6f` (`Kerem.mihci@ogr.iuc.edu.tr's Account`), navigate to **R2 Object Storage**, and click **Enable R2**.
+
+### Explicit Approval Requested
+Once R2 is enabled, please confirm your authorization to provision:
+1. Cloudflare D1 database: `kerem-portfolio-db-staging`
+2. Cloudflare R2 bucket: `kerem-portfolio-media-staging`
+3. Cloudflare Worker: `kerem-mihci-portfolio-api-staging` (workers.dev)
 
 ---
 
@@ -267,4 +259,5 @@ Once staging infrastructure is provisioned, the following 20 acceptance tests wi
 
 - Local implementation: **100% Verified** (all 11 test stages passed, 0 build/lint/type errors).
 - Data parity: **100% Verified** (30 projects, 0 field differences).
-- Remote mutation: **Safely Deferred** until interactive login and user authorization.
+- Account Authentication: **Verified** (`Kerem.mihci@ogr.iuc.edu.tr's Account`, ID `9791a288e2e99e7f3403590480e3ad6f`).
+- Remote mutation: **Safely Halted** pending R2 dashboard enablement and explicit user approval.

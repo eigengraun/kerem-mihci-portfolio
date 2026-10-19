@@ -252,7 +252,7 @@ export async function clearLoginRateLimit(
  * Strictly disables dev-fixture bypass in production storage mode.
  */
 export function isDevFixtureAllowed(): boolean {
-  if (getCmsStorageMode() === "production") {
+  if (getCmsStorageMode() === "production" || getCmsStorageMode() === "staging") {
     return false;
   }
   if (process.env.ADMIN_DEV_AUTH_BYPASS === "false") {
@@ -274,7 +274,7 @@ export function isScryptPasswordHash(hash: string): boolean {
 
 export function getAdminAuthConfigStatus() {
   const storageMode = getCmsStorageMode();
-  const isProdMode = storageMode === "production";
+  const isProdMode = storageMode === "production" || storageMode === "staging";
   const hasSessionSecret = Boolean(
     process.env.ADMIN_SESSION_SECRET && process.env.ADMIN_SESSION_SECRET.trim().length >= 16
   );
@@ -342,7 +342,7 @@ export function hashAdminPasswordScrypt(password: string, saltHex?: string): str
 
 export function verifyAdminPasswordConstantTime(candidatePassword: string): boolean {
   const storageMode = getCmsStorageMode();
-  const isProdMode = storageMode === "production";
+  const isProdMode = storageMode === "production" || storageMode === "staging";
   const configuredHash = (process.env.ADMIN_PASSWORD_HASH || "").trim();
 
   if (configuredHash.startsWith("scrypt:")) {

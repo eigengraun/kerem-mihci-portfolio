@@ -1,7 +1,7 @@
 {
-  "startedAt": "2026-10-19T22:38:55.974Z",
+  "startedAt": "2026-10-19T23:00:49.532Z",
   "workerUrl": "https://kerem-mihci-portfolio-api-staging.kerem-mihci.workers.dev",
-  "testProjectSlug": "staging-e2e-e64cc606",
+  "testProjectSlug": "staging-e2e-271ab35d",
   "steps": {
     "step1_workerHealth": {
       "status": "PASS",
@@ -14,14 +14,14 @@
     "step3_adminLogin": "PASS",
     "step4_d1DurableSession": {
       "status": "PASS",
-      "actorEmail": "staging-runner-e64cc606@keremmihci.com",
+      "actorEmail": "staging-runner-271ab35d@keremmihci.com",
       "role": "owner",
       "revoked_at": null
     },
     "step5_r2MediaUpload": {
       "status": "PASS",
-      "mediaId": "media-b5fc8b3a-a15c-4e2d-b080-a8102ca5bd23",
-      "storageKey": "projects/staging-e2e-e64cc606/cover/2026/10/a5379036-staging-e2e-e64cc606-cover.webp",
+      "mediaId": "media-025a00f2-3840-41bb-b913-45b4ffae77af",
+      "storageKey": "projects/staging-e2e-271ab35d/cover/2026/10/a137002f-staging-e2e-271ab35d-cover.webp",
       "mimeType": "image/webp"
     },
     "step6_createDraft": "PASS",
@@ -35,5 +35,5 @@
     "step13_cleanup": "PASS"
   },
   "allPassed": true,
-  "completedAt": "2026-10-19T22:39:50.096Z"
+  "completedAt": "2026-10-19T23:01:33.436Z"
 }

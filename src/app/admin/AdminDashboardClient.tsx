@@ -16,22 +16,12 @@ import {
   type UpsertProjectInput,
   type WorkspaceCategory
 } from "@/lib/portfolio/types";
-import type {
-  AnalyticsDateRange,
-  Ga4ReportData,
-  GscReportData,
-  ProjectTrafficInsight
-} from "@/lib/admin/googleAnalyticsAndGsc";
-
 type AdminTab =
   | "overview"
   | "projects"
   | "editor"
   | "media"
   | "featured"
-  | "ga4"
-  | "gsc"
-  | "project-traffic"
   | "system"
   | "settings";
 
@@ -148,16 +138,27 @@ export function AdminDashboardClient({
   const [mediaList, setMediaList] = useState<CmsMediaRecord[]>([]);
   const [systemInfo, setSystemInfo] = useState<SystemPayload | null>(null);
 
-  // Analytics state
-  const [analyticsRange, setAnalyticsRange] = useState<AnalyticsDateRange>("28d");
-  const [ga4Data, setGa4Data] = useState<Ga4ReportData | null>(null);
-  const [gscData, setGscData] = useState<GscReportData | null>(null);
-  const [projectInsights, setProjectInsights] = useState<ProjectTrafficInsight[]>([]);
-
   // Filter state
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [workspaceFilter, setWorkspaceFilter] = useState<string>("all");
+
+  // Derived CMS statistics
+  const workspaceCounts = useMemo(() => {
+    const counts = { design: 0, web: 0, "motion-ai": 0 };
+    for (const p of projects) {
+      if (p.workspace in counts) {
+        counts[p.workspace as keyof typeof counts]++;
+      }
+    }
+    return counts;
+  }, [projects]);
+
+  const recentlyModifiedProjects = useMemo(() => {
+    return [...projects]
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      .slice(0, 6);
+  }, [projects]);
 
   // Editor state
   const [editorMode, setEditorMode] = useState<"create" | "edit">("create");
@@ -202,32 +203,13 @@ export function AdminDashboardClient({
     }
   }, [session]);
 
-  const loadAnalyticsData = useCallback(
-    async (range: AnalyticsDateRange) => {
-      if (!session) return;
-      try {
-        const res = await fetch(`/api/admin/analytics?range=${range}`, { cache: "no-store" });
-        if (res.ok) {
-          const data = await res.json();
-          setGa4Data(data.ga4 || null);
-          setGscData(data.gsc || null);
-          setProjectInsights(data.projectInsights || []);
-        }
-      } catch (err) {
-        console.error("Failed to load analytics:", err);
-      }
-    },
-    [session]
-  );
-
   useEffect(() => {
     if (!session) return;
     const timer = setTimeout(() => {
       void loadCoreData();
-      void loadAnalyticsData(analyticsRange);
     }, 0);
     return () => clearTimeout(timer);
-  }, [session, loadCoreData, loadAnalyticsData, analyticsRange]);
+  }, [session, loadCoreData]);
 
   const handleLogin = async (mode: "master-password" | "dev-fixture") => {
     setLoginBusy(true);
@@ -553,7 +535,7 @@ export function AdminDashboardClient({
                 Portfolio OS • Private Admin
               </span>
               <h1 className="text-xl font-bold text-white mt-1">
-                Cloudflare CMS & Analytics
+                Portfolio OS CMS Dashboard
               </h1>
             </div>
             <span className="px-2.5 py-1 rounded text-[10px] font-mono bg-white/5 border border-white/10 text-neutral-400">
@@ -566,7 +548,7 @@ export function AdminDashboardClient({
               <p className="font-semibold">Fail-Closed Protection Active</p>
               <p>
                 Admin authentication secrets (<code>ADMIN_SESSION_SECRET</code> and{" "}
-                <code>ADMIN_MASTER_PASSWORD</code> / Google OAuth) are not configured in this
+                <code>ADMIN_PASSWORD_HASH</code>) are not configured in this
                 production environment. Access is denied by default.
               </p>
             </div>
@@ -669,18 +651,7 @@ export function AdminDashboardClient({
       label: "Featured Manager",
       badge: health?.counts.featuredPublished ?? 0
     },
-    {
-      id: "ga4",
-      label: "Analytics (GA4)",
-      badge: ga4Data?.status === "LIVE" ? "LIVE" : "CFG"
-    },
-    {
-      id: "gsc",
-      label: "Search Console",
-      badge: gscData?.status === "LIVE" ? "LIVE" : "CFG"
-    },
-    { id: "project-traffic", label: "Project Traffic" },
-    { id: "system", label: "System & Audit Logs" },
+    { id: "system", label: "System & Cloudflare" },
     { id: "settings", label: "Settings" }
   ];
 
@@ -785,8 +756,7 @@ export function AdminDashboardClient({
             <button
               type="button"
               onClick={() => {
-                loadCoreData();
-                loadAnalyticsData(analyticsRange);
+                void loadCoreData();
               }}
               className="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono text-neutral-300 cursor-pointer"
             >
@@ -839,7 +809,7 @@ export function AdminDashboardClient({
               </div>
             </div>
 
-            {/* Infrastructure & Analytics Connection Cards */}
+            {/* Infrastructure & CMS Workspace Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="p-5 rounded-xl bg-[#131620] border border-white/10 space-y-2">
                 <div className="flex items-center justify-between">
@@ -863,54 +833,121 @@ export function AdminDashboardClient({
 
               <div className="p-5 rounded-xl bg-[#131620] border border-white/10 space-y-2">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-white">Google Analytics 4</h3>
-                  <span
-                    className={`px-2 py-0.5 rounded text-[10px] font-mono border ${
-                      ga4Data?.status === "LIVE"
-                        ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
-                        : "bg-amber-500/20 text-amber-300 border-amber-500/30"
-                    }`}
-                  >
-                    {ga4Data?.status || "CHECKING"}
+                  <h3 className="text-sm font-semibold text-white">Projects by Workspace</h3>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                    {projects.length} Total
                   </span>
                 </div>
-                {ga4Data?.status === "LIVE" && ga4Data.overview ? (
-                  <p className="text-xs text-neutral-300">
-                    28d Active Users: <strong>{ga4Data.overview.activeUsers}</strong> • Views:{" "}
-                    <strong>{ga4Data.overview.screenPageViews}</strong>
-                  </p>
-                ) : (
-                  <p className="text-xs text-neutral-400">
-                    Requires <code>GA4_PROPERTY_ID</code> & Google Service Account credentials. No
-                    fabricated metrics are shown.
-                  </p>
-                )}
+                <div className="grid grid-cols-3 gap-2 pt-1 text-center font-mono">
+                  <div className="p-2 rounded bg-black/30 border border-white/5">
+                    <span className="text-[10px] text-neutral-400 uppercase block">Design</span>
+                    <span className="text-sm font-bold text-white">{workspaceCounts.design}</span>
+                  </div>
+                  <div className="p-2 rounded bg-black/30 border border-white/5">
+                    <span className="text-[10px] text-neutral-400 uppercase block">Web</span>
+                    <span className="text-sm font-bold text-white">{workspaceCounts.web}</span>
+                  </div>
+                  <div className="p-2 rounded bg-black/30 border border-white/5">
+                    <span className="text-[10px] text-neutral-400 uppercase block">Motion / AI</span>
+                    <span className="text-sm font-bold text-white">{workspaceCounts["motion-ai"]}</span>
+                  </div>
+                </div>
               </div>
 
               <div className="p-5 rounded-xl bg-[#131620] border border-white/10 space-y-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-white">Google Search Console</h3>
-                  <span
-                    className={`px-2 py-0.5 rounded text-[10px] font-mono border ${
-                      gscData?.status === "LIVE"
-                        ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
-                        : "bg-amber-500/20 text-amber-300 border-amber-500/30"
-                    }`}
+                <h3 className="text-sm font-semibold text-white">Quick CMS Actions</h3>
+                <div className="flex flex-col gap-2 pt-1">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={openCreateEditor}
+                      className="flex-1 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white cursor-pointer text-center"
+                    >
+                      + Create Project
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("media")}
+                      className="flex-1 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-medium text-neutral-200 cursor-pointer text-center"
+                    >
+                      Upload Media
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("featured")}
+                    className="w-full px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-medium text-neutral-300 cursor-pointer text-center"
                   >
-                    {gscData?.status || "CHECKING"}
-                  </span>
+                    Manage Featured ({health?.counts.featuredPublished ?? 0})
+                  </button>
                 </div>
-                {gscData?.status === "LIVE" && gscData.totals ? (
-                  <p className="text-xs text-neutral-300">
-                    28d Clicks: <strong>{gscData.totals.clicks}</strong> • Impressions:{" "}
-                    <strong>{gscData.totals.impressions}</strong>
-                  </p>
-                ) : (
-                  <p className="text-xs text-neutral-400">
-                    Property: <code>{gscData?.siteUrl || "sc-domain:keremmihci.com"}</code>. Awaiting
-                    Service Account credentials.
-                  </p>
-                )}
+              </div>
+            </div>
+
+            {/* Recently Modified Projects */}
+            <div className="p-5 rounded-xl bg-[#131620] border border-white/10">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-white">Recently Modified Projects</h3>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("projects")}
+                  className="text-xs text-blue-400 hover:text-blue-300 font-mono cursor-pointer"
+                >
+                  View All ({projects.length}) →
+                </button>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-white/10 text-neutral-400 font-mono">
+                      <th className="py-2 pr-4">Project</th>
+                      <th className="py-2 pr-4">Workspace</th>
+                      <th className="py-2 pr-4">Status</th>
+                      <th className="py-2 pr-4">Last Updated</th>
+                      <th className="py-2 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {recentlyModifiedProjects.map((p) => (
+                      <tr key={p.id}>
+                        <td className="py-2 pr-4">
+                          <div className="font-semibold text-white">{p.titleTR}</div>
+                          <div className="text-[11px] font-mono text-neutral-500">/{p.slug}</div>
+                        </td>
+                        <td className="py-2 pr-4">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-white/5 text-neutral-300">
+                            {p.workspace}
+                          </span>
+                        </td>
+                        <td className="py-2 pr-4">
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-mono uppercase ${
+                              p.cmsStatus === "published"
+                                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                                : p.cmsStatus === "draft"
+                                ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                                : "bg-neutral-500/20 text-neutral-400 border border-neutral-500/30"
+                            }`}
+                          >
+                            {p.cmsStatus}
+                          </span>
+                        </td>
+                        <td className="py-2 pr-4 font-mono text-neutral-400">
+                          {new Date(p.updatedAt).toLocaleString()}
+                        </td>
+                        <td className="py-2 text-right">
+                          <button
+                            type="button"
+                            onClick={() => void openEditEditor(p)}
+                            className="px-2.5 py-1 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono text-neutral-300 hover:text-white cursor-pointer"
+                          >
+                            Edit
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
 
@@ -1752,263 +1789,7 @@ export function AdminDashboardClient({
         )}
 
         {/* ======================================================
-            6. GOOGLE ANALYTICS 4 (GA4) TAB
-           ====================================================== */}
-        {activeTab === "ga4" && (
-          <div className="space-y-6" data-testid="admin-ga4-section">
-            <div className="flex flex-wrap items-center justify-between gap-4 bg-[#131620] p-4 rounded-xl border border-white/10">
-              <div>
-                <h3 className="text-sm font-semibold text-white">
-                  Google Analytics 4 Data API Report
-                </h3>
-                <p className="text-xs text-neutral-400 font-mono">
-                  Property ID: {ga4Data?.propertyId || "Not Configured"} • Stream:{" "}
-                  {ga4Data?.measurementId || "Not Configured"}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                {(["7d", "28d", "90d"] as AnalyticsDateRange[]).map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setAnalyticsRange(r)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-mono cursor-pointer ${
-                      analyticsRange === r
-                        ? "bg-blue-600 text-white"
-                        : "bg-white/5 text-neutral-400 hover:text-white"
-                    }`}
-                  >
-                    Last {r}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {ga4Data?.status !== "LIVE" ? (
-              <div
-                data-testid="ga4-not-configured-banner"
-                className="p-6 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-3"
-              >
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-bold text-amber-300">
-                    GA4 Data API Integration: {ga4Data?.status || "NOT_CONFIGURED"}
-                  </h4>
-                  <span className="px-2.5 py-0.5 rounded text-[10px] font-mono bg-amber-500/20 text-amber-200">
-                    ZERO FABRICATED METRICS
-                  </span>
-                </div>
-                <p className="text-xs text-neutral-300">
-                  Real server-side GA4 Data API reporting is implemented and ready. To activate live
-                  data fetching, provide the following environment variables on the server:
-                </p>
-                <ul className="list-disc list-inside text-xs font-mono text-amber-200 space-y-1">
-                  {(ga4Data?.missingEnvVars || ["GA4_PROPERTY_ID", "GOOGLE_SERVICE_ACCOUNT_JSON"]).map(
-                    (v) => (
-                      <li key={v}>{v}</li>
-                    )
-                  )}
-                </ul>
-                {ga4Data?.errorMessage && (
-                  <p className="text-xs font-mono text-red-300">API Error: {ga4Data.errorMessage}</p>
-                )}
-              </div>
-            ) : (
-              ga4Data.overview && (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    <div className="p-4 rounded-xl bg-[#131620] border border-white/10">
-                      <span className="text-[11px] font-mono text-neutral-400">Active Users</span>
-                      <p className="text-2xl font-bold text-white mt-1">
-                        {ga4Data.overview.activeUsers}
-                      </p>
-                    </div>
-                    <div className="p-4 rounded-xl bg-[#131620] border border-white/10">
-                      <span className="text-[11px] font-mono text-neutral-400">Sessions</span>
-                      <p className="text-2xl font-bold text-white mt-1">
-                        {ga4Data.overview.sessions}
-                      </p>
-                    </div>
-                    <div className="p-4 rounded-xl bg-[#131620] border border-white/10">
-                      <span className="text-[11px] font-mono text-neutral-400">Page Views</span>
-                      <p className="text-2xl font-bold text-white mt-1">
-                        {ga4Data.overview.screenPageViews}
-                      </p>
-                    </div>
-                    <div className="p-4 rounded-xl bg-[#131620] border border-white/10">
-                      <span className="text-[11px] font-mono text-neutral-400">Realtime Users</span>
-                      <p className="text-2xl font-bold text-emerald-400 mt-1">
-                        {ga4Data.realtimeActiveUsers ?? 0}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )
-            )}
-          </div>
-        )}
-
-        {/* ======================================================
-            7. GOOGLE SEARCH CONSOLE (GSC) TAB
-           ====================================================== */}
-        {activeTab === "gsc" && (
-          <div className="space-y-6" data-testid="admin-gsc-section">
-            <div className="flex flex-wrap items-center justify-between gap-4 bg-[#131620] p-4 rounded-xl border border-white/10">
-              <div>
-                <h3 className="text-sm font-semibold text-white">
-                  Google Search Console Search Analytics API
-                </h3>
-                <p className="text-xs text-neutral-400 font-mono">
-                  Property: {gscData?.siteUrl || "sc-domain:keremmihci.com"}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                {(["7d", "28d", "90d"] as AnalyticsDateRange[]).map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setAnalyticsRange(r)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-mono cursor-pointer ${
-                      analyticsRange === r
-                        ? "bg-blue-600 text-white"
-                        : "bg-white/5 text-neutral-400 hover:text-white"
-                    }`}
-                  >
-                    Last {r}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {gscData?.status !== "LIVE" ? (
-              <div
-                data-testid="gsc-not-configured-banner"
-                className="p-6 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-3"
-              >
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-bold text-amber-300">
-                    Search Console API Integration: {gscData?.status || "NOT_CONFIGURED"}
-                  </h4>
-                  <span className="px-2.5 py-0.5 rounded text-[10px] font-mono bg-amber-500/20 text-amber-200">
-                    ZERO FABRICATED METRICS
-                  </span>
-                </div>
-                <p className="text-xs text-neutral-300">
-                  Real server-side Search Console API reporting for{" "}
-                  <code>{gscData?.siteUrl || "sc-domain:keremmihci.com"}</code> is implemented. Grant
-                  the Service Account access in Google Search Console and configure:
-                </p>
-                <ul className="list-disc list-inside text-xs font-mono text-amber-200 space-y-1">
-                  {(
-                    gscData?.missingEnvVars || [
-                      "GOOGLE_SERVICE_ACCOUNT_EMAIL",
-                      "GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY"
-                    ]
-                  ).map((v) => (
-                    <li key={v}>{v}</li>
-                  ))}
-                </ul>
-              </div>
-            ) : (
-              gscData.totals && (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <div className="p-4 rounded-xl bg-[#131620] border border-white/10">
-                    <span className="text-[11px] font-mono text-neutral-400">Total Clicks</span>
-                    <p className="text-2xl font-bold text-white mt-1">{gscData.totals.clicks}</p>
-                  </div>
-                  <div className="p-4 rounded-xl bg-[#131620] border border-white/10">
-                    <span className="text-[11px] font-mono text-neutral-400">Impressions</span>
-                    <p className="text-2xl font-bold text-white mt-1">
-                      {gscData.totals.impressions}
-                    </p>
-                  </div>
-                  <div className="p-4 rounded-xl bg-[#131620] border border-white/10">
-                    <span className="text-[11px] font-mono text-neutral-400">Average CTR</span>
-                    <p className="text-2xl font-bold text-white mt-1">
-                      {(gscData.totals.ctr * 100).toFixed(2)}%
-                    </p>
-                  </div>
-                  <div className="p-4 rounded-xl bg-[#131620] border border-white/10">
-                    <span className="text-[11px] font-mono text-neutral-400">Average Position</span>
-                    <p className="text-2xl font-bold text-white mt-1">
-                      {gscData.totals.position.toFixed(1)}
-                    </p>
-                  </div>
-                </div>
-              )
-            )}
-          </div>
-        )}
-
-        {/* ======================================================
-            8. PROJECT-LEVEL TRAFFIC INSIGHTS TAB
-           ====================================================== */}
-        {activeTab === "project-traffic" && (
-          <div className="space-y-4" data-testid="admin-project-traffic-section">
-            <div className="p-4 rounded-xl bg-[#131620] border border-white/10">
-              <h3 className="text-sm font-semibold text-white">
-                Project-Level Traffic & Search Performance (/tr/project/[slug] + /en/project/[slug])
-              </h3>
-              <p className="text-xs text-neutral-400 mt-1">
-                Maps GA4 page views and Search Console search queries/clicks directly to each
-                portfolio project. Shows <code>— (Awaiting API)</code> when live Google credentials
-                are not yet attached.
-              </p>
-            </div>
-
-            <div className="rounded-xl bg-[#131620] border border-white/10 overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-white/10 bg-black/30 text-neutral-400 font-mono">
-                    <th className="py-3 px-4">Project</th>
-                    <th className="py-3 px-3">Status</th>
-                    <th className="py-3 px-3">GA4 Total Views (TR / EN)</th>
-                    <th className="py-3 px-3">GA4 Users</th>
-                    <th className="py-3 px-3">GSC Clicks</th>
-                    <th className="py-3 px-3">GSC Impressions</th>
-                    <th className="py-3 px-3">GSC Avg Pos</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {projectInsights.map((ins) => (
-                    <tr key={ins.projectId}>
-                      <td className="py-2.5 px-4">
-                        <div className="font-semibold text-white">{ins.titleTR}</div>
-                        <div className="text-[11px] font-mono text-neutral-500">/{ins.slug}</div>
-                      </td>
-                      <td className="py-2.5 px-3 font-mono uppercase text-neutral-400">
-                        {ins.status}
-                      </td>
-                      <td className="py-2.5 px-3 font-mono">
-                        {ins.ga4.totalViews !== null ? (
-                          <span className="text-white">
-                            {ins.ga4.totalViews} ({ins.ga4.trViews} TR / {ins.ga4.enViews} EN)
-                          </span>
-                        ) : (
-                          <span className="text-neutral-500">— (Not Configured)</span>
-                        )}
-                      </td>
-                      <td className="py-2.5 px-3 font-mono text-neutral-400">
-                        {ins.ga4.users !== null ? ins.ga4.users : "—"}
-                      </td>
-                      <td className="py-2.5 px-3 font-mono text-neutral-400">
-                        {ins.gsc.clicks !== null ? ins.gsc.clicks : "—"}
-                      </td>
-                      <td className="py-2.5 px-3 font-mono text-neutral-400">
-                        {ins.gsc.impressions !== null ? ins.gsc.impressions : "—"}
-                      </td>
-                      <td className="py-2.5 px-3 font-mono text-neutral-400">
-                        {ins.gsc.position !== null ? ins.gsc.position.toFixed(1) : "—"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* ======================================================
-            9. SYSTEM STATUS & AUDIT LOGS TAB
+            6. SYSTEM STATUS & AUDIT LOGS TAB
            ====================================================== */}
         {activeTab === "system" && systemInfo && (
           <div className="space-y-6" data-testid="admin-system-section">
@@ -2032,32 +1813,26 @@ export function AdminDashboardClient({
               <div className="p-5 rounded-xl bg-[#131620] border border-white/10 space-y-2 text-xs">
                 <h3 className="text-sm font-semibold text-white">Environment Readiness</h3>
                 <p className="text-neutral-400">
-                  GA4 Browser Stream ID:{" "}
-                  <code>
-                    {systemInfo.environment.gaMeasurementIdConfigured ? "Configured" : "Not Set"}
-                  </code>
-                </p>
-                <p className="text-neutral-400">
-                  GA4 Numeric Property ID:{" "}
-                  <code>
-                    {systemInfo.environment.ga4PropertyIdConfigured ? "Configured" : "Not Set"}
-                  </code>
-                </p>
-                <p className="text-neutral-400">
-                  Google Service Account:{" "}
-                  <code>
-                    {systemInfo.environment.googleServiceAccountConfigured
-                      ? "Configured"
-                      : "Not Set"}
-                  </code>
-                </p>
-                <p className="text-neutral-400">
                   Cloudflare Remote Worker URL:{" "}
                   <code>
                     {systemInfo.environment.cloudflareRemoteWorkerConfigured
                       ? "Configured"
                       : "Local D1 Active"}
                   </code>
+                </p>
+                <p className="text-neutral-400">
+                  D1 Storage Engine:{" "}
+                  <code className="text-white">{systemInfo.d1Health.mode}</code>
+                </p>
+                <p className="text-neutral-400">
+                  Node Environment:{" "}
+                  <code className="text-white">{systemInfo.environment.nodeEnv || "production"}</code>
+                </p>
+                <p className="text-neutral-400">
+                  Google Subsystem:{" "}
+                  <span className="text-neutral-300 font-mono">
+                    Dormant (Deferred to Future Phase)
+                  </span>
                 </p>
               </div>
             </div>
@@ -2101,10 +1876,13 @@ export function AdminDashboardClient({
         )}
 
         {/* ======================================================
-            10. SETTINGS TAB
+            7. SETTINGS TAB
            ====================================================== */}
         {activeTab === "settings" && (
-          <div className="p-6 rounded-xl bg-[#131620] border border-white/10 space-y-4 text-xs">
+          <div
+            className="p-6 rounded-xl bg-[#131620] border border-white/10 space-y-4 text-xs"
+            data-testid="admin-settings-section"
+          >
             <h3 className="text-sm font-semibold text-white">
               Portfolio OS CMS & Security Configuration
             </h3>

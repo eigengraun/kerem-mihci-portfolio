@@ -790,22 +790,20 @@ async function runVerification() {
       timeout: 10000
     });
 
-    // Check GA4 & GSC non-fabrication banners
-    await unauthAdminPage.getByTestId("admin-tab-ga4").click();
-    await unauthAdminPage.waitForSelector('[data-testid="ga4-not-configured-banner"]', {
-      timeout: 5000
-    });
-    await unauthAdminPage.getByTestId("admin-tab-gsc").click();
-    await unauthAdminPage.waitForSelector('[data-testid="gsc-not-configured-banner"]', {
-      timeout: 5000
-    });
+    // Verify Google Analytics, Search Console, and Traffic tabs are deferred / absent from navigation
+    const ga4Tab = await unauthAdminPage.$('[data-testid="admin-tab-ga4"]');
+    assert.equal(ga4Tab, null, "admin-tab-ga4 must not be rendered when Google UI is deferred");
+    const gscTab = await unauthAdminPage.$('[data-testid="admin-tab-gsc"]');
+    assert.equal(gscTab, null, "admin-tab-gsc must not be rendered when Google UI is deferred");
+    const trafficTab = await unauthAdminPage.$('[data-testid="admin-tab-project-traffic"]');
+    assert.equal(trafficTab, null, "admin-tab-project-traffic must not be rendered when Google UI is deferred");
 
-    // Now test Overview, Projects Table, Project Editor & Publishing Controls, and Media Library at each of the 6 viewports
+    // Now test Overview, Projects Table, Project Editor, Media Library, Featured Manager, and System Status at each of the 6 viewports
     for (const vp of adminViewports) {
       await unauthAdminPage.setViewportSize({ width: vp.width, height: vp.height });
       const sectionResults = {};
 
-      for (const tabId of ["overview", "projects", "editor", "media"]) {
+      for (const tabId of ["overview", "projects", "editor", "media", "featured", "system"]) {
         await unauthAdminPage.getByTestId(`admin-tab-${tabId}`).click();
         await unauthAdminPage.waitForSelector(`[data-testid="admin-${tabId}-section"]`, {
           timeout: 5000

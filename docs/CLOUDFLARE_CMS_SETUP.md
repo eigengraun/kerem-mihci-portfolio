@@ -59,50 +59,58 @@ npm run cms:migrate
 
 ---
 
-## 4. Provisioning Live Cloudflare D1 & R2 (Staging & Production)
+---
 
-### Step 1 — Authenticate Wrangler
+## 4. Cloudflare Environments: Staging & Production
+
+### Staging Environment (Active & Verified)
+| Resource | Staging Name / ID | Purpose |
+| :--- | :--- | :--- |
+| **Worker API** | `kerem-mihci-portfolio-api-staging` (`https://kerem-mihci-portfolio-api-staging.kerem-mihci.workers.dev`) | Isolated staging API with rate limiting, session auth, and project CRUD |
+| **D1 Database** | `kerem-portfolio-db-staging` (`0efef7a7-cc93-4dc2-8cb7-db28379fe01f`) | Staging database containing the 30 canonical projects |
+| **R2 Bucket** | `kerem-portfolio-media-staging` | Isolated staging bucket for project assets |
+
+Deploy to staging:
 ```bash
 cd cloudflare/portfolio-api
-npx wrangler login
+npx wrangler deploy --env staging
 ```
 
-### Step 2 — Create the D1 Database
+### Production Resource Specification
+| Resource | Canonical Production Name | Purpose |
+| :--- | :--- | :--- |
+| **Worker API** | `kerem-mihci-portfolio-api` | Production Cloudflare Worker API |
+| **D1 Database** | `kerem-portfolio-db` | Production D1 SQLite database |
+| **R2 Bucket** | `kerem-portfolio-media` | Production R2 asset storage |
+
+Deploy to production (after explicit cutover approval):
 ```bash
+cd cloudflare/portfolio-api
 npx wrangler d1 create kerem-portfolio-db
-```
-Copy the returned `database_id` into `cloudflare/portfolio-api/wrangler.jsonc` under `d1_databases` (`binding: "PORTFOLIO_DB"`).
-
-### Step 3 — Apply the D1 Schema Migration
-```bash
-npm run d1:migrate:remote
-```
-
-### Step 4 — Create the R2 Media Bucket
-```bash
+npx wrangler d1 migrations apply kerem-portfolio-db --remote
 npx wrangler r2 bucket create kerem-portfolio-media
-```
-Verify `r2_buckets` in `cloudflare/portfolio-api/wrangler.jsonc` uses `binding: "PORTFOLIO_MEDIA"`.
-
-### Step 5 — Configure the Worker Service Token Secret
-Generate a strong random token (at least 32 characters) and register it with the Worker:
-```bash
-npx wrangler secret put CLOUDFLARE_API_SERVICE_TOKEN
+npx wrangler secret put CLOUDFLARE_API_SERVICE_TOKEN --env production
+npx wrangler deploy --env production
 ```
 
-### Step 6 — Deploy the Cloudflare Worker & Seed Canonical Data
-```bash
-npm run deploy
-CLOUDFLARE_CMS_API_URL=https://kerem-mihci-portfolio-api.<your-subdomain>.workers.dev \
-CLOUDFLARE_API_SERVICE_TOKEN=<your-service-token> \
-npm run cms:migrate
-```
+---
 
-### Step 7 — Set Next.js Environment Variables on Hostinger
+## 5. Zero-Destructive Runtime DDL Architecture
+
+> [!IMPORTANT]
+> The Cloudflare Worker API runtime enforces **Zero Destructive Runtime DDL**. Endpoints `/api/v1/admin/auth/sessions` and `/api/v1/admin/auth/rate-limit` execute zero `DROP TABLE` or runtime `CREATE TABLE` commands.
+> If the database is missing a table or is temporarily unreachable, endpoints fail closed with HTTP `503` (`Database session/rate-limit store temporarily unavailable`), ensuring existing session records and audit logs can never be dropped or recreated during transient outages.
+> All schema modifications must occur strictly through deterministic, versioned migration files in `cloudflare/portfolio-api/migrations/`.
+
+---
+
+## 6. Hostinger Production Environment Variables (Post-Cutover)
 ```env
 CMS_STORAGE_MODE=production
 CMS_DATA_SOURCE=cloudflare
 CLOUDFLARE_CMS_API_URL=https://kerem-mihci-portfolio-api.<your-subdomain>.workers.dev
-CLOUDFLARE_API_SERVICE_TOKEN=<your-service-token>
-R2_PUBLIC_BASE_URL=https://media.keremmihci.com
+CLOUDFLARE_API_SERVICE_TOKEN=<your-production-service-token>
+ADMIN_SESSION_SECRET=<minimum-32-character-random-secret>
+ADMIN_ALLOWED_EMAILS=kerem@keremmihci.com
+ADMIN_PASSWORD_HASH=scrypt:<salt-hex>:<64-byte-derived-key-hex>
 ```

@@ -1211,6 +1211,11 @@ export function upsertProjectInD1(
       }
     }
 
+    // Associate any unassociated project_media rows for this project slug/id
+    db.prepare(
+      `UPDATE project_media SET project_id = ? WHERE (project_id IS NULL OR project_id = '') AND (storage_key LIKE ? OR storage_key LIKE ?)`
+    ).run(projectId, `projects/${cleanSlug}/%`, `projects/${projectId}/%`);
+
     // Record revision
     const revRow = db
       .prepare(
@@ -1607,28 +1612,47 @@ export function isMediaKeyPubliclyAccessibleInLocalD1(storageKey: string): boole
   const db = getD1Database();
   const row = db
     .prepare(
-      `SELECT pm.project_id, p.status as project_status
+      `SELECT pm.id, pm.project_id, p.status as project_status
        FROM project_media pm
        LEFT JOIN projects p ON pm.project_id = p.id
        WHERE pm.storage_key = ?
        LIMIT 1`
     )
-    .get(storageKey);
+    .get(storageKey) as
+    | { id?: string; project_id?: string | null; project_status?: string | null }
+    | undefined;
 
-  if (row && row.project_id) {
-    return String(row.project_status) === "published";
+  if (row) {
+    if (row.project_id) {
+      return String(row.project_status) === "published";
+    }
+    // If project_id is not yet linked, check if the key belongs to a published project
+    const parts = storageKey.split("/");
+    if (parts[0] === "projects" && parts[1] && parts[1] !== "general") {
+      const slug = parts[1];
+      const proj = db
+        .prepare(`SELECT id, status FROM projects WHERE slug = ? OR id = ? LIMIT 1`)
+        .get(slug, slug) as { id?: string; status?: string } | undefined;
+      if (proj?.status === "published") {
+        if (proj.id && row.id) {
+          db.prepare(`UPDATE project_media SET project_id = ? WHERE id = ?`).run(proj.id, row.id);
+        }
+        return true;
+      }
+    }
+    return false;
   }
 
   const parts = storageKey.split("/");
   if (parts[0] === "projects" && parts[1] && parts[1] !== "general") {
     const slug = parts[1];
-    const proj = db.prepare(`SELECT status FROM projects WHERE slug = ? LIMIT 1`).get(slug);
-    if (proj) {
-      return String(proj.status) === "published";
-    }
+    const proj = db
+      .prepare(`SELECT id, status FROM projects WHERE slug = ? OR id = ? LIMIT 1`)
+      .get(slug, slug) as { id?: string; status?: string } | undefined;
+    return proj?.status === "published";
   }
 
-  return true;
+  return false;
 }
 
 export function listMediaFromD1(projectId?: string): CmsMediaRecord[] {

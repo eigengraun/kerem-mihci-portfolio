@@ -25,6 +25,7 @@ export interface R2ObjectBody {
   httpMetadata?: { contentType?: string; cacheControl?: string };
   size: number;
   etag: string;
+  httpEtag?: string;
 }
 
 export interface R2Bucket {
@@ -1076,6 +1077,15 @@ async function upsertProjectInWorkerD1(
     }
   }
 
+  // Associate any unassociated project_media rows for this project slug/id
+  statements.push(
+    db
+      .prepare(
+        `UPDATE project_media SET project_id = ? WHERE (project_id IS NULL OR project_id = '') AND (storage_key LIKE ? OR storage_key LIKE ?)`
+      )
+      .bind(projectId, `projects/${cleanSlug}/%`, `projects/${projectId}/%`)
+  );
+
   statements.push(
     db
       .prepare(
@@ -1216,56 +1226,122 @@ const worker = {
       if (pathname.startsWith("/api/v1/public/media/") && request.method === "GET") {
         const key = decodeURIComponent(pathname.replace("/api/v1/public/media/", ""));
         if (!key || key.includes("..") || key.startsWith("/")) {
-          return jsonResponse({ ok: false, error: "Invalid media key" }, 400, origin);
+          return jsonResponse(
+            { ok: false, error: "Invalid media key" },
+            400,
+            origin,
+            "no-store, no-cache, must-revalidate"
+          );
         }
 
-        // Enforce draft/unpublished media isolation: never expose media belonging to non-published projects on the public route
+        // Strict authorization check: Only media associated with an active published project is public.
+        // Unassociated / orphan R2 objects and non-published projects are strictly blocked from public delivery.
         const mediaAssoc = await db
           .prepare(
-            `SELECT pm.project_id, p.status as project_status
+            `SELECT pm.id, pm.project_id, pm.kind, p.status as project_status, p.slug as project_slug
              FROM project_media pm
              LEFT JOIN projects p ON pm.project_id = p.id
              WHERE pm.storage_key = ?
              LIMIT 1`
           )
           .bind(key)
-          .first<{ project_id: string | null; project_status: string | null }>();
+          .first<{
+            id: string;
+            project_id: string | null;
+            kind: string;
+            project_status: string | null;
+            project_slug: string | null;
+          }>();
 
-        if (mediaAssoc && mediaAssoc.project_id && mediaAssoc.project_status !== "published") {
-          return jsonResponse(
-            { ok: false, error: "Media belongs to an unpublished project" },
-            404,
-            origin
-          );
+        let isAuthorized = false;
+
+        if (mediaAssoc) {
+          if (mediaAssoc.project_id) {
+            isAuthorized = mediaAssoc.project_status === "published";
+          } else {
+            // If project_id is not yet linked, check if the key belongs to a published project
+            const keyParts = key.split("/");
+            if (keyParts[0] === "projects" && keyParts[1] && keyParts[1] !== "general") {
+              const slug = keyParts[1];
+              const projRow = await db
+                .prepare(`SELECT id, status FROM projects WHERE slug = ? OR id = ? LIMIT 1`)
+                .bind(slug, slug)
+                .first<{ id: string; status: string }>();
+              if (projRow?.status === "published") {
+                isAuthorized = true;
+                await db
+                  .prepare(`UPDATE project_media SET project_id = ? WHERE id = ?`)
+                  .bind(projRow.id, mediaAssoc.id)
+                  .run();
+              }
+            }
+          }
+        } else {
+          // No record in project_media.
+          // Allow only if key follows canonical path convention projects/<slug>/... AND the project is published.
+          const keyParts = key.split("/");
+          if (keyParts[0] === "projects" && keyParts[1] && keyParts[1] !== "general") {
+            const slug = keyParts[1];
+            const projRow = await db
+              .prepare(`SELECT id, status FROM projects WHERE slug = ? OR id = ? LIMIT 1`)
+              .bind(slug, slug)
+              .first<{ id: string; status: string }>();
+            isAuthorized = projRow?.status === "published";
+          } else {
+            // Unregistered / orphan keys are strictly unauthorized
+            isAuthorized = false;
+          }
         }
 
-        const keyParts = key.split("/");
-        if (keyParts[0] === "projects" && keyParts[1] && keyParts[1] !== "general") {
-          const slug = keyParts[1];
-          const projRow = await db
-            .prepare(`SELECT status FROM projects WHERE slug = ? LIMIT 1`)
-            .bind(slug)
-            .first<{ status: string }>();
-          if (projRow && projRow.status !== "published") {
-            return jsonResponse(
-              { ok: false, error: "Media belongs to an unpublished project" },
-              404,
-              origin
-            );
-          }
+        if (!isAuthorized) {
+          return jsonResponse(
+            { ok: false, error: "Media asset not found or not published" },
+            404,
+            origin,
+            "no-store, no-cache, must-revalidate"
+          );
         }
 
         const obj = await bucket.get(key);
         if (!obj) {
-          return jsonResponse({ ok: false, error: "Media not found" }, 404, origin);
+          return jsonResponse(
+            { ok: false, error: "Media not found" },
+            404,
+            origin,
+            "no-store, no-cache, must-revalidate"
+          );
         }
+
+        // Bounded public cache policy with conditional ETag validation
+        const objectEtag =
+          obj.httpEtag || (obj.etag ? (obj.etag.startsWith('"') ? obj.etag : `"${obj.etag}"`) : undefined);
+        const ifNoneMatch = request.headers.get("If-None-Match");
+        if (ifNoneMatch && objectEtag && ifNoneMatch === objectEtag) {
+          return new Response(null, {
+            status: 304,
+            headers: {
+              ETag: objectEtag,
+              "Cache-Control":
+                "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
+              "Access-Control-Allow-Origin": origin
+            }
+          });
+        }
+
+        const headers = new Headers();
+        headers.set("Content-Type", obj.httpMetadata?.contentType || "application/octet-stream");
+        headers.set(
+          "Cache-Control",
+          "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400"
+        );
+        headers.set("Access-Control-Allow-Origin", origin);
+        if (objectEtag) {
+          headers.set("ETag", objectEtag);
+        }
+
         return new Response(obj.body, {
           status: 200,
-          headers: {
-            "Content-Type": obj.httpMetadata?.contentType || "application/octet-stream",
-            "Cache-Control": "public, max-age=31536000, immutable",
-            "Access-Control-Allow-Origin": origin
-          }
+          headers
         });
       }
 
@@ -1291,37 +1367,6 @@ const worker = {
 
         // Durable Admin Session Store Endpoint (D1-backed)
         if (pathname === "/api/v1/admin/auth/sessions" && request.method === "POST") {
-          try {
-            await db.prepare(`SELECT actor_email, role, ip_hash FROM admin_sessions LIMIT 1`).first();
-          } catch {
-            await db.prepare(`DROP TABLE IF EXISTS admin_sessions`).run();
-          }
-          await db.batch([
-            db.prepare(
-              `CREATE TABLE IF NOT EXISTS admin_sessions (
-                jti_hash TEXT PRIMARY KEY,
-                actor_email TEXT NOT NULL,
-                role TEXT NOT NULL DEFAULT 'owner',
-                csrf_token_hash TEXT NOT NULL,
-                issued_at INTEGER NOT NULL,
-                expires_at INTEGER NOT NULL,
-                revoked_at INTEGER,
-                revoked_reason TEXT,
-                ip_hash TEXT,
-                user_agent TEXT,
-                last_seen_at INTEGER NOT NULL
-              )`
-            ),
-            db.prepare(
-              `CREATE INDEX IF NOT EXISTS idx_admin_sessions_actor_active
-               ON admin_sessions(actor_email, revoked_at, expires_at)`
-            ),
-            db.prepare(
-              `CREATE INDEX IF NOT EXISTS idx_admin_sessions_expires
-               ON admin_sessions(expires_at)`
-            )
-          ]);
-
           let body: Record<string, unknown>;
           try {
             body = (await request.json()) as Record<string, unknown>;
@@ -1332,7 +1377,8 @@ const worker = {
           const action = String(body.action || "");
           const nowSec = Math.floor(Date.now() / 1000);
 
-          // Opportunistic expired session cleanup (> 24h past expiry)
+          try {
+            // Opportunistic expired session cleanup (> 24h past expiry)
           await db
             .prepare(`DELETE FROM admin_sessions WHERE expires_at < ? AND revoked_at IS NULL`)
             .bind(nowSec - 86400)
@@ -1483,34 +1529,18 @@ const worker = {
           }
 
           return jsonResponse({ ok: false, error: "Invalid session action" }, 400, origin);
+        } catch (dbErr) {
+          console.error("D1 session store error:", dbErr);
+          return jsonResponse(
+            { ok: false, error: "Database session store temporarily unavailable" },
+            503,
+            origin
+          );
         }
+      }
 
-        // Durable Login Rate Limit Endpoint (D1-backed)
+      // Durable Login Rate Limit Endpoint (D1-backed)
         if (pathname === "/api/v1/admin/auth/rate-limit" && request.method === "POST") {
-          try {
-            const info = await db.prepare(`PRAGMA table_info(admin_rate_limits)`).all<{ name: string }>();
-            if (info.results?.some((col) => col.name === "reset_at")) {
-              await db.prepare(`DROP TABLE IF EXISTS admin_rate_limits`).run();
-            }
-          } catch {
-            // ignore
-          }
-          await db.batch([
-            db.prepare(
-              `CREATE TABLE IF NOT EXISTS admin_rate_limits (
-                scope_key TEXT PRIMARY KEY,
-                attempt_count INTEGER NOT NULL DEFAULT 0,
-                window_started_at INTEGER NOT NULL,
-                locked_until INTEGER NOT NULL DEFAULT 0,
-                updated_at INTEGER NOT NULL
-              )`
-            ),
-            db.prepare(
-              `CREATE INDEX IF NOT EXISTS idx_admin_rate_limits_updated
-               ON admin_rate_limits(updated_at)`
-            )
-          ]);
-
           let body: Record<string, unknown>;
           try {
             body = (await request.json()) as Record<string, unknown>;
@@ -1527,6 +1557,8 @@ const worker = {
           const windowSec = typeof body.windowSec === "number" ? body.windowSec : 900;
           const maxAttempts = typeof body.maxAttempts === "number" ? body.maxAttempts : 5;
           const lockoutSec = typeof body.lockoutSec === "number" ? body.lockoutSec : 900;
+
+          try {
 
           // Prune expired buckets
           await db
@@ -1690,7 +1722,15 @@ const worker = {
           }
 
           return jsonResponse({ ok: false, error: "Invalid rate-limit action" }, 400, origin);
+        } catch (dbErr) {
+          console.error("D1 rate-limit store error:", dbErr);
+          return jsonResponse(
+            { ok: false, error: "Database rate-limit store temporarily unavailable" },
+            503,
+            origin
+          );
         }
+      }
 
         if (pathname === "/api/v1/admin/system" && request.method === "GET") {
           const d1Health = await getWorkerD1Health(db, Boolean(bucket));

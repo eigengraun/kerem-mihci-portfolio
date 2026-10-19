@@ -52,13 +52,17 @@ export async function GET(
           upstream.headers.get("content-type") ||
           MIME_BY_EXT[ext] ||
           "application/octet-stream";
+        const etag = upstream.headers.get("etag");
+        const headers: Record<string, string> = {
+          "Content-Type": contentType,
+          "Content-Length": String(buf.byteLength),
+          "Cache-Control":
+            "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400"
+        };
+        if (etag) headers["ETag"] = etag;
         return new NextResponse(buf, {
           status: 200,
-          headers: {
-            "Content-Type": contentType,
-            "Content-Length": String(buf.byteLength),
-            "Cache-Control": "public, max-age=31536000, immutable"
-          }
+          headers
         });
       }
 
@@ -88,7 +92,7 @@ export async function GET(
               headers: {
                 "Content-Type": contentType,
                 "Content-Length": String(buf.byteLength),
-                "Cache-Control": "private, no-store"
+                "Cache-Control": "private, no-store, no-cache, must-revalidate"
               }
             });
           }
@@ -97,12 +101,18 @@ export async function GET(
 
       return NextResponse.json(
         { ok: false, error: "Media asset not found in R2" },
-        { status: upstream.status }
+        {
+          status: upstream.status,
+          headers: { "Cache-Control": "no-store, no-cache, must-revalidate" }
+        }
       );
     } catch {
       return NextResponse.json(
         { ok: false, error: "Failed to fetch media from Cloudflare R2 Worker" },
-        { status: 503 }
+        {
+          status: 503,
+          headers: { "Cache-Control": "no-store, no-cache, must-revalidate" }
+        }
       );
     }
   }
@@ -113,7 +123,10 @@ export async function GET(
         ok: false,
         error: "Cloudflare R2 Worker is not configured in staging/production mode."
       },
-      { status: 503 }
+      {
+        status: 503,
+        headers: { "Cache-Control": "no-store, no-cache, must-revalidate" }
+      }
     );
   }
 
@@ -123,7 +136,10 @@ export async function GET(
     if (!adminSession) {
       return NextResponse.json(
         { ok: false, error: "Media belongs to an unpublished project" },
-        { status: 404 }
+        {
+          status: 404,
+          headers: { "Cache-Control": "no-store, no-cache, must-revalidate" }
+        }
       );
     }
   }
@@ -131,11 +147,23 @@ export async function GET(
   const r2Root = path.resolve(getLocalR2DirPath());
   const resolvedPath = path.resolve(r2Root, joinedKey);
   if (!resolvedPath.startsWith(r2Root + path.sep)) {
-    return NextResponse.json({ ok: false, error: "Forbidden path" }, { status: 403 });
+    return NextResponse.json(
+      { ok: false, error: "Forbidden path" },
+      {
+        status: 403,
+        headers: { "Cache-Control": "no-store, no-cache, must-revalidate" }
+      }
+    );
   }
 
   if (!fs.existsSync(resolvedPath) || !fs.statSync(resolvedPath).isFile()) {
-    return NextResponse.json({ ok: false, error: "Media asset not found" }, { status: 404 });
+    return NextResponse.json(
+      { ok: false, error: "Media asset not found" },
+      {
+        status: 404,
+        headers: { "Cache-Control": "no-store, no-cache, must-revalidate" }
+      }
+    );
   }
 
   const ext = path.extname(resolvedPath).toLowerCase();
@@ -147,7 +175,9 @@ export async function GET(
     headers: {
       "Content-Type": contentType,
       "Content-Length": String(fileBuffer.byteLength),
-      "Cache-Control": isPublic ? "public, max-age=31536000, immutable" : "private, no-store"
+      "Cache-Control": isPublic
+        ? "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400"
+        : "private, no-store, no-cache, must-revalidate"
     }
   });
 }

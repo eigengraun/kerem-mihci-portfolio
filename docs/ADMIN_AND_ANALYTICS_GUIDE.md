@@ -5,22 +5,36 @@
 All `/admin` pages and `/api/admin/*` API endpoints enforce server-side authentication (`src/lib/admin/auth.ts`).
 
 ### Production Security Controls
-- **Fail-Closed Default**: In `CMS_STORAGE_MODE=production` or `NODE_ENV=production`, if `ADMIN_SESSION_SECRET`, `ADMIN_ALLOWED_EMAILS`, and `ADMIN_PASSWORD_HASH` / `ADMIN_MASTER_PASSWORD` (or Google OAuth credentials) are not configured, `/admin` and `/api/admin/*` automatically deny all access (`503` / `401`). `dev-fixture` bypass is unconditionally disabled when `CMS_STORAGE_MODE=production`.
-- **Signed Session Cookie & Revocation**: Sessions use an HTTP-only, `SameSite=Lax`, `Secure` (in production) cookie (`km_admin_session`) signed with `HMAC-SHA256`, containing `email`, `iat`, `exp`, `csrfToken`, and a unique `jti`. Signing out (`DELETE /api/admin/auth`) clears the cookie and adds `jti` to the server-side revocation set so replayed cookies immediately return `401`.
+- **Fail-Closed Default**: In `CMS_STORAGE_MODE=production`, `staging`, or `NODE_ENV=production`, if `ADMIN_SESSION_SECRET`, `ADMIN_ALLOWED_EMAILS`, and `ADMIN_PASSWORD_HASH` (or Google OAuth credentials) are not configured, `/admin` and `/api/admin/*` automatically deny all access (`503` / `401`). `dev-fixture` bypass is unconditionally disabled in production/staging. Plaintext `ADMIN_MASTER_PASSWORD` and legacy `sha256:` hashes are strictly rejected in production; only cryptographically strong `scrypt:` hashes are accepted.
+- **Durable D1 Session Management & Cross-Process Revocation**: Sessions use an HTTP-only, `SameSite=Lax`, `Secure` (in production) cookie (`km_admin_session`) signed with `HMAC-SHA256`, containing `email`, `iat`, `exp`, `csrfToken`, and a unique `jti`. Active and revoked sessions are persisted in Cloudflare D1 (`admin_sessions` table with `jti_hash`), surviving server restarts and synchronizing instantaneously across multiple horizontal server instances. Signing out (`DELETE /api/admin/auth`) records revocation in D1, immediately invalidating replayed tokens across all processes (`401`).
+- **Durable Multi-Process Rate Limiting**: Login attempts are tracked in Cloudflare D1 (`admin_rate_limits` table), enforcing a strict 5-attempt threshold with a 15-minute lockout across dual scopes (IP hash and email). Forged `X-Forwarded-For` or `Client-IP` header rotation is blocked by binding rate-limiting to the actor identity and verified socket origin.
 - **Identity Allowlist Enforcement (`403`)**: Every request verifies that `session.email` is present in `ADMIN_ALLOWED_EMAILS`, returning `403 Forbidden` for any non-allowlisted identity.
-- **CSRF & Same-Origin Verification (`403`)**: All state-changing requests (`POST`, `PUT`, `PATCH`, `DELETE`) require a valid `X-CSRF-Token` matching the session's `csrfToken` (timing-safe comparison) and validate the `Origin` header against the host.
+- **CSRF & Same-Origin Verification (`403`)**: All state-changing requests (`POST`, `PUT`, `PATCH`, `DELETE`) require a valid `X-CSRF-Token` matching the session's `csrfToken` (timing-safe comparison) and validate the `Origin` header against the host. Forged `X-Forwarded-Host` headers are strictly rejected.
 - **Magic-Byte Media Upload Validation & Rollback**: `/api/admin/media` and the Cloudflare Worker `/api/v1/admin/media/upload` inspect binary file headers (`validateMediaFileSignature`) for PNG, JPEG, WebP, GIF, AVIF, MP4, WebM, and script-free SVG, enforce 15 MB image / 100 MB video limits, and roll back the R2 object if D1 metadata insertion fails.
+- **Public Media Access Control**: Public `/api/media/[...key]` routes serve assets only if associated with an active `published` project. Unassociated objects, drafts, or deleted projects return HTTP `404` with `Cache-Control: no-store, no-cache, must-revalidate`.
 - **Crawler & Analytics Isolation**: `/admin` is disallowed in `/robots.txt`, sends `X-Robots-Tag: noindex, nofollow, noarchive`, and suppresses the public `ConsentBanner` and public GA4 tracking script.
 
 ### Required Environment Variables for Admin Auth
 ```env
 CMS_STORAGE_MODE=production
 CMS_DATA_SOURCE=cloudflare
+CLOUDFLARE_CMS_API_URL=https://kerem-mihci-portfolio-api.<subdomain>.workers.dev
+CLOUDFLARE_API_SERVICE_TOKEN=<minimum-32-character-random-secret>
 ADMIN_SESSION_SECRET=<minimum-32-character-random-secret>
 ADMIN_ALLOWED_EMAILS=kerem@keremmihci.com
 ADMIN_PASSWORD_HASH=scrypt:<salt-hex>:<64-byte-derived-key-hex>
-# (or ADMIN_MASTER_PASSWORD=<strong-admin-passphrase>)
 ```
+
+> **Generating scrypt Password Hash**:
+> ```bash
+> node -e '
+> const crypto = require("node:crypto");
+> const pass = process.argv[1] || "your-strong-password";
+> const salt = crypto.randomBytes(16).toString("hex");
+> const key = crypto.scryptSync(pass, salt, 64, { N: 16384, r: 8, p: 1 });
+> console.log(`ADMIN_PASSWORD_HASH=scrypt:${salt}:${key.toString("hex")}`);
+> ' "YourPasswordHere"
+> ```
 
 ---
 

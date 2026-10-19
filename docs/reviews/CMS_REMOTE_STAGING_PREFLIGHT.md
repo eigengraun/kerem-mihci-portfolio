@@ -36,7 +36,7 @@ Based on machine-readable reconciliation data ([`docs/reviews/cms-reconciliation
 - **Workspace:** `design`
 - **Client:** `KIXOGAMES`
 - **Year:** `2026`
-- **Featured:** `true` (`featuredOrder: 2`, `sortOrder: 15`)
+- **Featured:** `true` (`featuredOrder: 2`, `sortOrder: 12`)
 
 *(Note: Any previous human-written narrative referencing Fling Arena in `web` or attributing videos to `projects.ts` was an informal report typo; canonical code and machine-readable data have always preserved `fling-arena` as `design` and the 21 videos in `src/data/videos.ts`.)*
 

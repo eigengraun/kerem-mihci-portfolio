@@ -33,7 +33,7 @@
         {
           "binding": "PORTFOLIO_DB",
           "database_name": "kerem-portfolio-db-staging",
-          "database_id": "REPLACE_WITH_STAGING_D1_DATABASE_ID",
+          "database_id": "0efef7a7-cc93-4dc2-8cb7-db28379fe01f",
           "migrations_dir": "migrations"
         }
       ],

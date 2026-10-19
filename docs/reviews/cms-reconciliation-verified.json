@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-19T20:24:26.597Z",
+  "generatedAt": "2026-10-19T21:20:44.915Z",
   "generatorScript": "scripts/reconcile-and-generate-report.mjs",
   "canonicalBranchComparison": "origin/main",
   "independentStorageVerified": {
@@ -10,7 +10,11 @@
   "workerSeedAuthVerification": {
     "unauthenticatedBlockedStatus": 401,
     "invalidTokenBlockedStatus": 401,
-    "seededWithServiceToken": false
+    "seededWithServiceToken": true,
+    "inserted": 30,
+    "updated": 0,
+    "skipped": 0,
+    "seedLocked": true
   },
   "fieldsComparedPerProject": 41,
   "fieldsList": [

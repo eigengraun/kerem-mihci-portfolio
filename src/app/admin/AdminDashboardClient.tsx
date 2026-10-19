@@ -1829,9 +1829,9 @@ export function AdminDashboardClient({
                   <code className="text-white">{systemInfo.environment.nodeEnv || "production"}</code>
                 </p>
                 <p className="text-neutral-400">
-                  Google Subsystem:{" "}
-                  <span className="text-neutral-300 font-mono">
-                    Dormant (Deferred to Future Phase)
+                  Cloudflare R2 Storage:{" "}
+                  <span className="text-emerald-300 font-mono">
+                    Active & Bound
                   </span>
                 </p>
               </div>
@@ -1898,7 +1898,7 @@ export function AdminDashboardClient({
                 <div>• HTTP-Only HMAC-SHA256 Signed Session Cookie</div>
                 <div>• Same-Origin + X-CSRF-Token Mutation Verification</div>
                 <div>• Robots.txt & X-Robots-Tag noindex Isolation</div>
-                <div>• Public ConsentBanner & GA4 Suppressed on /admin</div>
+                <div>• Public Consent & Tracking Scripts Suppressed on /admin</div>
               </div>
             </div>
           </div>

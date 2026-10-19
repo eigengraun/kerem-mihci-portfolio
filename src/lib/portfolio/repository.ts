@@ -848,7 +848,8 @@ export async function getD1HealthAndStats() {
         remoteWorkerUrl: getWorkerBaseUrl(),
         remoteServiceTokenConfigured: Boolean(getWorkerServiceToken())
       };
-    } catch {
+    } catch (err) {
+      console.error("[getD1HealthAndStats] Failed to fetch worker health:", err);
       return getLocalD1HealthAndStats();
     }
   }

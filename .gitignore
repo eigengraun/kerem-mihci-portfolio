@@ -37,6 +37,7 @@ yarn-error.log*
 .dev.vars*
 /cloudflare/portfolio-api/.dev.vars*
 *.staging-service-token.tmp
+.staging-admin*
 
 # vercel
 .vercel

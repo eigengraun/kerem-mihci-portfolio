@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "cms:migrate": "node scripts/migrate-d1.mjs",
-    "cms:verify": "node scripts/verify-cms-and-e2e.mjs"
+    "cms:verify": "node scripts/verify-cms-and-e2e.mjs",
+    "admin:setup": "node scripts/setup-staging-admin.mjs",
+    "staging:start": "node scripts/start-staging-server.mjs"
   },
   "engines": {
     "node": ">=20.9.0"

@@ -10,10 +10,41 @@ const SHELL_CACHE_CONTROL = {
  */
 const nextConfig = {
   images: {
-    unoptimized: true
+    unoptimized: true,
+    remotePatterns: [
+      { protocol: "https", hostname: "**" },
+      { protocol: "http", hostname: "localhost" },
+      { protocol: "http", hostname: "127.0.0.1" }
+    ]
+  },
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals = config.externals || [];
+      if (Array.isArray(config.externals)) {
+        config.externals.push("node:sqlite");
+      }
+    }
+    return config;
   },
   async headers() {
     return [
+      {
+        source: "/admin/:path*",
+        headers: [
+          { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
+          { key: "Cache-Control", value: "no-store, max-age=0" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" }
+        ]
+      },
+      {
+        source: "/api/admin/:path*",
+        headers: [
+          { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
+          { key: "Cache-Control", value: "no-store, max-age=0" },
+          { key: "X-Content-Type-Options", value: "nosniff" }
+        ]
+      },
       {
         source: "/assets/apps/:path*",
         headers: [SHELL_CACHE_CONTROL]
@@ -51,3 +82,4 @@ const nextConfig = {
 };
 
 export default nextConfig;
+

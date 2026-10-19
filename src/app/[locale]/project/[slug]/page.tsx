@@ -1,24 +1,18 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { projectsData } from "@/data/projects";
 import { siteConfig } from "@/lib/siteConfig";
 import {
   getLocalizedProjectTitle,
   getLocalizedProjectDescription,
-  getProjectOgImage
+  getProjectOgImage,
+  generateProjectJsonLd
 } from "@/lib/seo";
-import { Locale } from "@/data/translations";
+import { isValidLocale } from "@/lib/i18n";
+import { getPublishedProjectBySlug, getPublishedProjects } from "@/lib/portfolio/repository";
 import { ClientDeepLinkProjectPage } from "./ClientDeepLinkProjectPage";
 
-export async function generateStaticParams() {
-  const locales = ["tr", "en"];
-  return locales.flatMap((locale) =>
-    projectsData.map((project) => ({
-      locale,
-      slug: project.slug
-    }))
-  );
-}
+export const dynamic = "force-dynamic";
+export const dynamicParams = true;
 
 export async function generateMetadata({
   params
@@ -26,8 +20,11 @@ export async function generateMetadata({
   params: Promise<{ locale: string; slug: string }>;
 }): Promise<Metadata> {
   const { locale, slug } = await params;
-  const project = projectsData.find((p) => p.slug === slug);
+  if (!isValidLocale(locale)) {
+    return {};
+  }
 
+  const project = await getPublishedProjectBySlug(slug);
   if (!project) {
     return {};
   }
@@ -77,13 +74,44 @@ export default async function DeepLinkProjectPage({
   params: Promise<{ locale: string; slug: string }>;
 }) {
   const { locale, slug } = await params;
-  const project = projectsData.find((p) => p.slug === slug);
+  if (!isValidLocale(locale)) {
+    notFound();
+  }
+
+  const [project, allPublished] = await Promise.all([
+    getPublishedProjectBySlug(slug),
+    getPublishedProjects()
+  ]);
 
   if (!project) {
     notFound();
   }
 
-  const cleanLocale = (locale === "tr" || locale === "en" ? locale : "tr") as Locale;
+  const projectJsonLd = generateProjectJsonLd(project, locale);
+  const isEn = locale === "en";
+  const localizedTitle = isEn ? project.titleEN : project.titleTR;
+  const localizedCategory = isEn ? project.categoryEN : project.categoryTR;
+  const localizedSummary = isEn
+    ? project.summaryEN || project.descriptionEN
+    : project.summaryTR || project.descriptionTR;
 
-  return <ClientDeepLinkProjectPage project={project} locale={cleanLocale} />;
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(projectJsonLd) }}
+      />
+      {/* Accessible SEO landmark for search crawlers and screen readers */}
+      <article className="sr-only" aria-label={localizedTitle}>
+        <h1>{localizedTitle}</h1>
+        <p>{localizedCategory} — {project.client} ({project.year})</p>
+        <p>{localizedSummary}</p>
+      </article>
+      <ClientDeepLinkProjectPage
+        project={project}
+        initialProjects={allPublished}
+        locale={locale}
+      />
+    </>
+  );
 }

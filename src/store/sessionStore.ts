@@ -35,45 +35,75 @@ export function shuffleArray<T>(items: readonly T[], rng: () => number = Math.ra
 }
 
 // Generate single session seed in memory (created once on initial module execution)
-const sessionSeed = typeof window !== "undefined"
-  ? Math.floor(Math.random() * 1000000) + 1
-  : 54321;
+const sessionSeed =
+  typeof window !== "undefined" ? Math.floor(Math.random() * 1000000) + 1 : 54321;
 
-const sessionPrng = createMulberry32(sessionSeed);
+function computeWorkspacePlacements(
+  projects: readonly Project[],
+  seed: number,
+  manualOverrides: Record<string, Record<string, ResolvedDesktopPosition>> = {}
+): Record<string, Record<string, ResolvedDesktopPosition>> {
+  const placements: Record<string, Record<string, ResolvedDesktopPosition>> = {};
+  workspacesData.forEach((ws) => {
+    const featured = projects.filter(
+      (p) => p.featured === true && (p.workspaceId || p.workspace) === ws.id
+    );
+    const resolved = getResolvedDesktopPlacements(featured, ws.id, seed);
+    const wsManual = manualOverrides[ws.id] || {};
+    placements[ws.id] = {
+      ...resolved,
+      ...wsManual
+    };
+  });
+  return placements;
+}
 
-// Generate single session shuffled arrays
-const initialProjects = shuffleArray(projectsData, sessionPrng);
-const initialVideos = shuffleArray(videosData, sessionPrng);
-const initialGallery = shuffleArray(galleryItems, sessionPrng);
-
-// Calculate initial organic desktop placements for each workspace
-const initialPlacements: Record<string, Record<string, ResolvedDesktopPosition>> = {};
-workspacesData.forEach((ws) => {
-  const featured = projectsData.filter(
-    (p) => p.featured === true && ((p.workspaceId || p.workspace) === ws.id)
-  );
-  initialPlacements[ws.id] = getResolvedDesktopPlacements(featured, ws.id, sessionSeed);
-});
+const initialProjects = shuffleArray(projectsData, createMulberry32(sessionSeed));
+const initialVideos = shuffleArray(videosData, createMulberry32(sessionSeed + 1));
+const initialGallery = shuffleArray(galleryItems, createMulberry32(sessionSeed + 2));
+const initialPlacements = computeWorkspacePlacements(projectsData, sessionSeed);
 
 export interface SessionStoreState {
   sessionSeed: number;
+  rawProjects: Project[];
   sessionProjects: Project[];
   sessionVideos: PortfolioVideo[];
   sessionGallery: GalleryItem[];
   desktopPlacements: Record<string, Record<string, ResolvedDesktopPosition>>;
+  manualPlacements: Record<string, Record<string, ResolvedDesktopPosition>>;
   isDraggingProject: boolean;
   setIsDraggingProject: (isDragging: boolean) => void;
+  hydrateProjects: (projects: Project[]) => void;
   updateDesktopPosition: (workspaceId: string, projectId: string, pos: { x: number; y: number }) => void;
 }
 
 export const useSessionStore = create<SessionStoreState>((set) => ({
   sessionSeed,
+  rawProjects: projectsData,
   sessionProjects: initialProjects,
   sessionVideos: initialVideos,
   sessionGallery: initialGallery,
   desktopPlacements: initialPlacements,
+  manualPlacements: {},
   isDraggingProject: false,
   setIsDraggingProject: (isDraggingProject: boolean) => set({ isDraggingProject }),
+  hydrateProjects: (projects: Project[]) => {
+    if (!Array.isArray(projects) || projects.length === 0) return;
+    set((state) => {
+      const prng = createMulberry32(state.sessionSeed);
+      const shuffled = shuffleArray(projects, prng);
+      const placements = computeWorkspacePlacements(
+        projects,
+        state.sessionSeed,
+        state.manualPlacements
+      );
+      return {
+        rawProjects: projects,
+        sessionProjects: shuffled,
+        desktopPlacements: placements
+      };
+    });
+  },
   updateDesktopPosition: (workspaceId: string, projectId: string, pos: { x: number; y: number }) => {
     set((state) => {
       const currentWs = state.desktopPlacements[workspaceId] || {};
@@ -88,11 +118,20 @@ export const useSessionStore = create<SessionStoreState>((set) => ({
         zIndexOffset
       };
 
+      const currentManualWs = state.manualPlacements[workspaceId] || {};
+
       return {
         desktopPlacements: {
           ...state.desktopPlacements,
           [workspaceId]: {
             ...currentWs,
+            [projectId]: updatedPos
+          }
+        },
+        manualPlacements: {
+          ...state.manualPlacements,
+          [workspaceId]: {
+            ...currentManualWs,
             [projectId]: updatedPos
           }
         }

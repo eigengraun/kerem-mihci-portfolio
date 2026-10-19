@@ -4,7 +4,6 @@ import React, { useEffect, useState, useRef } from "react";
 import { useDesktopStore, WorkspaceId } from "@/store/desktopStore";
 import { useWorkspaceNavigation } from "@/context/WorkspaceNavigationContext";
 import { workspacesData, WorkspaceConfig } from "@/data/workspaces";
-import { projectsData } from "@/data/projects";
 import { getFeaturedProjectsForDesktop } from "@/lib/projectSelectors";
 import { DesktopIcon } from "./DesktopIcon";
 import { useSessionStore } from "@/store/sessionStore";
@@ -104,7 +103,7 @@ export const DesktopWorkspace: React.FC = () => {
     };
   }, [activeWorkspace]);
 
-  const { desktopPlacements } = useSessionStore();
+  const { desktopPlacements, rawProjects } = useSessionStore();
   const workspacePlacements = desktopPlacements;
 
   // Trigger frame-perfect animation step when transition starts
@@ -141,7 +140,7 @@ export const DesktopWorkspace: React.FC = () => {
 
   // Render a complete workspace scene (wallpaper layers + vignette + featured desktop icons)
   const renderScene = (wsConfig: WorkspaceConfig, sceneStyle: React.CSSProperties) => {
-    const workspaceProjects = getFeaturedProjectsForDesktop(projectsData, wsConfig.id);
+    const workspaceProjects = getFeaturedProjectsForDesktop(rawProjects, wsConfig.id);
     const placements = workspacePlacements[wsConfig.id] || {};
 
     const lightSrc = wsConfig.wallpaperLight || wsConfig.wallpaper;

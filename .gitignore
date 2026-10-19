@@ -40,3 +40,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local cloudflare d1 & r2 runtime data
+/.local-d1/
+/.local-r2/
+/.wrangler/
+/cloudflare/portfolio-api/.wrangler/
+/cloudflare/portfolio-api/node_modules/
+

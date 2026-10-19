@@ -1,0 +1,25 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "kerem-mihci-portfolio-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-02-14",
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "kerem-portfolio-db",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "MEDIA_BUCKET",
+      "bucket_name": "kerem-portfolio-media"
+    }
+  ],
+  "vars": {
+    "PUBLIC_SITE_ORIGIN": "https://keremmihci.com",
+    "R2_PUBLIC_BASE_URL": "https://media.keremmihci.com"
+  }
+}

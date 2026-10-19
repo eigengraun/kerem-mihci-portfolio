@@ -49,8 +49,8 @@ export const MobileToolsShelf: React.FC<MobileToolsShelfProps> = ({ onClose }) =
         id: windowId,
         type: "tool-info",
         contentId: toolId,
-        titleTR: locale === "tr" ? info.titleTR : info.titleEN,
-        titleEN: locale === "tr" ? info.titleTR : info.titleEN,
+        titleTR: info.titleTR,
+        titleEN: info.titleEN,
         extraData: { toolId },
         width: 320,
         height: 280

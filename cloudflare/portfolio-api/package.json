@@ -1,0 +1,15 @@
+{
+  "name": "kerem-mihci-portfolio-api",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "d1:migrate:local": "wrangler d1 migrations apply kerem-portfolio-db --local",
+    "d1:migrate:remote": "wrangler d1 migrations apply kerem-portfolio-db --remote"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250214.0",
+    "wrangler": "^4.0.0"
+  }
+}

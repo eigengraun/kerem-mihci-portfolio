@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "cms:migrate": "node scripts/migrate-d1.mjs",
+    "cms:verify": "node scripts/verify-cms-and-e2e.mjs"
   },
   "engines": {
     "node": ">=20.9.0"

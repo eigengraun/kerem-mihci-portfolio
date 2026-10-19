@@ -5,6 +5,9 @@ import { siteConfig } from "./siteConfig";
  * Constructs absolute canonical or asset URL.
  */
 export function buildAbsoluteUrl(path: string): string {
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    return path;
+  }
   const baseUrl = siteConfig.url.replace(/\/$/, "");
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
   return `${baseUrl}${cleanPath}`;
@@ -98,3 +101,33 @@ export function generateWebSiteJsonLd(locale: string) {
     inLanguage: isEn ? "en-US" : "tr-TR"
   };
 }
+
+/**
+ * Generates JSON-LD Structured Data for a Portfolio Project (CreativeWork).
+ */
+export function generateProjectJsonLd(project: Project, locale: string) {
+  const isEn = locale === "en";
+  const cleanLocale = isEn ? "en" : "tr";
+  const title = isEn ? project.titleEN : project.titleTR;
+  const description = getLocalizedProjectDescription(project, cleanLocale);
+  const canonicalUrl = `${siteConfig.url}/${cleanLocale}/project/${project.slug}`;
+  const ogImage = getProjectOgImage(project);
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "CreativeWork",
+    name: title,
+    description,
+    url: canonicalUrl,
+    image: ogImage,
+    inLanguage: isEn ? "en-US" : "tr-TR",
+    dateCreated: project.year || "2025",
+    creator: {
+      "@type": "Person",
+      name: siteConfig.person.name,
+      url: siteConfig.url
+    },
+    genre: isEn ? project.categoryEN : project.categoryTR
+  };
+}
+

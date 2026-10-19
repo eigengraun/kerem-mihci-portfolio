@@ -18,19 +18,23 @@ import {
   DynamicNotesApp,
   DynamicTrashApp
 } from "./dynamicApps";
-import { projectsData } from "@/data/projects";
+import { Project } from "@/data/projects";
 import { toolInfoData } from "@/data/toolInfo";
+import { useSessionStore } from "@/store/sessionStore";
 
 export const WindowManager: React.FC = () => {
   const { activeWorkspace } = useDesktopStore();
   const { windows } = useWindowStore();
+  const rawProjects = useSessionStore((s) => s.rawProjects);
 
   const currentWindows = windows[activeWorkspace] || [];
 
   const renderWindowContent = (win: WindowInstance) => {
     switch (win.type) {
       case "project": {
-        const found = projectsData.find((p) => p.slug === win.contentId) || (win.extraData?.project as typeof projectsData[0]);
+        const found =
+          rawProjects.find((p) => p.slug === win.contentId) ||
+          (win.extraData?.project as Project);
         if (!found) {
           return <div className="p-4 text-xs font-mono text-neutral-500">Project data not found.</div>;
         }

@@ -185,7 +185,12 @@ export const DesktopIcon: React.FC<DesktopIconProps> = ({ project, resolvedPosit
   const thumbnailSrc =
     !imageError && (spatialThumbnail?.src || project.thumbnail || project.desktopIcon || project.media?.[0]?.src);
 
-  const hasImage = Boolean(thumbnailSrc) && typeof thumbnailSrc === "string" && thumbnailSrc.startsWith("/");
+  const hasImage =
+    Boolean(thumbnailSrc) &&
+    typeof thumbnailSrc === "string" &&
+    (thumbnailSrc.startsWith("/") ||
+      thumbnailSrc.startsWith("http://") ||
+      thumbnailSrc.startsWith("https://"));
 
   // Deterministic organic position & weight
   const basePosX = resolvedPosition?.x ?? 20;

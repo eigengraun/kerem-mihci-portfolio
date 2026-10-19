@@ -5,14 +5,16 @@ import Image from "next/image";
 import { useDesktopStore } from "@/store/desktopStore";
 import { useWindowStore } from "@/store/windowStore";
 import { workspacesData } from "@/data/workspaces";
-import { projectsData, Project } from "@/data/projects";
+import { Project } from "@/data/projects";
 import { getFeaturedProjectsForMobile } from "@/lib/projectSelectors";
 import { getResolvedMobilePlacements } from "@/lib/mobilePlacement";
 import { toLocaleUpper } from "@/lib/casing";
+import { useSessionStore } from "@/store/sessionStore";
 
 export const MobileWorkspace: React.FC = () => {
   const { activeWorkspace, theme, locale, setSelectedIconId } = useDesktopStore();
   const { openWindow, windows, closeWindow } = useWindowStore();
+  const rawProjects = useSessionStore((s) => s.rawProjects);
 
   const [idleReady, setIdleReady] = useState(false);
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
@@ -42,11 +44,11 @@ export const MobileWorkspace: React.FC = () => {
     const map: Record<string, ReturnType<typeof getResolvedMobilePlacements>> = {};
     const vWidth = typeof window !== "undefined" ? window.innerWidth : 390;
     workspacesData.forEach((ws) => {
-      const workspaceProjects = getFeaturedProjectsForMobile(projectsData, ws.id, vWidth);
+      const workspaceProjects = getFeaturedProjectsForMobile(rawProjects, ws.id, vWidth);
       map[ws.id] = getResolvedMobilePlacements(workspaceProjects, ws.id);
     });
     return map;
-  }, []);
+  }, [rawProjects]);
 
   const handleOpenProject = (p: Project) => {
     const windowId = `project-${p.slug}`;
@@ -84,7 +86,7 @@ export const MobileWorkspace: React.FC = () => {
       >
         {workspacesData.map((ws, wsIdx) => {
           const vWidth = typeof window !== "undefined" ? window.innerWidth : 390;
-          const workspaceProjects = getFeaturedProjectsForMobile(projectsData, ws.id, vWidth);
+          const workspaceProjects = getFeaturedProjectsForMobile(rawProjects, ws.id, vWidth);
           const placements = mobilePlacements[ws.id] || {};
 
           const lightSrc = ws.wallpaperLight || ws.wallpaper;

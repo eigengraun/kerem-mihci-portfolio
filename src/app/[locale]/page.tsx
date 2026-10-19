@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { siteConfig } from "@/lib/siteConfig";
 import { generatePersonJsonLd, generateWebSiteJsonLd } from "@/lib/seo";
+import { isValidLocale } from "@/lib/i18n";
+import { getPublishedProjects } from "@/lib/portfolio/repository";
 import { ClientLocalePage } from "./ClientLocalePage";
 
-export async function generateStaticParams() {
-  return [{ locale: "tr" }, { locale: "en" }];
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params
@@ -13,8 +14,11 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const isEn = locale === "en";
+  if (!isValidLocale(locale)) {
+    return {};
+  }
 
+  const isEn = locale === "en";
   const title = isEn ? siteConfig.defaultTitleEN : siteConfig.defaultTitleTR;
   const description = isEn ? siteConfig.defaultDescriptionEN : siteConfig.defaultDescriptionTR;
   const canonicalUrl = `${siteConfig.url}/${isEn ? "en" : "tr"}`;
@@ -61,6 +65,11 @@ export default async function LocaleDesktopPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+  if (!isValidLocale(locale)) {
+    notFound();
+  }
+
+  const publishedProjects = await getPublishedProjects();
   const personJsonLd = generatePersonJsonLd(locale);
   const websiteJsonLd = generateWebSiteJsonLd(locale);
 
@@ -74,7 +83,7 @@ export default async function LocaleDesktopPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
       />
-      <ClientLocalePage />
+      <ClientLocalePage initialProjects={publishedProjects} />
     </>
   );
 }

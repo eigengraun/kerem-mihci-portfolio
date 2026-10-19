@@ -5,7 +5,7 @@ import Image from "next/image";
 import { PortfolioVideo } from "@/data/videos";
 import { useDesktopStore } from "@/store/desktopStore";
 import { useWindowStore } from "@/store/windowStore";
-import { projectsData } from "@/data/projects";
+import { useSessionStore } from "@/store/sessionStore";
 import { getTranslation } from "@/lib/i18n";
 import { toLocaleUpper } from "@/lib/casing";
 
@@ -18,6 +18,7 @@ interface VideoDetailProps {
 export const VideoDetail: React.FC<VideoDetailProps> = ({ video, onBack, onOpenFeed }) => {
   const { locale, activeWorkspace } = useDesktopStore();
   const { openWindow, bringToFront, windows } = useWindowStore();
+  const rawProjects = useSessionStore((s) => s.rawProjects);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // Playback lifecycle cleanup: pause playback on unmount or video change
@@ -40,7 +41,7 @@ export const VideoDetail: React.FC<VideoDetailProps> = ({ video, onBack, onOpenF
   // Handle optional "View Project" link to Portfolio OS Projects App
   const handleOpenProject = () => {
     if (!video.projectSlug) return;
-    const found = projectsData.find((p) => p.slug === video.projectSlug);
+    const found = rawProjects.find((p) => p.slug === video.projectSlug);
     if (!found) return;
 
     const windowId = `project-${found.slug}`;

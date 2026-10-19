@@ -2,6 +2,7 @@
 
 import React, { Suspense } from "react";
 import Script from "next/script";
+import { usePathname } from "next/navigation";
 import { GA_MEASUREMENT_ID } from "@/lib/analytics";
 import { useAnalyticsConsent } from "@/lib/analyticsConsent";
 import { AnalyticsTracker } from "./AnalyticsTracker";
@@ -15,7 +16,13 @@ import { ConsentBanner } from "./ConsentBanner";
  * - When accepted in production: Initializes gtag with `analytics_storage: granted` and loads GA4.
  */
 export const GoogleAnalytics: React.FC = () => {
+  const pathname = usePathname();
   const consent = useAnalyticsConsent();
+
+  // Do not run public analytics or show visitor consent banner on private admin routes
+  if (pathname?.startsWith("/admin")) {
+    return null;
+  }
 
   // If GA Measurement ID is not configured, remain completely dormant
   if (!GA_MEASUREMENT_ID) {

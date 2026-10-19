@@ -156,9 +156,9 @@ export const ProjectsApp: React.FC = () => {
                   >
                     {/* Thumbnail Frame */}
                     <div className="relative w-14 h-14 rounded-lg overflow-hidden border border-black/15 bg-[#F5F2EB] shadow-xs group-hover:scale-105 transition-transform flex items-center justify-center">
-                      {project.desktopIcon ? (
+                      {(project.desktopIcon || project.thumbnail || project.desktopThumbnail?.src || project.cover) ? (
                         <Image
-                          src={project.desktopIcon}
+                          src={(project.desktopIcon || project.thumbnail || project.desktopThumbnail?.src || project.cover)!}
                           alt=""
                           fill
                           className="object-cover"

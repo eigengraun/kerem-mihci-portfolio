@@ -14,8 +14,9 @@ import {
   DynamicAboutApp,
   DynamicVideoApp
 } from "../window-system/dynamicApps";
-import { projectsData } from "@/data/projects";
+import { Project } from "@/data/projects";
 import { toolInfoData } from "@/data/toolInfo";
+import { useSessionStore } from "@/store/sessionStore";
 
 interface MobileWindowProps {
   win: WindowInstance;
@@ -100,6 +101,7 @@ function computeDefaultPos() {
 export const MobileWindow: React.FC<MobileWindowProps> = ({ win }) => {
   const { activeWorkspace, locale } = useDesktopStore();
   const { closeWindow, bringToFront } = useWindowStore();
+  const rawProjects = useSessionStore((s) => s.rawProjects);
 
   const title = locale === "tr" ? win.titleTR : win.titleEN;
   const mode = getMobileWindowSizeMode(win.type);
@@ -221,8 +223,8 @@ export const MobileWindow: React.FC<MobileWindowProps> = ({ win }) => {
     switch (win.type) {
       case "project": {
         const found =
-          projectsData.find((p) => p.slug === win.contentId) ||
-          (win.extraData?.project as typeof projectsData[0]);
+          rawProjects.find((p) => p.slug === win.contentId) ||
+          (win.extraData?.project as Project);
         if (!found) return <div className="p-4 text-xs font-mono text-neutral-400">Project Not Found</div>;
         return <DynamicProjectApp project={found} />;
       }

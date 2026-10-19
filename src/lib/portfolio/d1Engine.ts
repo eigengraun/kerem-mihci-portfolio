@@ -1526,15 +1526,25 @@ export function uploadMediaToR2AndD1(params: {
   const mediaId = `media-${crypto.randomUUID()}`;
   const isoNow = now.toISOString();
 
+  let resolvedProjectId = projectId;
   const db = getD1Database();
+  if (!resolvedProjectId && safeSlug && safeSlug !== "general") {
+    const foundProj = db
+      .prepare(`SELECT id FROM projects WHERE slug = ? OR id = ? LIMIT 1`)
+      .get(safeSlug, safeSlug) as { id?: string } | undefined;
+    if (foundProj?.id) {
+      resolvedProjectId = String(foundProj.id);
+    }
+  }
+
   db.exec("BEGIN TRANSACTION;");
   try {
-    if (projectId) {
+    if (resolvedProjectId) {
       const existingProj = db
         .prepare(`SELECT id FROM projects WHERE id = ? LIMIT 1`)
-        .get(projectId);
+        .get(resolvedProjectId);
       if (!existingProj) {
-        throw new Error(`Referenced project "${projectId}" does not exist.`);
+        throw new Error(`Referenced project "${resolvedProjectId}" does not exist.`);
       }
     }
     if (simulateD1Error) {
@@ -1549,7 +1559,7 @@ export function uploadMediaToR2AndD1(params: {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`
     ).run(
       mediaId,
-      projectId,
+      resolvedProjectId,
       kind,
       isVideo ? "video" : "image",
       storageKey,
@@ -1590,7 +1600,7 @@ export function uploadMediaToR2AndD1(params: {
 
   return {
     id: mediaId,
-    projectId,
+    projectId: resolvedProjectId,
     kind,
     mediaType: isVideo ? "video" : "image",
     storageKey,
@@ -1614,45 +1624,15 @@ export function isMediaKeyPubliclyAccessibleInLocalD1(storageKey: string): boole
     .prepare(
       `SELECT pm.id, pm.project_id, p.status as project_status
        FROM project_media pm
-       LEFT JOIN projects p ON pm.project_id = p.id
+       INNER JOIN projects p ON pm.project_id = p.id
        WHERE pm.storage_key = ?
        LIMIT 1`
     )
     .get(storageKey) as
-    | { id?: string; project_id?: string | null; project_status?: string | null }
+    | { id: string; project_id: string; project_status: string }
     | undefined;
 
-  if (row) {
-    if (row.project_id) {
-      return String(row.project_status) === "published";
-    }
-    // If project_id is not yet linked, check if the key belongs to a published project
-    const parts = storageKey.split("/");
-    if (parts[0] === "projects" && parts[1] && parts[1] !== "general") {
-      const slug = parts[1];
-      const proj = db
-        .prepare(`SELECT id, status FROM projects WHERE slug = ? OR id = ? LIMIT 1`)
-        .get(slug, slug) as { id?: string; status?: string } | undefined;
-      if (proj?.status === "published") {
-        if (proj.id && row.id) {
-          db.prepare(`UPDATE project_media SET project_id = ? WHERE id = ?`).run(proj.id, row.id);
-        }
-        return true;
-      }
-    }
-    return false;
-  }
-
-  const parts = storageKey.split("/");
-  if (parts[0] === "projects" && parts[1] && parts[1] !== "general") {
-    const slug = parts[1];
-    const proj = db
-      .prepare(`SELECT id, status FROM projects WHERE slug = ? OR id = ? LIMIT 1`)
-      .get(slug, slug) as { id?: string; status?: string } | undefined;
-    return proj?.status === "published";
-  }
-
-  return false;
+  return Boolean(row && row.project_id && row.project_status === "published");
 }
 
 export function listMediaFromD1(projectId?: string): CmsMediaRecord[] {

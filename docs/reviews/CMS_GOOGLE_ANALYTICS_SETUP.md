@@ -112,7 +112,7 @@ GSC_SITE_URL=sc-domain:keremmihci.com
 
 ## 5. Required OAuth Scopes (Implemented in Code)
 
-The Portfolio OS analytics client (`src/lib/admin/analytics.ts`) requests strictly read-only scopes:
+The Portfolio OS analytics client (`src/lib/admin/googleAnalyticsAndGsc.ts`) requests strictly read-only scopes:
 - `https://www.googleapis.com/auth/analytics.readonly`
 - `https://www.googleapis.com/auth/webmasters.readonly`
 

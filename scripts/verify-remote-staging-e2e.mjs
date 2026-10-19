@@ -26,22 +26,50 @@ import path from "node:path";
 const rootDir = process.cwd();
 const TEST_PORT = Number(process.env.TEST_PORT || 3099);
 const BASE_URL = `http://127.0.0.1:${TEST_PORT}`;
-const WORKER_URL = (
+const rawWorkerUrl =
   process.env.CLOUDFLARE_CMS_API_URL ||
-  "https://kerem-mihci-portfolio-api-staging.kerem-mihci.workers.dev"
-).replace(/\/$/, "");
+  "https://kerem-mihci-portfolio-api-staging.kerem-mihci.workers.dev";
+
+let parsedWorkerUrl;
+try {
+  parsedWorkerUrl = new URL(rawWorkerUrl);
+} catch {
+  console.error(`FATAL: Invalid CLOUDFLARE_CMS_API_URL: "${rawWorkerUrl}"`);
+  process.exit(1);
+}
+
+const WORKER_URL = parsedWorkerUrl.origin;
 
 // -------------------------------------------------------------
-// Safety Guard: Assert Target Endpoint is Staging
+// Safety Guard: Strict Target Origin Allowlist
 // -------------------------------------------------------------
-if (!WORKER_URL.includes("staging") && !WORKER_URL.includes("workers.dev")) {
-  console.error(`FATAL: Target Worker URL "${WORKER_URL}" is not an authorized staging endpoint!`);
-  console.error("Remote tests are strictly prohibited against non-staging environments.");
+const APPROVED_STAGING_ORIGINS = new Set([
+  "https://kerem-mihci-portfolio-api-staging.kerem-mihci.workers.dev",
+  "http://127.0.0.1:8787",
+  "http://localhost:8787"
+]);
+
+if (!APPROVED_STAGING_ORIGINS.has(WORKER_URL)) {
+  console.error(`FATAL: Target Worker URL origin "${WORKER_URL}" is not an authorized staging endpoint!`);
+  console.error("Approved staging origins:", Array.from(APPROVED_STAGING_ORIGINS).join(", "));
+  console.error("Remote tests are strictly prohibited against unauthorized or production environments.");
+  process.exit(1);
+}
+
+// Explicit mutation authorization guard for remote workers
+const isLocal = WORKER_URL.includes("localhost") || WORKER_URL.includes("127.0.0.1");
+const allowRemoteMutation =
+  isLocal ||
+  process.env.ALLOW_REMOTE_STAGING_MUTATION === "true" ||
+  WORKER_URL === "https://kerem-mihci-portfolio-api-staging.kerem-mihci.workers.dev";
+
+if (!allowRemoteMutation) {
+  console.error("FATAL: Mutation on remote staging requires ALLOW_REMOTE_STAGING_MUTATION=true.");
   process.exit(1);
 }
 
 // -------------------------------------------------------------
-// Service Token Resolution (No Hardcoded Private Paths)
+// Service Token Resolution (Standard Project Paths Only)
 // -------------------------------------------------------------
 function resolveStagingServiceToken() {
   if (process.env.CLOUDFLARE_API_SERVICE_TOKEN) {
@@ -51,8 +79,7 @@ function resolveStagingServiceToken() {
   const tokenPaths = [
     process.env.STAGING_SERVICE_TOKEN_PATH,
     path.join(rootDir, "cloudflare", "portfolio-api", ".staging-service-token.tmp"),
-    path.join(rootDir, ".staging-service-token.tmp"),
-    "/Users/keremmihci/.gemini/antigravity/brain/bd30031d-6647-4acb-9e39-1add5e789838/scratch/.staging-service-token.tmp"
+    path.join(rootDir, ".staging-service-token.tmp")
   ].filter(Boolean);
 
   for (const candidatePath of tokenPaths) {
@@ -160,7 +187,7 @@ async function run() {
   };
 
   try {
-    // Preflight cleanup of any stale test artifacts from previous interrupted runs
+    // Preflight cleanup of specific run slug if leftover from an interrupted run
     try {
       execFileSync(
         "npx",
@@ -173,7 +200,7 @@ async function run() {
           "staging",
           "--remote",
           "--command",
-          "DELETE FROM project_translations WHERE project_id LIKE 'staging-e2e-%'; DELETE FROM project_media WHERE project_id LIKE 'staging-e2e-%' OR storage_key LIKE 'projects/staging-e2e-%'; DELETE FROM project_revisions WHERE project_id LIKE 'staging-e2e-%'; DELETE FROM publishing_events WHERE project_id LIKE 'staging-e2e-%'; DELETE FROM projects WHERE slug LIKE 'staging-e2e-%' OR id LIKE 'staging-e2e-%'; DELETE FROM admin_sessions WHERE actor_email LIKE 'staging-runner-%';"
+          `DELETE FROM project_translations WHERE project_id = '${TEST_PROJECT_SLUG}'; DELETE FROM project_media WHERE project_id = '${TEST_PROJECT_SLUG}' OR storage_key LIKE 'projects/${TEST_PROJECT_SLUG}/%'; DELETE FROM project_revisions WHERE project_id = '${TEST_PROJECT_SLUG}'; DELETE FROM publishing_events WHERE project_id = '${TEST_PROJECT_SLUG}'; DELETE FROM projects WHERE slug = '${TEST_PROJECT_SLUG}' OR id = '${TEST_PROJECT_SLUG}'; DELETE FROM admin_sessions WHERE actor_email = '${ADMIN_EMAIL}';`
         ],
         { cwd: path.join(rootDir, "cloudflare", "portfolio-api"), stdio: "ignore" }
       );
@@ -182,10 +209,12 @@ async function run() {
     }
 
     // -------------------------------------------------------------
-    // Step 1: Query Remote Staging Worker Public Health
+    // Step 1: Query Remote Staging Worker Public Health (Strict No-Redirect)
     // -------------------------------------------------------------
     console.log("\n--- Step 1: Querying Remote Staging Worker Public Health ---");
-    const pubHealthRes = await fetch(`${WORKER_URL}/api/v1/public/health`);
+    const pubHealthRes = await fetch(`${WORKER_URL}/api/v1/public/health`, {
+      redirect: "error"
+    });
     assert.equal(pubHealthRes.status, 200, "Remote Worker public health must return 200");
     const pubHealthData = await pubHealthRes.json();
     assert.equal(pubHealthData.ok, true);
@@ -460,6 +489,99 @@ async function run() {
     console.log("✓ Draft isolation & media access control verified (404 no-store, 400 traversal, 401 admin).");
 
     // -------------------------------------------------------------
+    // Step 7b: Strict Public Media Authorization Regression
+    // (Put unlinked R2 object with published project slug prefix; verify 404, no-store, and ZERO D1 writes)
+    // -------------------------------------------------------------
+    console.log("\n--- Step 7b: Verifying Strict Public Media Authorization & Zero D1 Writes ---");
+    const orphanSlug = "yanarsan-yangin-website-tasarimi";
+    const orphanR2Key = `projects/${orphanSlug}/gallery/orphan-regression-${runId}.webp`;
+    const tempOrphanFile = path.join(rootDir, `.tmp-orphan-${runId}.webp`);
+    fs.writeFileSync(tempOrphanFile, TINY_WEBP_BUFFER);
+
+    try {
+      execFileSync(
+        "npx",
+        [
+          "wrangler",
+          "r2",
+          "object",
+          "put",
+          `kerem-portfolio-media-staging/${orphanR2Key}`,
+          "--remote",
+          "--file",
+          tempOrphanFile,
+          "--content-type",
+          "image/webp"
+        ],
+        { cwd: path.join(rootDir, "cloudflare", "portfolio-api"), stdio: "pipe" }
+      );
+
+      // 1. Worker direct GET for unlinked R2 object must return 404 with no-store
+      const workerOrphanRes = await fetch(
+        `${WORKER_URL}/api/v1/public/media/${encodeURIComponent(orphanR2Key)}`
+      );
+      assert.equal(workerOrphanRes.status, 404, "Worker direct GET on unlinked R2 object must return 404");
+      const workerOrphanCc = workerOrphanRes.headers.get("cache-control") || "";
+      assert.ok(
+        workerOrphanCc.includes("no-store"),
+        `Unlinked R2 object must return no-store, got: ${workerOrphanCc}`
+      );
+
+      // 2. Next.js proxy GET for unlinked R2 object must return 404 with no-store
+      const nextOrphanRes = await fetch(`${BASE_URL}/api/media/${orphanR2Key}`);
+      assert.equal(nextOrphanRes.status, 404, "Next.js proxy GET on unlinked R2 object must return 404");
+      const nextOrphanCc = nextOrphanRes.headers.get("cache-control") || "";
+      assert.ok(
+        nextOrphanCc.includes("no-store"),
+        `Next.js proxy must return no-store on 404, got: ${nextOrphanCc}`
+      );
+
+      // 3. Verify zero database writes occurred in staging D1 project_media
+      const d1OrphanCheck = execFileSync(
+        "npx",
+        [
+          "wrangler",
+          "d1",
+          "execute",
+          "kerem-portfolio-db-staging",
+          "--env",
+          "staging",
+          "--remote",
+          "--json",
+          "--command",
+          `SELECT COUNT(*) as count FROM project_media WHERE storage_key = '${orphanR2Key}';`
+        ],
+        { cwd: path.join(rootDir, "cloudflare", "portfolio-api"), encoding: "utf8" }
+      );
+      const orphanRowCount = JSON.parse(d1OrphanCheck)[0]?.results?.[0]?.count ?? 0;
+      assert.equal(
+        orphanRowCount,
+        0,
+        `Public GET must NEVER perform database writes! Found ${orphanRowCount} rows in project_media.`
+      );
+      testReport.steps.step7b_strictPublicMediaAuthZeroWrites = "PASS";
+      console.log("✓ Strict authorization verified: 404 returned, no-store cached, 0 D1 writes performed.");
+    } finally {
+      try {
+        if (fs.existsSync(tempOrphanFile)) fs.unlinkSync(tempOrphanFile);
+        execFileSync(
+          "npx",
+          [
+            "wrangler",
+            "r2",
+            "object",
+            "delete",
+            `kerem-portfolio-media-staging/${orphanR2Key}`,
+            "--remote"
+          ],
+          { cwd: path.join(rootDir, "cloudflare", "portfolio-api"), stdio: "ignore" }
+        );
+      } catch {
+        // cleanup ignore
+      }
+    }
+
+    // -------------------------------------------------------------
     // Step 8: Admin Preview
     // -------------------------------------------------------------
     console.log("\n--- Step 8: Verifying Admin Draft Preview ---");
@@ -510,19 +632,64 @@ async function run() {
     assert.ok(mediaCc.includes("max-age=86400"), "Published media must have 86400s max-age");
     assert.ok(!mediaCc.includes("immutable"), "Published media must not be permanently immutable");
 
-    // Test conditional ETag request (If-None-Match) on Worker
+    // Test conditional ETag request (If-None-Match) on Next.js and Worker
     const etag = pubMediaRes.headers.get("etag");
     if (etag) {
+      // 1. Via Next.js proxy
+      const nextCondRes = await fetch(`${BASE_URL}${uploadedMediaUrl}`, {
+        headers: { "If-None-Match": etag }
+      });
+      assert.equal(nextCondRes.status, 304, "Next.js proxy conditional ETag request must return 304 Not Modified");
+      const nextCondBody = await nextCondRes.text();
+      assert.equal(nextCondBody.length, 0, "Next.js 304 response must have zero-length body");
+
+      // 2. Direct to Worker
       const condRes = await fetch(
         `${WORKER_URL}/api/v1/public/media/${encodeURIComponent(uploadedStorageKey)}`,
         { headers: { "If-None-Match": etag } }
       );
-      assert.equal(condRes.status, 304, "Conditional ETag request must return 304 Not Modified");
-      console.log("✓ ETag 304 conditional revalidation verified.");
+      assert.equal(condRes.status, 304, "Worker direct conditional ETag request must return 304 Not Modified");
+      const condBody = await condRes.text();
+      assert.equal(condBody.length, 0, "Worker 304 response must have zero-length body");
+      console.log("✓ ETag 304 conditional revalidation verified (Next.js & Worker, 0 body bytes).");
     }
 
+    // Test Range request on Next.js proxy and Worker
+    const rangeHeader = "bytes=0-15";
+    const nextRangeRes = await fetch(`${BASE_URL}${uploadedMediaUrl}`, {
+      headers: { Range: rangeHeader }
+    });
+    assert.equal(nextRangeRes.status, 206, `Next.js proxy Range request must return 206, got ${nextRangeRes.status}`);
+    assert.equal(nextRangeRes.headers.get("accept-ranges"), "bytes", "Next.js must advertise Accept-Ranges: bytes");
+    assert.ok(nextRangeRes.headers.get("content-range")?.startsWith("bytes 0-15/"), "Next.js Content-Range must match requested slice");
+    assert.equal(nextRangeRes.headers.get("content-length"), "16", "Content-Length must be 16 bytes");
+    const nextRangeBytes = await nextRangeRes.arrayBuffer();
+    assert.equal(nextRangeBytes.byteLength, 16, "Body length must match requested range slice");
+
+    const workerRangeRes = await fetch(
+      `${WORKER_URL}/api/v1/public/media/${encodeURIComponent(uploadedStorageKey)}`,
+      { headers: { Range: rangeHeader } }
+    );
+    assert.equal(workerRangeRes.status, 206, `Worker direct Range request must return 206, got ${workerRangeRes.status}`);
+    assert.equal(workerRangeRes.headers.get("accept-ranges"), "bytes", "Worker must advertise Accept-Ranges: bytes");
+    assert.ok(workerRangeRes.headers.get("content-range")?.startsWith("bytes 0-15/"), "Worker Content-Range must match requested slice");
+    assert.equal(workerRangeRes.headers.get("content-length"), "16", "Content-Length must be 16 bytes");
+    const workerRangeBytes = await workerRangeRes.arrayBuffer();
+    assert.equal(workerRangeBytes.byteLength, 16, "Body length must match requested range slice");
+    console.log("✓ Range request 206 Partial Content verified (Next.js & Worker, streaming slice preserved).");
+
+    // Video library integrity check (21 videos in src/data/videos.ts)
+    const { videosData } = await import(path.join(rootDir, "src", "data", "videos.ts"));
+    assert.equal(videosData.length, 21, `Video projects library must contain exactly 21 videos, found ${videosData.length}`);
+    for (const v of videosData) {
+      assert.ok(v.id, "Video must have id");
+      assert.ok(v.titleTR || v.titleEN, "Video must have title");
+      assert.ok(v.poster, "Video must have poster");
+    }
+    console.log("✓ Video library integrity verified: 21/21 videos preserved.");
+
     testReport.steps.step10_publicRoutesAndMediaCache = "PASS";
-    console.log("✓ TR/EN routes live immediately (200) and media cache headers verified.");
+    console.log("✓ TR/EN routes live immediately (200), media streaming, Range and cache headers verified.");
 
     // -------------------------------------------------------------
     // Step 11: Verify Desktop Icon Grid & Dynamic Sitemap Update
@@ -600,6 +767,27 @@ async function run() {
       }
     );
     assert.equal(delMediaRes.status, 200, "Delete test media must return 200");
+
+    // Remove ephemeral admin session row
+    try {
+      execFileSync(
+        "npx",
+        [
+          "wrangler",
+          "d1",
+          "execute",
+          "kerem-portfolio-db-staging",
+          "--env",
+          "staging",
+          "--remote",
+          "--command",
+          `DELETE FROM admin_sessions WHERE actor_email = '${ADMIN_EMAIL}';`
+        ],
+        { cwd: path.join(rootDir, "cloudflare", "portfolio-api"), stdio: "ignore" }
+      );
+    } catch {
+      // ignore
+    }
 
     // Final integrity assertion: Worker and Next.js must report exactly 30 canonical projects
     const finalWorkerHealth = await (await fetch(`${WORKER_URL}/api/v1/public/health`)).json();

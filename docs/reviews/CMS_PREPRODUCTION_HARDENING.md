@@ -42,41 +42,53 @@ A dedicated 9-test resilience regression suite was developed and executed:
 
 ---
 
-## Section B — Public Media Access Control & Cache Policy
+## Section B — Public Media Access Control, Streaming & Cache Policy
 
-### 1. Access Control Hardening
-To prevent unauthorized asset exfiltration and negative SEO from draft or orphaned assets, public media delivery (`/api/v1/public/media/[...key]` on the Worker and `/api/media/[...key]` on Next.js) enforces strict relational access control:
-- **Published Projects**: Media associated with an active `published` project is served with HTTP `200`.
+### 1. Strict Access Control Hardening (Zero Side-Effects)
+To prevent unauthorized asset exfiltration, media key spoofing, and negative SEO from draft or orphaned assets, public media delivery (`/api/v1/public/media/[...key]` on the Worker and `/api/media/[...key]` on Next.js) enforces strict relational authorization:
+- **Strict Inner Join Requirement**: Public delivery executes `INNER JOIN projects p ON pm.project_id = p.id WHERE pm.storage_key = ?` and requires `p.status = 'published'`.
+- **Zero Prefix Heuristics**: Key prefix heuristics (e.g. matching `projects/<slug>/...`) have been completely removed. An asset is never publicly served unless an explicit `project_media` row links it to a published project.
+- **Zero Database Writes on Public GET**: Public GET operations are strictly read-only and execute **zero database writes or updates**.
 - **Draft & Archived Projects**: Media associated with `draft` or `archived` projects returns HTTP `404 Not Found` with `Cache-Control: no-store, no-cache, must-revalidate`.
-- **Orphan / Unassociated Objects**: Objects in R2 not associated with any project return HTTP `404` with negative cache protection.
+- **Orphan / Unassociated Objects**: Objects in R2 without an active `project_media` record return HTTP `404` with `no-store` negative cache protection.
 - **Admin Preview Bypass**: Authenticated admins previewing draft projects in `/admin` are served draft media via `/api/v1/admin/media/object/[...key]` with `Cache-Control: private, no-store`.
 
-### 2. Bounded Cache Headers
+### 2. Media Streaming & Range Request Safety (Zero OOM)
+- **Direct Stream Pipelining**: In `src/app/api/media/[...key]/route.ts`, replaced full-memory `await upstream.arrayBuffer()` buffering with direct `ReadableStream` pipelining via `new Response(upstream.body, ...)`. This eliminates heap memory spike vulnerabilities on VPS environments under concurrent requests.
+- **HTTP 206 Partial Content**: Both Cloudflare Worker and Next.js proxy support the `Range` request header:
+  - Valid Range requests receive HTTP `206 Partial Content` with `Content-Range: bytes <start>-<end>/<total>` and `Accept-Ranges: bytes`.
+  - Non-range requests receive standard HTTP `200 OK`.
+- **Preservation of 21-Video Library**: Centralized archive in `src/data/videos.ts` (21 videos) preserved intact with streaming and range compatibility.
+
+### 3. Bounded Cache Headers & ETag Revalidation
 - **Published Media**:
   `Cache-Control: public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400`
   *Replaced dangerous permanent `immutable` directives with a 24-hour browser max-age and 7-day edge cache, allowing content updates without permanent cache lock-in.*
 - **Negative / Draft / Error Cache**:
   `Cache-Control: no-store, no-cache, must-revalidate`
   *Prevents intermediate proxies, CDNs, or browsers from caching 404 responses for newly created assets.*
-- **Conditional ETag Validation**:
-  Both Worker and Next.js forward the R2 ETag. Requests sending `If-None-Match: <etag>` return HTTP `304 Not Modified` with zero body transfer, reducing egress bandwidth.
+- **End-to-End Conditional ETag Validation**:
+  Both Worker and Next.js forward the R2 ETag. Requests sending `If-None-Match: <etag>` return HTTP `304 Not Modified` with zero-length body transfer, reducing egress bandwidth.
 
 ---
 
 ## Section C — Test Harness Security & Hygiene
 
-### 1. Elimination of Hardcoded Credentials
-- `scripts/verify-remote-staging-e2e.mjs` previously contained static passwords and emails.
-- Updated to dynamically generate ephemeral run identifiers (`crypto.randomBytes(4).toString("hex")`):
-  - Ephemeral Admin Email: `staging-runner-<runId>@keremmihci.com`
-  - Ephemeral Password: 32-character cryptographically secure passphrase
-  - Ephemeral Session Secret: 64-character random hex string
-- Dynamic derivation of scrypt password hash (`scrypt:<salt>:<hash>`) per run.
-- Zero secrets or credentials printed in execution logs or persisted in report artifacts.
+### 1. Strict Target Origin Guard & Redirect Prohibition
+- `scripts/verify-remote-staging-e2e.mjs` parses `new URL(target).origin` and strictly validates against an approved allowlist:
+  - `https://kerem-mihci-portfolio-api-staging.kerem-mihci.workers.dev`
+  - `http://127.0.0.1:8787`
+  - `http://localhost:8787`
+- Prohibits arbitrary `.workers.dev` domains, custom production hosts, or redirect chains (`redirect: "error"` on preflight health probes).
+- Requires explicit mutation authorization guard (`ALLOW_REMOTE_STAGING_MUTATION=true`).
 
-### 2. URL Safety & Preflight Cleanup
-- The test harness explicitly validates that `CLOUDFLARE_CMS_API_URL` contains `staging` or `localhost`, preventing accidental execution against production.
-- Added preflight cleanup to purge any interrupted test rows from previous test runs, ensuring a pristine 30-project canonical baseline before tests begin.
+### 2. Elimination of Hardcoded & Scratch Paths
+- Removed temporary scratch directory references from service token discovery.
+- Service token is resolved strictly from `CLOUDFLARE_API_SERVICE_TOKEN`, `STAGING_SERVICE_TOKEN_PATH`, or standard project-relative `.staging-service-token.tmp` (protected in `.gitignore`).
+- Dynamic ephemeral test identity (`staging-runner-<runId>@keremmihci.com`) and scrypt derivation ensure zero secrets are committed or logged.
+
+### 3. Surgical Preflight and Postflight Cleanup
+- Replaced broad wildcard deletions with precise, slug-specific cleanup targeting only the ephemeral run identifier (`TEST_PROJECT_SLUG`), safeguarding canonical data.
 
 ---
 
@@ -114,19 +126,20 @@ The full remote staging verification suite (`scripts/verify-remote-staging-e2e.m
 
 | Step | Operation | Result | Verification Detail |
 | :--- | :--- | :--- | :--- |
-| **Step 1** | Staging Worker Public Health | **PASS** | HTTP 200, bindings: D1 + R2, 30 published projects |
+| **Step 1** | Staging Worker Public Health | **PASS** | HTTP 200, strict no-redirect probe, bindings: D1 + R2, 30 published projects |
 | **Step 2** | Next.js Server Startup | **PASS** | Port 3099, `CMS_STORAGE_MODE=staging`, serves 30 projects from Worker |
 | **Step 3** | Admin scrypt Login | **PASS** | HTTP 200, valid session cookie and CSRF token issued |
 | **Step 4** | D1 Durable Session Record | **PASS** | Query to `admin_sessions` confirms `jti_hash` persisted in remote D1 |
 | **Step 5** | R2 Test Media Upload | **PASS** | Magic-byte WebP uploaded to R2, metadata recorded in D1 `project_media` |
 | **Step 6** | Create Test Project Draft | **PASS** | HTTP 201, draft created in remote D1 |
 | **Step 7** | Draft Isolation & Access Control | **PASS** | Public route returns 404 with `no-store`; public media returns 404; path traversal blocked |
+| **Step 7b** | Strict Media Auth & Zero Writes | **PASS** | Unlinked R2 object with published prefix returns 404 `no-store`; verified 0 D1 writes |
 | **Step 8** | Admin Draft Preview | **PASS** | Authenticated admin preview renders draft title and draft media |
 | **Step 9** | Publish Without Rebuild | **PASS** | `PATCH /api/admin/projects/:id` sets `published` in D1 |
-| **Step 10** | Public Routes & Cache Validation | **PASS** | TR/EN routes live immediately (200), media returns 200 with public cache, ETag returns 304 |
+| **Step 10** | Public Routes, Streaming, Range & ETag | **PASS** | TR/EN routes live immediately (200); Range returns 206 slice; ETag returns 304 (0 body); 21 videos verified |
 | **Step 11** | Desktop Grid & Dynamic Sitemap | **PASS** | Dynamic `/sitemap.xml` and `/api/projects` include published project |
 | **Step 12** | Unpublish Immediate 404 | **PASS** | `PATCH status: "draft"` causes immediate 404 on public route with `no-store` cache |
-| **Step 13** | Cleanup & Canonical Restoration | **PASS** | Test project and media deleted cleanly; exactly 30 canonical projects preserved |
+| **Step 13** | Cleanup & Canonical Restoration | **PASS** | Test project, media, and sessions deleted cleanly; exactly 30 canonical projects preserved |
 
 ---
 

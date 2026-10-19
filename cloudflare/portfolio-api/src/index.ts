@@ -26,6 +26,12 @@ export interface R2ObjectBody {
   size: number;
   etag: string;
   httpEtag?: string;
+  range?: { offset: number; length: number };
+}
+
+export interface R2GetOptions {
+  range?: Headers | { offset?: number; length?: number; suffix?: number };
+  onlyIf?: Headers | { etagMatches?: string; etagDoesNotMatch?: string };
 }
 
 export interface R2Bucket {
@@ -37,7 +43,7 @@ export interface R2Bucket {
       customMetadata?: Record<string, string>;
     }
   ): Promise<{ key: string; size: number; etag: string }>;
-  get(key: string): Promise<R2ObjectBody | null>;
+  get(key: string, options?: R2GetOptions): Promise<R2ObjectBody | null>;
   delete(keys: string | string[]): Promise<void>;
   head(key: string): Promise<{ key: string; size: number } | null>;
 }
@@ -1234,64 +1240,32 @@ const worker = {
           );
         }
 
-        // Strict authorization check: Only media associated with an active published project is public.
-        // Unassociated / orphan R2 objects and non-published projects are strictly blocked from public delivery.
+        // Strict authorization check: Only media with an explicit project_media record
+        // associated with an active published project is authorized for public delivery.
+        // Zero database writes occur during public GET requests.
+        // Unregistered objects, missing project_media rows, draft, and archived media return 404 with no-store.
         const mediaAssoc = await db
           .prepare(
             `SELECT pm.id, pm.project_id, pm.kind, p.status as project_status, p.slug as project_slug
              FROM project_media pm
-             LEFT JOIN projects p ON pm.project_id = p.id
+             INNER JOIN projects p ON pm.project_id = p.id
              WHERE pm.storage_key = ?
              LIMIT 1`
           )
           .bind(key)
           .first<{
             id: string;
-            project_id: string | null;
+            project_id: string;
             kind: string;
-            project_status: string | null;
-            project_slug: string | null;
+            project_status: string;
+            project_slug: string;
           }>();
 
-        let isAuthorized = false;
-
-        if (mediaAssoc) {
-          if (mediaAssoc.project_id) {
-            isAuthorized = mediaAssoc.project_status === "published";
-          } else {
-            // If project_id is not yet linked, check if the key belongs to a published project
-            const keyParts = key.split("/");
-            if (keyParts[0] === "projects" && keyParts[1] && keyParts[1] !== "general") {
-              const slug = keyParts[1];
-              const projRow = await db
-                .prepare(`SELECT id, status FROM projects WHERE slug = ? OR id = ? LIMIT 1`)
-                .bind(slug, slug)
-                .first<{ id: string; status: string }>();
-              if (projRow?.status === "published") {
-                isAuthorized = true;
-                await db
-                  .prepare(`UPDATE project_media SET project_id = ? WHERE id = ?`)
-                  .bind(projRow.id, mediaAssoc.id)
-                  .run();
-              }
-            }
-          }
-        } else {
-          // No record in project_media.
-          // Allow only if key follows canonical path convention projects/<slug>/... AND the project is published.
-          const keyParts = key.split("/");
-          if (keyParts[0] === "projects" && keyParts[1] && keyParts[1] !== "general") {
-            const slug = keyParts[1];
-            const projRow = await db
-              .prepare(`SELECT id, status FROM projects WHERE slug = ? OR id = ? LIMIT 1`)
-              .bind(slug, slug)
-              .first<{ id: string; status: string }>();
-            isAuthorized = projRow?.status === "published";
-          } else {
-            // Unregistered / orphan keys are strictly unauthorized
-            isAuthorized = false;
-          }
-        }
+        const isAuthorized = Boolean(
+          mediaAssoc &&
+          mediaAssoc.project_id &&
+          mediaAssoc.project_status === "published"
+        );
 
         if (!isAuthorized) {
           return jsonResponse(
@@ -1302,7 +1276,14 @@ const worker = {
           );
         }
 
-        const obj = await bucket.get(key);
+        // Support Range requests (video streaming) and conditional ETag revalidation
+        const rangeHeader = request.headers.get("Range");
+        const getOptions: R2GetOptions = {};
+        if (rangeHeader) {
+          getOptions.range = request.headers;
+        }
+
+        const obj = await bucket.get(key, getOptions);
         if (!obj) {
           return jsonResponse(
             { ok: false, error: "Media not found" },
@@ -1335,10 +1316,25 @@ const worker = {
           "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400"
         );
         headers.set("Access-Control-Allow-Origin", origin);
+        headers.set("Accept-Ranges", "bytes");
         if (objectEtag) {
           headers.set("ETag", objectEtag);
         }
 
+        // Handle partial content (206) if Range was requested and fulfilled
+        const isRange = Boolean(rangeHeader && obj.range);
+        if (isRange && obj.range) {
+          const start = obj.range.offset;
+          const end = obj.range.offset + obj.range.length - 1;
+          headers.set("Content-Range", `bytes ${start}-${end}/${obj.size}`);
+          headers.set("Content-Length", String(obj.range.length));
+          return new Response(obj.body, {
+            status: 206,
+            headers
+          });
+        }
+
+        headers.set("Content-Length", String(obj.size));
         return new Response(obj.body, {
           status: 200,
           headers
@@ -1988,17 +1984,51 @@ const worker = {
           if (!key || key.includes("..") || key.startsWith("/")) {
             return jsonResponse({ ok: false, error: "Invalid media key" }, 400, origin);
           }
-          const obj = await bucket.get(key);
+          const rangeHeader = request.headers.get("Range");
+          const getOptions: R2GetOptions = {};
+          if (rangeHeader) {
+            getOptions.range = request.headers;
+          }
+          const obj = await bucket.get(key, getOptions);
           if (!obj) {
             return jsonResponse({ ok: false, error: "Media not found" }, 404, origin);
           }
+          const objectEtag =
+            obj.httpEtag || (obj.etag ? (obj.etag.startsWith('"') ? obj.etag : `"${obj.etag}"`) : undefined);
+          const ifNoneMatch = request.headers.get("If-None-Match");
+          if (ifNoneMatch && objectEtag && ifNoneMatch === objectEtag) {
+            return new Response(null, {
+              status: 304,
+              headers: {
+                ETag: objectEtag,
+                "Cache-Control": "private, no-store, no-cache, must-revalidate",
+                "Access-Control-Allow-Origin": origin
+              }
+            });
+          }
+          const headers = new Headers();
+          headers.set("Content-Type", obj.httpMetadata?.contentType || "application/octet-stream");
+          headers.set("Cache-Control", "private, no-store, no-cache, must-revalidate");
+          headers.set("Access-Control-Allow-Origin", origin);
+          headers.set("Accept-Ranges", "bytes");
+          if (objectEtag) {
+            headers.set("ETag", objectEtag);
+          }
+          const isRange = Boolean(rangeHeader && obj.range);
+          if (isRange && obj.range) {
+            const start = obj.range.offset;
+            const end = obj.range.offset + obj.range.length - 1;
+            headers.set("Content-Range", `bytes ${start}-${end}/${obj.size}`);
+            headers.set("Content-Length", String(obj.range.length));
+            return new Response(obj.body, {
+              status: 206,
+              headers
+            });
+          }
+          headers.set("Content-Length", String(obj.size));
           return new Response(obj.body, {
             status: 200,
-            headers: {
-              "Content-Type": obj.httpMetadata?.contentType || "application/octet-stream",
-              "Cache-Control": "private, no-store",
-              "Access-Control-Allow-Origin": origin
-            }
+            headers
           });
         }
 
@@ -2074,7 +2104,16 @@ const worker = {
           ].includes(rawKind)
             ? rawKind
             : "gallery";
-          const projectId = formData.get("projectId") ? String(formData.get("projectId")) : null;
+          let projectId = formData.get("projectId") ? String(formData.get("projectId")) : null;
+          if (!projectId && projectSlug && projectSlug !== "general") {
+            const foundProj = await db
+              .prepare(`SELECT id FROM projects WHERE slug = ? OR id = ? LIMIT 1`)
+              .bind(projectSlug, projectSlug)
+              .first<{ id: string }>();
+            if (foundProj?.id) {
+              projectId = String(foundProj.id);
+            }
+          }
           const altTR = String(formData.get("altTR") || "");
           const altEN = String(formData.get("altEN") || "");
           const captionTR = formData.get("captionTR") ? String(formData.get("captionTR")) : null;

@@ -1,7 +1,7 @@
 {
-  "startedAt": "2026-10-19T22:05:51.918Z",
+  "startedAt": "2026-10-19T22:38:55.974Z",
   "workerUrl": "https://kerem-mihci-portfolio-api-staging.kerem-mihci.workers.dev",
-  "testProjectSlug": "staging-e2e-8143fc8d",
+  "testProjectSlug": "staging-e2e-e64cc606",
   "steps": {
     "step1_workerHealth": {
       "status": "PASS",
@@ -14,18 +14,19 @@
     "step3_adminLogin": "PASS",
     "step4_d1DurableSession": {
       "status": "PASS",
-      "actorEmail": "staging-runner-8143fc8d@keremmihci.com",
+      "actorEmail": "staging-runner-e64cc606@keremmihci.com",
       "role": "owner",
       "revoked_at": null
     },
     "step5_r2MediaUpload": {
       "status": "PASS",
-      "mediaId": "media-ae9ee33a-2c6c-41f5-8b5a-2480e66e347a",
-      "storageKey": "projects/staging-e2e-8143fc8d/cover/2026/10/7cbc5067-staging-e2e-8143fc8d-cover.webp",
+      "mediaId": "media-b5fc8b3a-a15c-4e2d-b080-a8102ca5bd23",
+      "storageKey": "projects/staging-e2e-e64cc606/cover/2026/10/a5379036-staging-e2e-e64cc606-cover.webp",
       "mimeType": "image/webp"
     },
     "step6_createDraft": "PASS",
     "step7_draftIsolationAndMediaSecurity": "PASS",
+    "step7b_strictPublicMediaAuthZeroWrites": "PASS",
     "step8_adminPreview": "PASS",
     "step9_publish": "PASS",
     "step10_publicRoutesAndMediaCache": "PASS",
@@ -34,5 +35,5 @@
     "step13_cleanup": "PASS"
   },
   "allPassed": true,
-  "completedAt": "2026-10-19T22:06:39.767Z"
+  "completedAt": "2026-10-19T22:39:50.096Z"
 }

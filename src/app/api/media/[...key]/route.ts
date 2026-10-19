@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { Readable } from "node:stream";
 import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/admin/auth";
 import {
@@ -23,7 +24,7 @@ const MIME_BY_EXT: Record<string, string> = {
 };
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ key: string[] }> }
 ) {
   const { key } = await context.params;
@@ -36,32 +37,63 @@ export async function GET(
     return NextResponse.json({ ok: false, error: "Invalid media key" }, { status: 400 });
   }
 
+  const ifNoneMatch = request.headers.get("if-none-match");
+  const rangeHeader = request.headers.get("range");
+
   const workerBase = (process.env.CLOUDFLARE_CMS_API_URL || "").trim().replace(/\/$/, "");
   const serviceToken = (process.env.CLOUDFLARE_API_SERVICE_TOKEN || "").trim();
 
   if (workerBase) {
     try {
+      const upstreamHeaders: Record<string, string> = {};
+      if (ifNoneMatch) upstreamHeaders["If-None-Match"] = ifNoneMatch;
+      if (rangeHeader) upstreamHeaders["Range"] = rangeHeader;
+
       const upstream = await fetch(
         `${workerBase}/api/v1/public/media/${joinedKey}`,
-        { cache: "no-store" }
+        {
+          cache: "no-store",
+          headers: upstreamHeaders
+        }
       );
-      if (upstream.ok) {
-        const buf = await upstream.arrayBuffer();
+
+      // 304 Not Modified conditional response forwarding
+      if (upstream.status === 304) {
+        return new Response(null, {
+          status: 304,
+          headers: {
+            ETag: upstream.headers.get("etag") || ifNoneMatch || "",
+            "Cache-Control":
+              "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400"
+          }
+        });
+      }
+
+      // Stream media response (200 OK or 206 Partial Content) directly without full-buffering
+      if (upstream.status === 200 || upstream.status === 206) {
         const ext = path.extname(joinedKey).toLowerCase();
         const contentType =
           upstream.headers.get("content-type") ||
           MIME_BY_EXT[ext] ||
           "application/octet-stream";
+
+        const headers = new Headers();
+        headers.set("Content-Type", contentType);
+        headers.set(
+          "Cache-Control",
+          "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400"
+        );
+        headers.set("Accept-Ranges", "bytes");
+
         const etag = upstream.headers.get("etag");
-        const headers: Record<string, string> = {
-          "Content-Type": contentType,
-          "Content-Length": String(buf.byteLength),
-          "Cache-Control":
-            "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400"
-        };
-        if (etag) headers["ETag"] = etag;
-        return new NextResponse(buf, {
-          status: 200,
+        if (etag) headers.set("ETag", etag);
+        const contentLength = upstream.headers.get("content-length");
+        if (contentLength) headers.set("Content-Length", contentLength);
+        const contentRange = upstream.headers.get("content-range");
+        if (contentRange) headers.set("Content-Range", contentRange);
+
+        return new Response(upstream.body, {
+          status: upstream.status,
           headers
         });
       }
@@ -70,30 +102,53 @@ export async function GET(
       if (upstream.status === 404 && serviceToken) {
         const adminSession = await getAdminSession();
         if (adminSession) {
+          const adminHeaders: Record<string, string> = {
+            Authorization: `Bearer ${serviceToken}`,
+            "X-Actor-Email": adminSession.email
+          };
+          if (ifNoneMatch) adminHeaders["If-None-Match"] = ifNoneMatch;
+          if (rangeHeader) adminHeaders["Range"] = rangeHeader;
+
           const adminUpstream = await fetch(
             `${workerBase}/api/v1/admin/media/object/${joinedKey}`,
             {
               cache: "no-store",
-              headers: {
-                Authorization: `Bearer ${serviceToken}`,
-                "X-Actor-Email": adminSession.email
-              }
+              headers: adminHeaders
             }
           );
-          if (adminUpstream.ok) {
-            const buf = await adminUpstream.arrayBuffer();
+
+          if (adminUpstream.status === 304) {
+            return new Response(null, {
+              status: 304,
+              headers: {
+                ETag: adminUpstream.headers.get("etag") || ifNoneMatch || "",
+                "Cache-Control": "private, no-store, no-cache, must-revalidate"
+              }
+            });
+          }
+
+          if (adminUpstream.status === 200 || adminUpstream.status === 206) {
             const ext = path.extname(joinedKey).toLowerCase();
             const contentType =
               adminUpstream.headers.get("content-type") ||
               MIME_BY_EXT[ext] ||
               "application/octet-stream";
-            return new NextResponse(buf, {
-              status: 200,
-              headers: {
-                "Content-Type": contentType,
-                "Content-Length": String(buf.byteLength),
-                "Cache-Control": "private, no-store, no-cache, must-revalidate"
-              }
+
+            const headers = new Headers();
+            headers.set("Content-Type", contentType);
+            headers.set("Cache-Control", "private, no-store, no-cache, must-revalidate");
+            headers.set("Accept-Ranges", "bytes");
+
+            const etag = adminUpstream.headers.get("etag");
+            if (etag) headers.set("ETag", etag);
+            const contentLength = adminUpstream.headers.get("content-length");
+            if (contentLength) headers.set("Content-Length", contentLength);
+            const contentRange = adminUpstream.headers.get("content-range");
+            if (contentRange) headers.set("Content-Range", contentRange);
+
+            return new Response(adminUpstream.body, {
+              status: adminUpstream.status,
+              headers
             });
           }
         }
@@ -166,18 +221,66 @@ export async function GET(
     );
   }
 
+  const stat = fs.statSync(resolvedPath);
+  const localEtag = `"${Math.floor(stat.mtimeMs).toString(36)}-${stat.size.toString(36)}"`;
+  if (ifNoneMatch && ifNoneMatch === localEtag) {
+    return new Response(null, {
+      status: 304,
+      headers: {
+        ETag: localEtag,
+        "Cache-Control": isPublic
+          ? "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400"
+          : "private, no-store, no-cache, must-revalidate"
+      }
+    });
+  }
+
   const ext = path.extname(resolvedPath).toLowerCase();
   const contentType = MIME_BY_EXT[ext] || "application/octet-stream";
-  const fileBuffer = fs.readFileSync(resolvedPath);
 
-  return new NextResponse(fileBuffer, {
-    status: 200,
-    headers: {
-      "Content-Type": contentType,
-      "Content-Length": String(fileBuffer.byteLength),
-      "Cache-Control": isPublic
-        ? "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400"
-        : "private, no-store, no-cache, must-revalidate"
+  // Local Range request support for videos/media
+  if (rangeHeader && rangeHeader.startsWith("bytes=")) {
+    const match = /^bytes=(\d*)-(\d*)$/.exec(rangeHeader.trim());
+    if (match) {
+      const total = stat.size;
+      const start = match[1] ? parseInt(match[1], 10) : 0;
+      const end = match[2] ? parseInt(match[2], 10) : total - 1;
+      if (start < total && end >= start) {
+        const chunkLen = end - start + 1;
+        const fileStream = fs.createReadStream(resolvedPath, { start, end });
+        const webStream = Readable.toWeb(fileStream);
+        const headers = new Headers({
+          "Content-Type": contentType,
+          "Content-Range": `bytes ${start}-${end}/${total}`,
+          "Accept-Ranges": "bytes",
+          "Content-Length": String(chunkLen),
+          ETag: localEtag,
+          "Cache-Control": isPublic
+            ? "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400"
+            : "private, no-store, no-cache, must-revalidate"
+        });
+        return new Response(webStream as BodyInit, {
+          status: 206,
+          headers
+        });
+      }
     }
+  }
+
+  const fileStream = fs.createReadStream(resolvedPath);
+  const webStream = Readable.toWeb(fileStream);
+  const headers = new Headers({
+    "Content-Type": contentType,
+    "Content-Length": String(stat.size),
+    "Accept-Ranges": "bytes",
+    ETag: localEtag,
+    "Cache-Control": isPublic
+      ? "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400"
+      : "private, no-store, no-cache, must-revalidate"
+  });
+
+  return new Response(webStream as BodyInit, {
+    status: 200,
+    headers
   });
 }

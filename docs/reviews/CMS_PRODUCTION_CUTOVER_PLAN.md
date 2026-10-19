@@ -64,19 +64,46 @@ Generate a cryptographically secure 64-character secret and assign it to the pro
 npx wrangler secret put CLOUDFLARE_API_SERVICE_TOKEN --env production
 ```
 
-### Step 1.5 — Deploy the Production Cloudflare Worker
-```bash
-npx wrangler deploy --env production
-```
-*The Worker URL will be: `https://kerem-mihci-portfolio-api.<subdomain>.workers.dev`.*
+### Step 1.5 — Production Worker Routing Architecture & Deployment
+
+> [!IMPORTANT]
+> **Resolution of Production Routing Architecture**
+> In `cloudflare/portfolio-api/wrangler.jsonc`, the production environment currently specifies `"workers_dev": false`.
+> Before running `npx wrangler deploy --env production`, choose one of the two supported routing architectures:
+>
+> **Option A (Recommended for simplicity: workers.dev Subdomain Route)**:
+> In `cloudflare/portfolio-api/wrangler.jsonc`, under `env.production`, change:
+> ```jsonc
+> "workers_dev": true
+> ```
+> Then run `npx wrangler deploy --env production`.
+> Your Worker endpoint will be:
+> `https://kerem-mihci-portfolio-api.<subdomain>.workers.dev`
+>
+> **Option B (Custom Domain / API Subdomain Route)**:
+> Keep `"workers_dev": false` and add a custom domain binding to `wrangler.jsonc`:
+> ```jsonc
+> "routes": [
+>   {
+>     "pattern": "api.keremmihci.com/*",
+>     "custom_domain": true
+>   }
+> ]
+> ```
+> *(Note: Option B requires the `keremmihci.com` DNS zone to be active on Cloudflare).*
+>
+> Deploy the Worker:
+> ```bash
+> npx wrangler deploy --env production
+> ```
 
 ### Step 1.6 — Seed Canonical 30 Projects to Production D1
 ```bash
-CLOUDFLARE_CMS_API_URL=https://kerem-mihci-portfolio-api.<subdomain>.workers.dev \
+CLOUDFLARE_CMS_API_URL=<your-chosen-production-worker-url> \
 CLOUDFLARE_API_SERVICE_TOKEN=<your-production-service-token> \
 npm run cms:migrate
 ```
-*Verify that `https://kerem-mihci-portfolio-api.<subdomain>.workers.dev/api/v1/public/health` returns `publishedCount: 30`.*
+*Verify that `<production-worker-url>/api/v1/public/health` returns `publishedCount: 30`.*
 
 ---
 
@@ -102,7 +129,7 @@ CMS_STORAGE_MODE=production
 CMS_DATA_SOURCE=cloudflare
 
 # Cloudflare Worker API Connection
-CLOUDFLARE_CMS_API_URL=https://kerem-mihci-portfolio-api.<subdomain>.workers.dev
+CLOUDFLARE_CMS_API_URL=<your-chosen-production-worker-url>
 CLOUDFLARE_API_SERVICE_TOKEN=<production-service-token>
 
 # Admin Authentication & Security
@@ -110,7 +137,7 @@ ADMIN_SESSION_SECRET=<random-64-character-hex-secret>
 ADMIN_ALLOWED_EMAILS=kerem@keremmihci.com
 ADMIN_PASSWORD_HASH=scrypt:<salt>:<hash>
 
-# Optional Google Analytics & Search Console
+# Optional Google Analytics & Search Console (See CMS_GOOGLE_ANALYTICS_SETUP.md)
 GA4_PROPERTY_ID=<numeric-property-id>
 GOOGLE_SERVICE_ACCOUNT_EMAIL=<service-account-email>
 GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="<private-key>"
@@ -129,18 +156,34 @@ GSC_SITE_URL=sc-domain:keremmihci.com
 
 ---
 
-## 5. Phase 3 — Zero-Downtime Lossless Rollback Plan
+## 5. Phase 3 — Emergency Rollback Architecture & Honest Expectations
 
-If any unforeseen network or Cloudflare service degradation occurs post-cutover, execute this instant rollback:
+> [!WARNING]
+> **Data Preservation vs. Visibility Preservation: Accurate Technical Distinction**
+> Rolling back the application to legacy static files is **Visibility-Preserving for pre-existing projects**, not a bidirectional sync.
+>
+> 1. **Data Preservation (Storage Layer — Zero Data Loss)**:
+>    - Switching `CMS_DATA_SOURCE=legacy` **never deletes or alters** any data in Cloudflare D1 or R2.
+>    - All newly created projects, uploaded media, edits, and audit logs remain 100% intact in D1 and R2.
+>
+> 2. **Visibility Limitation (Presentation Layer — Static Snapshot Reversion)**:
+>    - The legacy mode serves `src/data/projects.ts` baked into the repository build.
+>    - Any project created, modified, or reordered in the Cloudflare CMS *after* production cutover will **not be visible** to public visitors while running in `CMS_DATA_SOURCE=legacy`.
+>    - Once Cloudflare connectivity or operational concerns are resolved and `CMS_DATA_SOURCE=cloudflare` is restored, all CMS content instantly reappears on the public site without re-uploading.
+>
+> 3. **True Bidirectional Synchronization**:
+>    - If permanent decommissioning of Cloudflare CMS is ever desired while retaining new CMS projects, an administrator must export the D1 database records back into `src/data/projects.ts` and commit them to Git before switching to static mode.
 
-### Immediate Rollback (0 Code Changes Required)
-Change a single environment variable on Hostinger:
-```env
-CMS_DATA_SOURCE=legacy
-```
-Restart Next.js (`pm2 reload all` or restart app in Hostinger panel).
-
-### Rollback Effect
-- Public visitors are instantly routed back to static compiled files in `src/data/projects.ts` (`0ms` data loss, zero dependency on Cloudflare network).
-- `/admin` remains accessible or can be temporarily disabled by setting `CMS_STORAGE_MODE=local`.
-- No user content or database state is destroyed.
+### Immediate Outage Mitigation Procedure (0 Code Changes)
+If an extended Cloudflare network outage or credential compromise occurs:
+1. On Hostinger, change environment variable:
+   ```env
+   CMS_DATA_SOURCE=legacy
+   ```
+2. Reload Next.js:
+   ```bash
+   pm2 reload all
+   ```
+3. Effect:
+   - Public site instantly serves the canonical static portfolio (all 30 canonical projects, zero downtime).
+   - Remote Cloudflare D1 and R2 records remain completely preserved for subsequent reconnection.

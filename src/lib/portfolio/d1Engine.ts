@@ -9,17 +9,23 @@ import {
   type ProjectContentBlock,
   type ProjectExternalLink,
   type ProjectMediaItem,
+  type ProjectMediaLayout,
+  type ProjectStatus,
   type WorkspaceId
 } from "@/data/projects";
 import {
+  CmsStorageUnavailableError,
   type CmsAuditLogRecord,
+  type CmsDataSource,
   type CmsMediaRecord,
   type CmsProjectRecord,
   type CmsPublishStatus,
   type CmsPublishingEventRecord,
   type CmsRevisionRecord,
+  type CmsStorageMode,
   type UpsertProjectInput,
-  normalizeSlug
+  normalizeSlug,
+  validateMediaFileSignature
 } from "./types";
 
 interface SqliteStatement {
@@ -34,10 +40,24 @@ interface SqliteDatabase {
   close(): void;
 }
 
+interface MediaItemMeta {
+  originalId?: string;
+  layout?: ProjectMediaLayout;
+  poster?: string;
+  thumbnail?: string;
+  aspectRatio?: string;
+  autoplay?: boolean;
+  muted?: boolean;
+  loop?: boolean;
+  preload?: "none" | "metadata" | "auto";
+  priority?: boolean;
+}
+
 interface ExtraProjectMetadataJson {
   categoryIds?: ProjectCategoryId[];
   tags?: string[];
   tools?: string[];
+  services?: string[];
   servicesTR?: string[];
   servicesEN?: string[];
   externalLinks?: ProjectExternalLink[];
@@ -51,11 +71,45 @@ interface ExtraProjectMetadataJson {
   resultTR?: string;
   resultEN?: string;
   desktopWidth?: number;
+  desktopWeight?: "small" | "normal" | "large";
+  desktopPlacement?: { x: number; y: number };
+  desktopClusterId?: string;
+  projectStatus?: ProjectStatus;
+  hasExplicitSeo?: boolean;
+  mediaMeta?: MediaItemMeta[];
 }
 
 const requireNode = createRequire(import.meta.url);
 
-function getDbFilePath(): string {
+export function getCmsStorageMode(): CmsStorageMode {
+  const raw = (process.env.CMS_STORAGE_MODE || "").trim().toLowerCase();
+  if (raw === "local" || raw === "staging" || raw === "production") {
+    return raw;
+  }
+  return process.env.NODE_ENV === "production" ? "production" : "local";
+}
+
+export function getCmsDataSource(): CmsDataSource {
+  const raw = (process.env.CMS_DATA_SOURCE || "").trim().toLowerCase();
+  if (raw === "legacy") return "legacy";
+  if (raw === "cloudflare") return "cloudflare";
+  // In production when Cloudflare Worker URL is not yet configured, default to legacy read mode
+  if (getCmsStorageMode() === "production" && !process.env.CLOUDFLARE_CMS_API_URL) {
+    return "legacy";
+  }
+  return "cloudflare";
+}
+
+export function assertLocalSimulationAllowed(operation: string): void {
+  const mode = getCmsStorageMode();
+  if (mode !== "local") {
+    throw new CmsStorageUnavailableError(
+      `[CMS Fail-Closed] Operation "${operation}" blocked: local SQLite/R2 simulation is strictly disabled when CMS_STORAGE_MODE="${mode}". Configure CLOUDFLARE_CMS_API_URL and CLOUDFLARE_API_SERVICE_TOKEN.`
+    );
+  }
+}
+
+export function getDbFilePath(): string {
   if (process.env.LOCAL_D1_DB_PATH) {
     return path.resolve(process.env.LOCAL_D1_DB_PATH);
   }
@@ -80,7 +134,7 @@ CREATE TABLE IF NOT EXISTS projects (
   featured_order INTEGER NOT NULL DEFAULT 0,
   sort_order INTEGER NOT NULL DEFAULT 0,
   client_name TEXT NOT NULL DEFAULT '',
-  year TEXT NOT NULL DEFAULT '2025',
+  year TEXT NOT NULL DEFAULT '',
   live_url TEXT,
   source_url TEXT,
   initials TEXT,
@@ -210,6 +264,8 @@ let cachedDb: SqliteDatabase | null = null;
 let cachedDbPath: string | null = null;
 
 export function getD1Database(): SqliteDatabase {
+  assertLocalSimulationAllowed("getD1Database");
+
   const dbPath = getDbFilePath();
   if (cachedDb && cachedDbPath === dbPath && fs.existsSync(dbPath)) {
     return cachedDb;
@@ -279,11 +335,25 @@ export function seedCanonicalProjects(
       const desktopThumbJson = p.desktopThumbnail ? JSON.stringify(p.desktopThumbnail) : null;
 
       const liveLink = p.externalLinks?.find((l) => l.type === "live")?.href || null;
+      const mediaMeta: MediaItemMeta[] = (p.media || []).map((m) => ({
+        originalId: m.id,
+        layout: m.layout,
+        poster: m.poster,
+        thumbnail: m.thumbnail,
+        aspectRatio: m.aspectRatio,
+        autoplay: m.autoplay,
+        muted: m.muted,
+        loop: m.loop,
+        preload: m.preload,
+        priority: m.priority
+      }));
+
       const extraMeta: ExtraProjectMetadataJson = {
         categoryIds: p.categoryIds,
         tools: p.tools,
-        servicesTR: p.servicesTR || p.services,
-        servicesEN: p.servicesEN || p.services,
+        services: p.services,
+        servicesTR: p.servicesTR,
+        servicesEN: p.servicesEN,
         externalLinks: p.externalLinks,
         contentBlocks: p.contentBlocks,
         desktopLabelTR: p.desktopLabelTR,
@@ -294,7 +364,13 @@ export function seedCanonicalProjects(
         solutionEN: p.solutionEN,
         resultTR: p.resultTR,
         resultEN: p.resultEN,
-        desktopWidth: p.desktop?.width
+        desktopWidth: p.desktop?.width,
+        desktopWeight: p.desktopWeight,
+        desktopPlacement: p.desktopPlacement,
+        desktopClusterId: p.desktopClusterId,
+        projectStatus: p.status || "completed",
+        hasExplicitSeo: Boolean(p.seo),
+        mediaMeta
       };
       const tagsJson = JSON.stringify(extraMeta);
 
@@ -317,7 +393,7 @@ export function seedCanonicalProjects(
           fOrder,
           sortOrder,
           p.client || "",
-          p.year || "2025",
+          p.year ?? "",
           liveLink,
           null,
           p.initials ?? null,
@@ -353,7 +429,7 @@ export function seedCanonicalProjects(
           fOrder,
           sortOrder,
           p.client || "",
-          p.year || "2025",
+          p.year ?? "",
           liveLink,
           p.initials ?? null,
           p.cover ?? null,
@@ -395,7 +471,7 @@ export function seedCanonicalProjects(
         p.titleTR,
         p.projectTypeTR ?? null,
         p.summaryTR ?? null,
-        p.descriptionTR || p.summaryTR || "",
+        p.descriptionTR ?? "",
         p.roleTR ?? null,
         p.categoryTR || "",
         p.seo?.titleTR ?? null,
@@ -426,7 +502,7 @@ export function seedCanonicalProjects(
         p.titleEN,
         p.projectTypeEN ?? null,
         p.summaryEN ?? null,
-        p.descriptionEN || p.summaryEN || "",
+        p.descriptionEN ?? "",
         p.roleEN ?? null,
         p.categoryEN || "",
         p.seo?.titleEN ?? null,
@@ -521,7 +597,7 @@ function parseJsonSafe<T>(raw: unknown, fallback: T): T {
   }
 }
 
-function mapRowsToCmsProjects(
+export function mapRowsToCmsProjects(
   projectRows: Record<string, unknown>[],
   translationRows: Record<string, unknown>[],
   mediaRows: Record<string, unknown>[]
@@ -535,24 +611,14 @@ function mapRowsToCmsProjects(
     if (row.locale === "en") enMap.set(pid, row);
   }
 
-  const mediaMap = new Map<string, ProjectMediaItem[]>();
+  const rawMediaByProject = new Map<string, Record<string, unknown>[]>();
   for (const row of mediaRows) {
     if (!row.project_id) continue;
     const pid = String(row.project_id);
     const kind = String(row.kind || "gallery");
     if (kind !== "gallery" && kind !== "video") continue;
-    if (!mediaMap.has(pid)) mediaMap.set(pid, []);
-    mediaMap.get(pid)!.push({
-      id: String(row.id),
-      type: row.media_type === "video" ? "video" : "image",
-      src: String(row.public_url),
-      width: row.width ? Number(row.width) : undefined,
-      height: row.height ? Number(row.height) : undefined,
-      altTR: row.alt_tr ? String(row.alt_tr) : undefined,
-      altEN: row.alt_en ? String(row.alt_en) : undefined,
-      captionTR: row.caption_tr ? String(row.caption_tr) : undefined,
-      captionEN: row.caption_en ? String(row.caption_en) : undefined
-    });
+    if (!rawMediaByProject.has(pid)) rawMediaByProject.set(pid, []);
+    rawMediaByProject.get(pid)!.push(row);
   }
 
   return projectRows.map((row) => {
@@ -579,7 +645,10 @@ function mapRowsToCmsProjects(
     const seoDescEN = en.seo_description ? String(en.seo_description) : undefined;
     const ogImg = row.og_image_url ? String(row.og_image_url) : undefined;
 
-    const hasSeo = Boolean(seoTitleTR || seoTitleEN || seoDescTR || seoDescEN || ogImg);
+    const showSeo =
+      extra.hasExplicitSeo !== undefined
+        ? extra.hasExplicitSeo
+        : Boolean(seoTitleTR || seoTitleEN || seoDescTR || seoDescEN || ogImg);
     const workspace = (row.workspace as WorkspaceId) || "design";
     const defaultCategory: ProjectCategoryId =
       workspace === "web"
@@ -590,7 +659,7 @@ function mapRowsToCmsProjects(
 
     const liveUrl = row.live_url ? String(row.live_url) : undefined;
     const externalLinks: ProjectExternalLink[] =
-      extra.externalLinks && extra.externalLinks.length > 0
+      extra.externalLinks !== undefined
         ? extra.externalLinks
         : liveUrl
         ? [
@@ -604,11 +673,44 @@ function mapRowsToCmsProjects(
           ]
         : [];
 
+    const pMediaRows = rawMediaByProject.get(id) || [];
+    const mediaMetaList = extra.mediaMeta || [];
+    const media: ProjectMediaItem[] = pMediaRows.map((mRow, idx) => {
+      const mMeta = mediaMetaList[idx] || {};
+      const item: ProjectMediaItem = {
+        id: mMeta.originalId || String(mRow.id),
+        type: mRow.media_type === "video" ? "video" : "image",
+        src: String(mRow.public_url)
+      };
+      if (mRow.alt_tr) item.altTR = String(mRow.alt_tr);
+      if (mRow.alt_en) item.altEN = String(mRow.alt_en);
+      if (mRow.caption_tr) item.captionTR = String(mRow.caption_tr);
+      if (mRow.caption_en) item.captionEN = String(mRow.caption_en);
+      if (mMeta.layout) item.layout = mMeta.layout;
+      if (mRow.width !== null && mRow.width !== undefined) item.width = Number(mRow.width);
+      if (mRow.height !== null && mRow.height !== undefined) item.height = Number(mRow.height);
+      if (mMeta.poster) item.poster = mMeta.poster;
+      if (mMeta.thumbnail) item.thumbnail = mMeta.thumbnail;
+      if (mMeta.aspectRatio) item.aspectRatio = mMeta.aspectRatio;
+      if (mMeta.autoplay !== undefined) item.autoplay = mMeta.autoplay;
+      if (mMeta.muted !== undefined) item.muted = mMeta.muted;
+      if (mMeta.loop !== undefined) item.loop = mMeta.loop;
+      if (mMeta.preload) item.preload = mMeta.preload;
+      if (mMeta.priority !== undefined) item.priority = mMeta.priority;
+      return item;
+    });
+
+    const rawYear = row.year !== null && row.year !== undefined ? String(row.year) : "";
+    const rawDescTR =
+      tr.description !== null && tr.description !== undefined ? String(tr.description) : "";
+    const rawDescEN =
+      en.description !== null && en.description !== undefined ? String(en.description) : "";
+
     return {
       id,
       slug: String(row.slug),
       cmsStatus: (row.status as CmsPublishStatus) || "draft",
-      status: "completed",
+      status: extra.projectStatus || "completed",
       workspace,
       workspaceId: workspace,
       categoryIds:
@@ -629,11 +731,11 @@ function mapRowsToCmsProjects(
       categoryTR: String(tr.category_label || ""),
       categoryEN: String(en.category_label || tr.category_label || ""),
       client: String(row.client_name || ""),
-      year: String(row.year || "2025"),
+      year: rawYear !== "" ? rawYear : undefined,
       summaryTR: tr.summary ? String(tr.summary) : undefined,
       summaryEN: en.summary ? String(en.summary) : undefined,
-      descriptionTR: String(tr.description || ""),
-      descriptionEN: String(en.description || tr.description || ""),
+      descriptionTR: rawDescTR !== "" ? rawDescTR : undefined,
+      descriptionEN: rawDescEN !== "" ? rawDescEN : undefined,
       challengeTR: extra.challengeTR,
       challengeEN: extra.challengeEN,
       solutionTR: extra.solutionTR,
@@ -642,9 +744,10 @@ function mapRowsToCmsProjects(
       resultEN: extra.resultEN,
       roleTR: tr.role ? String(tr.role) : undefined,
       roleEN: en.role ? String(en.role) : undefined,
+      services: extra.services,
       servicesTR: extra.servicesTR || deliverablesTR,
       servicesEN: extra.servicesEN || deliverablesEN,
-      tools: extra.tools,
+      tools: extra.tools ?? [],
       externalLinks,
       contentBlocks: extra.contentBlocks,
       deliverablesTR,
@@ -660,7 +763,7 @@ function mapRowsToCmsProjects(
       desktopIcon: row.desktop_icon_url ? String(row.desktop_icon_url) : undefined,
       ogImage: ogImg,
       desktopThumbnail,
-      seo: hasSeo
+      seo: showSeo
         ? {
             titleTR: seoTitleTR,
             titleEN: seoTitleEN,
@@ -669,12 +772,15 @@ function mapRowsToCmsProjects(
             ogImage: ogImg
           }
         : undefined,
-      media: mediaMap.get(id) || [],
+      media,
       desktop: {
         x: Number(row.desktop_position_x ?? 25),
         y: Number(row.desktop_position_y ?? 25),
-        width: extra.desktopWidth
+        ...(extra.desktopWidth !== undefined ? { width: extra.desktopWidth } : {})
       },
+      desktopWeight: extra.desktopWeight,
+      desktopPlacement: extra.desktopPlacement,
+      desktopClusterId: extra.desktopClusterId,
       initialWindow: {
         width: Number(row.window_width ?? 820),
         height: Number(row.window_height ?? 600)
@@ -825,11 +931,28 @@ export function upsertProjectInD1(
   const existingMeta = existing?.tags_json
     ? parseJsonSafe<ExtraProjectMetadataJson>(existing.tags_json, {})
     : {};
+
+  const mediaMeta: MediaItemMeta[] | undefined = Array.isArray(input.media)
+    ? input.media.map((m) => ({
+        originalId: m.id,
+        layout: m.layout,
+        poster: m.poster,
+        thumbnail: m.thumbnail,
+        aspectRatio: m.aspectRatio,
+        autoplay: m.autoplay,
+        muted: m.muted,
+        loop: m.loop,
+        preload: m.preload,
+        priority: m.priority
+      }))
+    : existingMeta.mediaMeta;
+
   const extraMeta: ExtraProjectMetadataJson = {
     ...existingMeta,
     categoryIds: input.categoryIds ?? existingMeta.categoryIds,
     tags: input.tags ?? existingMeta.tags ?? [],
     tools: input.tools ?? existingMeta.tools,
+    services: input.services ?? existingMeta.services,
     servicesTR: input.servicesTR ?? existingMeta.servicesTR,
     servicesEN: input.servicesEN ?? existingMeta.servicesEN,
     externalLinks: input.externalLinks ?? existingMeta.externalLinks,
@@ -842,7 +965,11 @@ export function upsertProjectInD1(
     solutionEN: input.solutionEN ?? existingMeta.solutionEN,
     resultTR: input.resultTR ?? existingMeta.resultTR,
     resultEN: input.resultEN ?? existingMeta.resultEN,
-    desktopWidth: input.desktop?.width ?? existingMeta.desktopWidth
+    desktopWidth: input.desktop?.width ?? existingMeta.desktopWidth,
+    desktopWeight: input.desktopWeight ?? existingMeta.desktopWeight,
+    projectStatus: input.projectStatus ?? existingMeta.projectStatus ?? "completed",
+    hasExplicitSeo: input.seo !== undefined ? Boolean(input.seo) : existingMeta.hasExplicitSeo,
+    mediaMeta
   };
 
   const publishedAt =
@@ -862,6 +989,8 @@ export function upsertProjectInD1(
       : existing?.archived_at
       ? String(existing.archived_at)
       : null;
+
+  const yearStr = input.year !== undefined ? input.year : existing ? String(existing.year ?? "") : "";
 
   db.exec("BEGIN TRANSACTION;");
   try {
@@ -884,7 +1013,7 @@ export function upsertProjectInD1(
         featuredOrder,
         sortOrder,
         input.client || "",
-        input.year || "2025",
+        yearStr,
         input.liveUrl || null,
         input.sourceUrl || null,
         input.initials || cleanSlug.slice(0, 2).toUpperCase(),
@@ -921,7 +1050,7 @@ export function upsertProjectInD1(
         featuredOrder,
         sortOrder,
         input.client || "",
-        input.year || "2025",
+        yearStr,
         input.liveUrl || null,
         input.sourceUrl || null,
         input.initials || cleanSlug.slice(0, 2).toUpperCase(),
@@ -964,9 +1093,9 @@ export function upsertProjectInD1(
       `${projectId}:tr`,
       projectId,
       input.titleTR || cleanSlug,
-      input.subtitleTR ?? null,
+      input.subtitleTR ?? input.projectTypeTR ?? null,
       input.summaryTR ?? null,
-      input.descriptionTR || input.summaryTR || "",
+      input.descriptionTR ?? "",
       input.roleTR ?? null,
       input.categoryTR || "",
       input.seo?.titleTR ?? null,
@@ -998,9 +1127,9 @@ export function upsertProjectInD1(
       `${projectId}:en`,
       projectId,
       input.titleEN || input.titleTR || cleanSlug,
-      input.subtitleEN ?? null,
+      input.subtitleEN ?? input.projectTypeEN ?? null,
       input.summaryEN ?? null,
-      input.descriptionEN || input.summaryEN || input.descriptionTR || "",
+      input.descriptionEN ?? "",
       input.roleEN ?? null,
       input.categoryEN || input.categoryTR || "",
       input.seo?.titleEN ?? null,
@@ -1283,17 +1412,6 @@ export function listPublishingEventsFromD1(limit = 50): CmsPublishingEventRecord
   }));
 }
 
-const ALLOWED_UPLOAD_MIME_TYPES = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/avif",
-  "image/svg+xml",
-  "image/gif",
-  "video/mp4",
-  "video/webm"
-]);
-
 export function uploadMediaToR2AndD1(params: {
   buffer: Buffer;
   filename: string;
@@ -1307,6 +1425,8 @@ export function uploadMediaToR2AndD1(params: {
   captionEN?: string;
   actorEmail: string;
 }): CmsMediaRecord {
+  assertLocalSimulationAllowed("uploadMediaToR2AndD1");
+
   const {
     buffer,
     filename,
@@ -1321,19 +1441,12 @@ export function uploadMediaToR2AndD1(params: {
     actorEmail
   } = params;
 
-  if (!ALLOWED_UPLOAD_MIME_TYPES.has(mimeType)) {
-    throw new Error(`Unsupported MIME type: ${mimeType}`);
+  const sigCheck = validateMediaFileSignature(buffer, mimeType, filename);
+  if (!sigCheck.valid) {
+    throw new Error(sigCheck.error || "Invalid media file.");
   }
 
   const isVideo = mimeType.startsWith("video/");
-  const maxBytes = isVideo ? 100 * 1024 * 1024 : 15 * 1024 * 1024;
-  if (buffer.byteLength > maxBytes) {
-    throw new Error(`File size (${buffer.byteLength} bytes) exceeds limit (${maxBytes} bytes).`);
-  }
-  if (buffer.byteLength === 0) {
-    throw new Error("Uploaded file is empty.");
-  }
-
   const safeSlug = normalizeSlug(projectSlug) || "general";
   const safeFilename = filename
     .toLowerCase()
@@ -1348,8 +1461,14 @@ export function uploadMediaToR2AndD1(params: {
   const shortUuid = crypto.randomUUID().slice(0, 8);
   const storageKey = `projects/${safeSlug}/${kind}/${yyyy}/${mm}/${shortUuid}-${safeFilename}`;
 
-  const r2Root = getLocalR2DirPath();
-  const fullFilePath = path.join(r2Root, storageKey);
+  const r2Root = path.resolve(getLocalR2DirPath());
+  const fullFilePath = path.resolve(r2Root, storageKey);
+  if (!fullFilePath.startsWith(r2Root + path.sep)) {
+    throw new Error("Invalid media storage path.");
+  }
+  if (fs.existsSync(fullFilePath)) {
+    throw new Error("Storage key collision detected; please retry upload.");
+  }
   fs.mkdirSync(path.dirname(fullFilePath), { recursive: true });
   fs.writeFileSync(fullFilePath, buffer);
 
@@ -1359,40 +1478,54 @@ export function uploadMediaToR2AndD1(params: {
   const isoNow = now.toISOString();
 
   const db = getD1Database();
-  db.prepare(
-    `INSERT INTO project_media (
-      id, project_id, kind, media_type, storage_key, public_url, filename,
-      mime_type, byte_size, alt_tr, alt_en, caption_tr, caption_en,
-      sort_order, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`
-  ).run(
-    mediaId,
-    projectId,
-    kind,
-    isVideo ? "video" : "image",
-    storageKey,
-    publicUrl,
-    safeFilename,
-    mimeType,
-    buffer.byteLength,
-    altTR,
-    altEN,
-    captionTR ?? null,
-    captionEN ?? null,
-    isoNow,
-    isoNow
-  );
+  db.exec("BEGIN TRANSACTION;");
+  try {
+    db.prepare(
+      `INSERT INTO project_media (
+        id, project_id, kind, media_type, storage_key, public_url, filename,
+        mime_type, byte_size, alt_tr, alt_en, caption_tr, caption_en,
+        sort_order, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`
+    ).run(
+      mediaId,
+      projectId,
+      kind,
+      isVideo ? "video" : "image",
+      storageKey,
+      publicUrl,
+      safeFilename,
+      mimeType,
+      buffer.byteLength,
+      altTR,
+      altEN,
+      captionTR ?? null,
+      captionEN ?? null,
+      isoNow,
+      isoNow
+    );
 
-  db.prepare(
-    `INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
-     VALUES (?, ?, 'media_upload', 'project_media', ?, ?, ?)`
-  ).run(
-    `audit-${crypto.randomUUID()}`,
-    actorEmail,
-    mediaId,
-    JSON.stringify({ storageKey, publicUrl, byteSize: buffer.byteLength, mimeType }),
-    isoNow
-  );
+    db.prepare(
+      `INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+       VALUES (?, ?, 'media_upload', 'project_media', ?, ?, ?)`
+    ).run(
+      `audit-${crypto.randomUUID()}`,
+      actorEmail,
+      mediaId,
+      JSON.stringify({ storageKey, publicUrl, byteSize: buffer.byteLength, mimeType }),
+      isoNow
+    );
+    db.exec("COMMIT;");
+  } catch (err) {
+    db.exec("ROLLBACK;");
+    if (fs.existsSync(fullFilePath)) {
+      try {
+        fs.unlinkSync(fullFilePath);
+      } catch {
+        // ignore
+      }
+    }
+    throw err;
+  }
 
   return {
     id: mediaId,
@@ -1450,14 +1583,16 @@ export function deleteMediaFromD1AndR2(
   mediaId: string,
   actorEmail: string
 ): { deletedId: string } {
+  assertLocalSimulationAllowed("deleteMediaFromD1AndR2");
   const db = getD1Database();
   const row = db.prepare(`SELECT * FROM project_media WHERE id = ?`).get(mediaId);
   if (!row) {
     throw new Error(`Media record "${mediaId}" not found.`);
   }
   const storageKey = String(row.storage_key);
-  const r2FilePath = path.join(getLocalR2DirPath(), storageKey);
-  if (fs.existsSync(r2FilePath)) {
+  const r2Root = path.resolve(getLocalR2DirPath());
+  const r2FilePath = path.resolve(r2Root, storageKey);
+  if (r2FilePath.startsWith(r2Root + path.sep) && fs.existsSync(r2FilePath)) {
     try {
       fs.unlinkSync(r2FilePath);
     } catch {
@@ -1476,6 +1611,35 @@ export function deleteMediaFromD1AndR2(
 }
 
 export function getD1HealthAndStats() {
+  const storageMode = getCmsStorageMode();
+  const dataSource = getCmsDataSource();
+  const remoteConfigured = Boolean(
+    process.env.CLOUDFLARE_CMS_API_URL && process.env.CLOUDFLARE_API_SERVICE_TOKEN
+  );
+
+  if (storageMode !== "local") {
+    return {
+      ok: remoteConfigured,
+      mode: `cloudflare-${storageMode}`,
+      storageMode,
+      dataSource,
+      dbPath: null,
+      r2Path: null,
+      remoteWorkerUrl: process.env.CLOUDFLARE_CMS_API_URL || null,
+      remoteServiceTokenConfigured: Boolean(process.env.CLOUDFLARE_API_SERVICE_TOKEN),
+      counts: {
+        total: 0,
+        published: 0,
+        draft: 0,
+        archived: 0,
+        featuredPublished: 0,
+        mediaItems: 0,
+        translations: 0
+      },
+      workspaceBreakdown: []
+    };
+  }
+
   const db = getD1Database();
   const statusRows = db
     .prepare(`SELECT status, COUNT(*) as count FROM projects GROUP BY status`)
@@ -1496,13 +1660,11 @@ export function getD1HealthAndStats() {
     statusMap[String(r.status)] = Number(r.count);
   }
 
-  const remoteConfigured = Boolean(
-    process.env.CLOUDFLARE_CMS_API_URL && process.env.CLOUDFLARE_API_SERVICE_TOKEN
-  );
-
   return {
     ok: true,
-    mode: remoteConfigured ? "cloudflare-remote-with-d1-mirror" : "local-d1-sqlite",
+    mode: remoteConfigured ? "cloudflare-worker-local" : "local-d1-sqlite",
+    storageMode,
+    dataSource,
     dbPath: getDbFilePath(),
     r2Path: getLocalR2DirPath(),
     remoteWorkerUrl: process.env.CLOUDFLARE_CMS_API_URL || null,
@@ -1524,10 +1686,13 @@ export function getD1HealthAndStats() {
   };
 }
 
-export function reconcileCanonicalProjectsWithD1() {
-  const d1Projects = listAllProjectsForAdminFromD1();
+export function reconcileProjectsListWithCanonical(d1Projects: CmsProjectRecord[]) {
   const bySlug = new Map(d1Projects.map((p) => [p.slug, p]));
+  const canonicalSlugSet = new Set(projectsData.map((p) => p.slug));
   const missingSlugs: string[] = [];
+  const nonCanonicalSlugs = d1Projects
+    .filter((p) => !canonicalSlugSet.has(p.slug))
+    .map((p) => p.slug);
   const fieldMismatches: {
     slug: string;
     field: string;
@@ -1541,37 +1706,92 @@ export function reconcileCanonicalProjectsWithD1() {
       missingSlugs.push(canonical.slug);
       continue;
     }
-    if (found.workspace !== canonical.workspace) {
-      fieldMismatches.push({
-        slug: canonical.slug,
-        field: "workspace",
-        expected: canonical.workspace,
-        actual: found.workspace
-      });
+
+    const check = (field: string, expected: unknown, actual: unknown) => {
+      if (JSON.stringify(expected) !== JSON.stringify(actual)) {
+        fieldMismatches.push({
+          slug: canonical.slug,
+          field,
+          expected,
+          actual
+        });
+      }
+    };
+
+    check("id", canonical.id, found.id);
+    check("slug", canonical.slug, found.slug);
+    check("workspace", canonical.workspace, found.workspace);
+    check("titleTR", canonical.titleTR, found.titleTR);
+    check("titleEN", canonical.titleEN, found.titleEN);
+    check("client", canonical.client, found.client);
+    check("year", canonical.year, found.year);
+    check("featured", canonical.featured, found.featured);
+    if (canonical.featuredOrder !== undefined) {
+      check("featuredOrder", canonical.featuredOrder, found.featuredOrder);
     }
-    if (found.titleTR !== canonical.titleTR) {
-      fieldMismatches.push({
-        slug: canonical.slug,
-        field: "titleTR",
-        expected: canonical.titleTR,
-        actual: found.titleTR
-      });
+    if (canonical.sortOrder !== undefined) {
+      check("sortOrder", canonical.sortOrder, found.sortOrder);
     }
-    if (found.titleEN !== canonical.titleEN) {
-      fieldMismatches.push({
-        slug: canonical.slug,
-        field: "titleEN",
-        expected: canonical.titleEN,
-        actual: found.titleEN
-      });
-    }
+    check("categoryIds", canonical.categoryIds, found.categoryIds);
+    check("categoryTR", canonical.categoryTR, found.categoryTR);
+    check("categoryEN", canonical.categoryEN, found.categoryEN);
+    check("projectTypeTR", canonical.projectTypeTR, found.projectTypeTR);
+    check("projectTypeEN", canonical.projectTypeEN, found.projectTypeEN);
+    check("servicesTR", canonical.servicesTR, found.servicesTR);
+    check("servicesEN", canonical.servicesEN, found.servicesEN);
+    check("services", canonical.services, found.services);
+    check("tools", canonical.tools ?? [], found.tools ?? []);
+    check("roleTR", canonical.roleTR, found.roleTR);
+    check("roleEN", canonical.roleEN, found.roleEN);
+    check("externalLinks", canonical.externalLinks ?? [], found.externalLinks ?? []);
+    check("thumbnail", canonical.thumbnail, found.thumbnail);
+    check("desktopIcon", canonical.desktopIcon, found.desktopIcon);
+    check("desktopThumbnail", canonical.desktopThumbnail, found.desktopThumbnail);
+    check("cover", canonical.cover, found.cover);
+    check("media.count", (canonical.media || []).length, (found.media || []).length);
+    check(
+      "media.paths",
+      (canonical.media || []).map((m) => m.src),
+      (found.media || []).map((m) => m.src)
+    );
+    check("media.items", canonical.media || [], found.media || []);
+    check("summaryTR", canonical.summaryTR, found.summaryTR);
+    check("summaryEN", canonical.summaryEN, found.summaryEN);
+    check("descriptionTR", canonical.descriptionTR, found.descriptionTR);
+    check("descriptionEN", canonical.descriptionEN, found.descriptionEN);
+    check("challengeTR", canonical.challengeTR, found.challengeTR);
+    check("challengeEN", canonical.challengeEN, found.challengeEN);
+    check("solutionTR", canonical.solutionTR, found.solutionTR);
+    check("solutionEN", canonical.solutionEN, found.solutionEN);
+    check("resultTR", canonical.resultTR, found.resultTR);
+    check("resultEN", canonical.resultEN, found.resultEN);
+    check("seo", canonical.seo, found.seo);
   }
 
   return {
     canonicalCount: projectsData.length,
     d1TotalCount: d1Projects.length,
     missingSlugs,
+    nonCanonicalSlugs,
     fieldMismatches,
-    reconciled: missingSlugs.length === 0 && fieldMismatches.length === 0
+    reconciled:
+      missingSlugs.length === 0 &&
+      nonCanonicalSlugs.length === 0 &&
+      fieldMismatches.length === 0
   };
+}
+
+export function reconcileCanonicalProjectsWithD1() {
+  if (getCmsStorageMode() !== "local") {
+    return {
+      canonicalCount: projectsData.length,
+      d1TotalCount: 0,
+      missingSlugs: [],
+      nonCanonicalSlugs: [],
+      fieldMismatches: [],
+      reconciled: false
+    };
+  }
+  const d1Projects = listAllProjectsForAdminFromD1();
+  return reconcileProjectsListWithCanonical(d1Projects);
 }

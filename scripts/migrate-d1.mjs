@@ -7,6 +7,18 @@ const dbPath = process.env.LOCAL_D1_DB_PATH
   ? path.resolve(process.env.LOCAL_D1_DB_PATH)
   : path.join(rootDir, ".local-d1", "portfolio.sqlite");
 
+const shouldClean =
+  process.argv.includes("--clean") || process.env.CLEAN_MIGRATE === "true";
+
+if (shouldClean) {
+  for (const suffix of ["", "-wal", "-shm"]) {
+    const target = `${dbPath}${suffix}`;
+    if (fs.existsSync(target)) {
+      fs.unlinkSync(target);
+    }
+  }
+}
+
 const migrationPath = path.join(
   rootDir,
   "cloudflare",
@@ -15,11 +27,10 @@ const migrationPath = path.join(
   "0001_initial_schema.sql"
 );
 
-// Dynamically load canonical projects from src/data/projects.ts via stripped TypeScript evaluation
+// Dynamically load canonical projects from src/data/projects.ts
 const projectsTsPath = path.join(rootDir, "src", "data", "projects.ts");
 const rawTs = fs.readFileSync(projectsTsPath, "utf-8");
 
-// Extract projectsData array from src/data/projects.ts
 const marker = "export const projectsData: Project[] =";
 const startIdx = rawTs.indexOf(marker);
 const endMarker = "export const projectsItemsByWorkspace";
@@ -85,11 +96,25 @@ function runSeedPass(upsertExisting) {
       const desktopThumbJson = p.desktopThumbnail ? JSON.stringify(p.desktopThumbnail) : null;
       const liveLink = p.externalLinks?.find((l) => l.type === "live")?.href || null;
 
+      const mediaMeta = (p.media || []).map((m) => ({
+        originalId: m.id,
+        layout: m.layout,
+        poster: m.poster,
+        thumbnail: m.thumbnail,
+        aspectRatio: m.aspectRatio,
+        autoplay: m.autoplay,
+        muted: m.muted,
+        loop: m.loop,
+        preload: m.preload,
+        priority: m.priority
+      }));
+
       const extraMeta = {
         categoryIds: p.categoryIds,
         tools: p.tools,
-        servicesTR: p.servicesTR || p.services,
-        servicesEN: p.servicesEN || p.services,
+        services: p.services,
+        servicesTR: p.servicesTR,
+        servicesEN: p.servicesEN,
         externalLinks: p.externalLinks,
         contentBlocks: p.contentBlocks,
         desktopLabelTR: p.desktopLabelTR,
@@ -100,7 +125,13 @@ function runSeedPass(upsertExisting) {
         solutionEN: p.solutionEN,
         resultTR: p.resultTR,
         resultEN: p.resultEN,
-        desktopWidth: p.desktop?.width
+        desktopWidth: p.desktop?.width,
+        desktopWeight: p.desktopWeight,
+        desktopPlacement: p.desktopPlacement,
+        desktopClusterId: p.desktopClusterId,
+        projectStatus: p.status || "completed",
+        hasExplicitSeo: Boolean(p.seo),
+        mediaMeta
       };
       const tagsJson = JSON.stringify(extraMeta);
 
@@ -123,7 +154,7 @@ function runSeedPass(upsertExisting) {
           fOrder,
           sortOrder,
           p.client || "",
-          p.year || "2025",
+          p.year ?? "",
           liveLink,
           null,
           p.initials ?? null,
@@ -144,6 +175,37 @@ function runSeedPass(upsertExisting) {
         );
         inserted++;
       } else {
+        db.prepare(
+          `UPDATE projects SET
+            slug = ?, workspace = ?, featured = ?, featured_order = ?, sort_order = ?,
+            client_name = ?, year = ?, live_url = ?, initials = ?,
+            cover_image_url = ?, thumbnail_url = ?, desktop_icon_url = ?, og_image_url = ?,
+            desktop_thumbnail_json = ?, desktop_position_x = ?, desktop_position_y = ?,
+            window_width = ?, window_height = ?, tags_json = ?, updated_at = ?
+          WHERE id = ?`
+        ).run(
+          p.slug,
+          p.workspace,
+          p.featured ? 1 : 0,
+          fOrder,
+          sortOrder,
+          p.client || "",
+          p.year ?? "",
+          liveLink,
+          p.initials ?? null,
+          p.cover ?? null,
+          p.thumbnail ?? null,
+          p.desktopIcon ?? null,
+          p.ogImage ?? p.seo?.ogImage ?? null,
+          desktopThumbJson,
+          p.desktop?.x ?? 25,
+          p.desktop?.y ?? 25,
+          p.initialWindow?.width ?? 820,
+          p.initialWindow?.height ?? 600,
+          tagsJson,
+          now,
+          p.id
+        );
         updated++;
       }
 
@@ -169,7 +231,7 @@ function runSeedPass(upsertExisting) {
         p.titleTR,
         p.projectTypeTR ?? null,
         p.summaryTR ?? null,
-        p.descriptionTR || p.summaryTR || "",
+        p.descriptionTR ?? "",
         p.roleTR ?? null,
         p.categoryTR || "",
         p.seo?.titleTR ?? null,
@@ -200,7 +262,7 @@ function runSeedPass(upsertExisting) {
         p.titleEN,
         p.projectTypeEN ?? null,
         p.summaryEN ?? null,
-        p.descriptionEN || p.summaryEN || "",
+        p.descriptionEN ?? "",
         p.roleEN ?? null,
         p.categoryEN || "",
         p.seo?.titleEN ?? null,
@@ -290,12 +352,136 @@ const featuredCount = db
   .prepare("SELECT COUNT(*) as c FROM projects WHERE featured = 1 AND status = 'published'")
   .get().c;
 
+const wsRows = db
+  .prepare("SELECT workspace, COUNT(*) as c FROM projects GROUP BY workspace")
+  .all();
+const d1WorkspaceDistribution = { design: 0, web: 0, "motion-ai": 0 };
+for (const r of wsRows) {
+  d1WorkspaceDistribution[r.workspace] = Number(r.c);
+}
+
+const sourceWorkspaceDistribution = { design: 0, web: 0, "motion-ai": 0 };
+for (const p of projectsData) {
+  sourceWorkspaceDistribution[p.workspace] = (sourceWorkspaceDistribution[p.workspace] || 0) + 1;
+}
+
+// Field-level reconciliation against all 30 canonical projects
+const pRows = db.prepare("SELECT * FROM projects ORDER BY sort_order ASC").all();
+const tRows = db.prepare("SELECT * FROM project_translations").all();
+const mRows = db.prepare("SELECT * FROM project_media ORDER BY sort_order ASC").all();
+
+const fieldDiffs = [];
+const canonicalSlugs = new Set(projectsData.map((p) => p.slug));
+const nonCanonicalRecords = pRows
+  .filter((r) => !canonicalSlugs.has(r.slug))
+  .map((r) => r.slug);
+const missingRecords = [];
+
+for (const src of projectsData) {
+  const row = pRows.find((r) => r.id === src.id);
+  if (!row) {
+    missingRecords.push(src.slug);
+    continue;
+  }
+  const tr = tRows.find((t) => t.project_id === src.id && t.locale === "tr");
+  const en = tRows.find((t) => t.project_id === src.id && t.locale === "en");
+  const media = mRows.filter(
+    (m) => m.project_id === src.id && (m.kind === "gallery" || m.kind === "video")
+  );
+  const meta = JSON.parse(row.tags_json || "{}");
+
+  const check = (field, expected, actual) => {
+    if (JSON.stringify(expected) !== JSON.stringify(actual)) {
+      fieldDiffs.push({ slug: src.slug, field, expected, actual });
+    }
+  };
+
+  check("id", src.id, row.id);
+  check("slug", src.slug, row.slug);
+  check("workspace", src.workspace, row.workspace);
+  check("titleTR", src.titleTR, tr.title);
+  check("titleEN", src.titleEN, en.title);
+  check("client", src.client, row.client_name);
+  check("year", src.year, row.year !== "" ? row.year : undefined);
+  check("featured", src.featured, Boolean(row.featured));
+  if (src.featuredOrder !== undefined) check("featuredOrder", src.featuredOrder, row.featured_order);
+  if (src.sortOrder !== undefined) check("sortOrder", src.sortOrder, row.sort_order);
+  check("categoryIds", src.categoryIds, meta.categoryIds);
+  check("categoryTR", src.categoryTR, tr.category_label);
+  check("categoryEN", src.categoryEN, en.category_label);
+  check("projectTypeTR", src.projectTypeTR || null, tr.subtitle);
+  check("projectTypeEN", src.projectTypeEN || null, en.subtitle);
+  check("servicesTR", src.servicesTR, meta.servicesTR);
+  check("servicesEN", src.servicesEN, meta.servicesEN);
+  check("services", src.services, meta.services);
+  check("tools", src.tools, meta.tools);
+  check("roleTR", src.roleTR || null, tr.role);
+  check("roleEN", src.roleEN || null, en.role);
+  check("externalLinks", src.externalLinks || [], meta.externalLinks || []);
+  check("thumbnail", src.thumbnail || null, row.thumbnail_url);
+  check("desktopIcon", src.desktopIcon || null, row.desktop_icon_url);
+  check("desktopThumbnail", src.desktopThumbnail || null, row.desktop_thumbnail_json ? JSON.parse(row.desktop_thumbnail_json) : null);
+  check("cover", src.cover || null, row.cover_image_url);
+  check("media.count", (src.media || []).length, media.length);
+  check(
+    "media.paths",
+    (src.media || []).map((m) => m.src),
+    media.map((m) => m.public_url)
+  );
+  check("descriptionTR", src.descriptionTR, tr.description !== "" ? tr.description : undefined);
+  check("descriptionEN", src.descriptionEN, en.description !== "" ? en.description : undefined);
+  check("summaryTR", src.summaryTR || null, tr.summary);
+  check("summaryEN", src.summaryEN || null, en.summary);
+  check("challengeTR", src.challengeTR, meta.challengeTR);
+  check("challengeEN", src.challengeEN, meta.challengeEN);
+  check("solutionTR", src.solutionTR, meta.solutionTR);
+  check("solutionEN", src.solutionEN, meta.solutionEN);
+  check("resultTR", src.resultTR, meta.resultTR);
+  check("resultEN", src.resultEN, meta.resultEN);
+  if (src.seo) {
+    check("seo.titleTR", src.seo.titleTR || null, tr.seo_title);
+    check("seo.titleEN", src.seo.titleEN || null, en.seo_title);
+    check("seo.descriptionTR", src.seo.descriptionTR || null, tr.seo_description);
+    check("seo.descriptionEN", src.seo.descriptionEN || null, en.seo_description);
+    check("seo.ogImage", src.seo.ogImage || null, row.og_image_url);
+  } else {
+    check("hasExplicitSeo", false, Boolean(meta.hasExplicitSeo));
+  }
+}
+
+db.close();
+
+// Optional: if CLOUDFLARE_CMS_API_URL & CLOUDFLARE_API_SERVICE_TOKEN are provided, also seed the Worker D1
+let workerSeedResult = null;
+if (process.env.CLOUDFLARE_CMS_API_URL && process.env.CLOUDFLARE_API_SERVICE_TOKEN) {
+  const baseUrl = process.env.CLOUDFLARE_CMS_API_URL.replace(/\/$/, "");
+  const seedRes = await fetch(`${baseUrl}/api/v1/admin/seed`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.CLOUDFLARE_API_SERVICE_TOKEN}`
+    },
+    body: JSON.stringify({ projects: projectsData, upsertExisting: false })
+  });
+  workerSeedResult = await seedRes.json();
+}
+
+const reconciled =
+  totalProjects === projectsData.length &&
+  pass2.inserted === 0 &&
+  missingRecords.length === 0 &&
+  nonCanonicalRecords.length === 0 &&
+  fieldDiffs.length === 0;
+
 console.log(
   JSON.stringify(
     {
-      ok: true,
+      ok: reconciled,
       dbPath,
+      cleanedBeforeRun: shouldClean,
       canonicalCount: projectsData.length,
+      sourceWorkspaceDistribution,
+      d1WorkspaceDistribution,
       pass1,
       pass2Idempotency: pass2,
       counts: {
@@ -304,10 +490,18 @@ console.log(
         totalMedia,
         featuredCount
       },
-      reconciled: totalProjects >= projectsData.length && pass2.inserted === 0
+      missingRecords,
+      nonCanonicalRecords,
+      fieldDiffCount: fieldDiffs.length,
+      fieldDiffs,
+      workerSeedResult,
+      reconciled
     },
     null,
     2
   )
 );
-db.close();
+
+if (!reconciled) {
+  process.exit(1);
+}

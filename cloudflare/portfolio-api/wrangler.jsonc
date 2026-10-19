@@ -6,20 +6,64 @@
   "compatibility_flags": ["nodejs_compat"],
   "d1_databases": [
     {
-      "binding": "DB",
+      "binding": "PORTFOLIO_DB",
       "database_name": "kerem-portfolio-db",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "local-dev-d1-placeholder",
       "migrations_dir": "migrations"
     }
   ],
   "r2_buckets": [
     {
-      "binding": "MEDIA_BUCKET",
+      "binding": "PORTFOLIO_MEDIA",
       "bucket_name": "kerem-portfolio-media"
     }
   ],
   "vars": {
     "PUBLIC_SITE_ORIGIN": "https://keremmihci.com",
-    "R2_PUBLIC_BASE_URL": "https://media.keremmihci.com"
+    "R2_PUBLIC_BASE_URL": ""
+  },
+  "env": {
+    "staging": {
+      "name": "kerem-mihci-portfolio-api-staging",
+      "d1_databases": [
+        {
+          "binding": "PORTFOLIO_DB",
+          "database_name": "kerem-portfolio-db-staging",
+          "database_id": "REPLACE_WITH_STAGING_D1_DATABASE_ID",
+          "migrations_dir": "migrations"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "PORTFOLIO_MEDIA",
+          "bucket_name": "kerem-portfolio-media-staging"
+        }
+      ],
+      "vars": {
+        "PUBLIC_SITE_ORIGIN": "https://staging.keremmihci.com",
+        "R2_PUBLIC_BASE_URL": "https://staging-media.keremmihci.com"
+      }
+    },
+    "production": {
+      "name": "kerem-mihci-portfolio-api",
+      "d1_databases": [
+        {
+          "binding": "PORTFOLIO_DB",
+          "database_name": "kerem-portfolio-db",
+          "database_id": "REPLACE_WITH_PRODUCTION_D1_DATABASE_ID",
+          "migrations_dir": "migrations"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "PORTFOLIO_MEDIA",
+          "bucket_name": "kerem-portfolio-media"
+        }
+      ],
+      "vars": {
+        "PUBLIC_SITE_ORIGIN": "https://keremmihci.com",
+        "R2_PUBLIC_BASE_URL": "https://media.keremmihci.com"
+      }
+    }
   }
 }

@@ -23,6 +23,7 @@
 # misc
 .DS_Store
 *.pem
+*service-account*.json
 
 # debug
 npm-debug.log*
@@ -30,9 +31,11 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files
+# env files & wrangler secrets
 .env*
 !.env.example
+.dev.vars*
+/cloudflare/portfolio-api/.dev.vars*
 
 # vercel
 .vercel
@@ -47,4 +50,6 @@ next-env.d.ts
 /.wrangler/
 /cloudflare/portfolio-api/.wrangler/
 /cloudflare/portfolio-api/node_modules/
-
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm

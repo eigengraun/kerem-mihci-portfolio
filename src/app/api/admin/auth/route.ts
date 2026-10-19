@@ -1,16 +1,21 @@
 import crypto from "node:crypto";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import {
   ADMIN_CSRF_COOKIE,
   ADMIN_SESSION_COOKIE,
   checkLoginRateLimit,
+  clearLoginRateLimit,
   createSessionPayload,
   getAdminAuthConfigStatus,
   getServerAdminSession,
   isDevFixtureAllowed,
-  signAdminSessionToken
+  recordFailedLoginAttempt,
+  revokeAdminSessionToken,
+  signAdminSessionToken,
+  verifyAdminPasswordConstantTime
 } from "@/lib/admin/auth";
-import { getD1Database } from "@/lib/portfolio/d1Engine";
+import { getCmsStorageMode, getD1Database } from "@/lib/portfolio/d1Engine";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +30,7 @@ export async function GET() {
       config: {
         productionReady: config.productionReady,
         hasGoogleOAuth: config.hasGoogleOAuth,
+        hasPasswordHash: config.hasPasswordHash,
         hasMasterPassword: config.hasMasterPassword,
         devFixtureEnabled: config.devFixtureEnabled
       }
@@ -35,8 +41,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const ip =
+    request.headers.get("cf-connecting-ip")?.trim() ||
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip") ||
+    request.headers.get("x-real-ip")?.trim() ||
     "127.0.0.1";
 
   const rate = checkLoginRateLimit(ip);
@@ -44,9 +51,15 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         ok: false,
-        error: `Too many login attempts. Please wait ${rate.retryAfterSec} seconds.`
+        error: `Too many failed login attempts. Please wait ${rate.retryAfterSec} seconds.`
       },
-      { status: 429, headers: { "Cache-Control": "no-store" } }
+      {
+        status: 429,
+        headers: {
+          "Cache-Control": "no-store",
+          "Retry-After": String(rate.retryAfterSec)
+        }
+      }
     );
   }
 
@@ -55,6 +68,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         ok: false,
+        code: "ADMIN_CREDENTIALS_NOT_CONFIGURED",
         error: "Admin authentication is not configured in production (fail-closed)."
       },
       { status: 503, headers: { "Cache-Control": "no-store" } }
@@ -65,7 +79,10 @@ export async function POST(request: Request) {
   try {
     body = (await request.json()) as typeof body;
   } catch {
-    return NextResponse.json({ ok: false, error: "Invalid JSON payload" }, { status: 400 });
+    return NextResponse.json(
+      { ok: false, error: "Invalid JSON payload" },
+      { status: 400, headers: { "Cache-Control": "no-store" } }
+    );
   }
 
   const mode = body.mode || "master-password";
@@ -75,41 +92,49 @@ export async function POST(request: Request) {
 
   if (mode === "dev-fixture") {
     if (!isDevFixtureAllowed()) {
+      recordFailedLoginAttempt(ip);
       return NextResponse.json(
         { ok: false, error: "Development fixture login is disabled in production." },
         { status: 403, headers: { "Cache-Control": "no-store" } }
       );
     }
-    authenticatedEmail = (body.email || config.allowedEmails[0] || "dev-admin@keremmihci.com")
+    const candidateEmail = (body.email || config.allowedEmails[0] || "kerem@keremmihci.com")
       .trim()
       .toLowerCase();
+    if (!config.allowedEmails.includes(candidateEmail)) {
+      recordFailedLoginAttempt(ip);
+      return NextResponse.json(
+        { ok: false, error: "Email address is not in ADMIN_ALLOWED_EMAILS." },
+        { status: 403, headers: { "Cache-Control": "no-store" } }
+      );
+    }
+    authenticatedEmail = candidateEmail;
     authenticatedName = "Kerem Mıhçı (Dev Admin)";
     sessionMode = "dev-fixture";
   } else {
     const email = (body.email || "").trim().toLowerCase();
     const password = body.password || "";
-    const configuredMaster = process.env.ADMIN_MASTER_PASSWORD || "";
 
-    if (!configuredMaster || configuredMaster.length < 8) {
+    if (!config.hasMasterPassword) {
       return NextResponse.json(
         {
           ok: false,
-          error: "ADMIN_MASTER_PASSWORD is not configured on the server."
+          error: "ADMIN_PASSWORD_HASH or ADMIN_MASTER_PASSWORD is not configured on the server."
         },
         { status: 503, headers: { "Cache-Control": "no-store" } }
       );
     }
 
     if (!config.allowedEmails.includes(email)) {
+      recordFailedLoginAttempt(ip);
       return NextResponse.json(
         { ok: false, error: "Email address is not in ADMIN_ALLOWED_EMAILS." },
         { status: 403, headers: { "Cache-Control": "no-store" } }
       );
     }
 
-    const a = Buffer.from(password);
-    const b = Buffer.from(configuredMaster);
-    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+    if (!verifyAdminPasswordConstantTime(password)) {
+      recordFailedLoginAttempt(ip);
       return NextResponse.json(
         { ok: false, error: "Invalid credentials." },
         { status: 401, headers: { "Cache-Control": "no-store" } }
@@ -121,24 +146,27 @@ export async function POST(request: Request) {
     sessionMode = "master-password";
   }
 
+  clearLoginRateLimit(ip);
   const payload = createSessionPayload(authenticatedEmail, authenticatedName, sessionMode);
   const signedToken = signAdminSessionToken(payload);
 
-  try {
-    const db = getD1Database();
-    db.prepare(
-      `INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, ip_address, created_at)
-       VALUES (?, ?, 'admin_login', 'session', ?, ?, ?, ?)`
-    ).run(
-      `audit-${crypto.randomUUID()}`,
-      authenticatedEmail,
-      sessionMode,
-      JSON.stringify({ mode: sessionMode }),
-      ip,
-      new Date().toISOString()
-    );
-  } catch {
-    // non-blocking if audit log fails
+  if (getCmsStorageMode() === "local") {
+    try {
+      const db = getD1Database();
+      db.prepare(
+        `INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, ip_address, created_at)
+         VALUES (?, ?, 'admin_login', 'session', ?, ?, ?, ?)`
+      ).run(
+        `audit-${crypto.randomUUID()}`,
+        authenticatedEmail,
+        payload.jti,
+        JSON.stringify({ mode: sessionMode }),
+        ip,
+        new Date().toISOString()
+      );
+    } catch {
+      // non-blocking
+    }
   }
 
   const response = NextResponse.json(
@@ -169,8 +197,14 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE() {
+  const cookieStore = await cookies();
+  const rawToken = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
+  if (rawToken) {
+    revokeAdminSessionToken(rawToken);
+  }
+
   const response = NextResponse.json(
-    { ok: true },
+    { ok: true, revoked: Boolean(rawToken) },
     { status: 200, headers: { "Cache-Control": "no-store" } }
   );
   response.cookies.delete(ADMIN_SESSION_COOKIE);

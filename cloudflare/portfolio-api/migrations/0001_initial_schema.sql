@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS projects (
   featured_order INTEGER NOT NULL DEFAULT 0,
   sort_order INTEGER NOT NULL DEFAULT 0,
   client_name TEXT NOT NULL DEFAULT '',
-  year TEXT NOT NULL DEFAULT '2025',
+  year TEXT NOT NULL DEFAULT '',
   live_url TEXT,
   source_url TEXT,
   initials TEXT,

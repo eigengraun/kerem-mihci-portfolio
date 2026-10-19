@@ -8,11 +8,24 @@ import type {
   ProjectExternalLink,
   ProjectMediaItem,
   ProjectSeoConfig,
+  ProjectStatus,
   WorkspaceId
 } from "@/data/projects";
 
 export type CmsPublishStatus = "draft" | "published" | "archived";
 export type WorkspaceCategory = WorkspaceId;
+export type CmsStorageMode = "local" | "staging" | "production";
+export type CmsDataSource = "legacy" | "cloudflare";
+
+export class CmsStorageUnavailableError extends Error {
+  public readonly statusCode = 503;
+  public readonly code = "CMS_STORAGE_UNAVAILABLE";
+
+  constructor(message: string) {
+    super(message);
+    this.name = "CmsStorageUnavailableError";
+  }
+}
 
 export interface CmsProjectRecord extends Project {
   cmsStatus: CmsPublishStatus;
@@ -90,6 +103,7 @@ export interface UpsertProjectInput {
   id?: string;
   slug: string;
   cmsStatus?: CmsPublishStatus;
+  projectStatus?: ProjectStatus;
   workspace: WorkspaceId;
   categoryIds?: ProjectCategoryId[];
   featured: boolean;
@@ -106,6 +120,7 @@ export interface UpsertProjectInput {
   ogImage?: string;
   desktopThumbnail?: DesktopThumbnailConfig | null;
   desktop?: DesktopPosition;
+  desktopWeight?: "small" | "normal" | "large";
   initialWindow?: InitialWindowBounds;
   tags?: string[];
   titleTR: string;
@@ -114,6 +129,8 @@ export interface UpsertProjectInput {
   desktopLabelEN?: string;
   subtitleTR?: string;
   subtitleEN?: string;
+  projectTypeTR?: string;
+  projectTypeEN?: string;
   summaryTR?: string;
   summaryEN?: string;
   descriptionTR?: string;
@@ -128,6 +145,7 @@ export interface UpsertProjectInput {
   roleEN?: string;
   categoryTR: string;
   categoryEN: string;
+  services?: string[];
   servicesTR?: string[];
   servicesEN?: string[];
   tools?: string[];
@@ -237,7 +255,7 @@ export function calculateProjectCompleteness(project: Partial<UpsertProjectInput
 }
 
 export function normalizeSlug(raw: string): string {
-  return raw
+  return String(raw || "")
     .toLowerCase()
     .trim()
     .replace(/ğ/g, "g")
@@ -249,4 +267,123 @@ export function normalizeSlug(raw: string): string {
     .replace(/[^a-z0-9-]+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
+}
+
+const ALLOWED_EXTENSIONS_BY_MIME: Record<string, string[]> = {
+  "image/jpeg": [".jpg", ".jpeg"],
+  "image/png": [".png"],
+  "image/webp": [".webp"],
+  "image/avif": [".avif"],
+  "image/svg+xml": [".svg"],
+  "image/gif": [".gif"],
+  "video/mp4": [".mp4"],
+  "video/webm": [".webm"]
+};
+
+export function validateMediaFileSignature(
+  bytes: Uint8Array,
+  mimeType: string,
+  filename: string
+): { valid: boolean; error?: string } {
+  const allowedExts = ALLOWED_EXTENSIONS_BY_MIME[mimeType];
+  if (!allowedExts) {
+    return { valid: false, error: `Unsupported MIME type: ${mimeType}` };
+  }
+
+  const lowerName = (filename || "").toLowerCase().trim();
+  const dotIdx = lowerName.lastIndexOf(".");
+  const ext = dotIdx >= 0 ? lowerName.slice(dotIdx) : "";
+  if (ext && !allowedExts.includes(ext)) {
+    return {
+      valid: false,
+      error: `File extension "${ext}" does not match declared MIME type "${mimeType}".`
+    };
+  }
+
+  if (bytes.byteLength === 0) {
+    return { valid: false, error: "Uploaded file is empty." };
+  }
+
+  const isVideo = mimeType.startsWith("video/");
+  const maxBytes = isVideo ? 100 * 1024 * 1024 : 15 * 1024 * 1024;
+  if (bytes.byteLength > maxBytes) {
+    return {
+      valid: false,
+      error: `File size (${bytes.byteLength} bytes) exceeds limit (${maxBytes} bytes).`
+    };
+  }
+
+  // Magic byte inspection
+  if (mimeType === "image/png") {
+    if (
+      bytes.byteLength < 8 ||
+      bytes[0] !== 0x89 ||
+      bytes[1] !== 0x50 ||
+      bytes[2] !== 0x4e ||
+      bytes[3] !== 0x47
+    ) {
+      return { valid: false, error: "Invalid PNG file signature." };
+    }
+  } else if (mimeType === "image/jpeg") {
+    if (bytes.byteLength < 3 || bytes[0] !== 0xff || bytes[1] !== 0xd8 || bytes[2] !== 0xff) {
+      return { valid: false, error: "Invalid JPEG file signature." };
+    }
+  } else if (mimeType === "image/webp") {
+    if (
+      bytes.byteLength < 12 ||
+      bytes[0] !== 0x52 || // R
+      bytes[1] !== 0x49 || // I
+      bytes[2] !== 0x46 || // F
+      bytes[3] !== 0x46 || // F
+      bytes[8] !== 0x57 || // W
+      bytes[9] !== 0x45 || // E
+      bytes[10] !== 0x42 || // B
+      bytes[11] !== 0x50 // P
+    ) {
+      return { valid: false, error: "Invalid WebP file signature." };
+    }
+  } else if (mimeType === "image/gif") {
+    if (
+      bytes.byteLength < 6 ||
+      bytes[0] !== 0x47 || // G
+      bytes[1] !== 0x49 || // I
+      bytes[2] !== 0x46 || // F
+      bytes[3] !== 0x38 // 8
+    ) {
+      return { valid: false, error: "Invalid GIF file signature." };
+    }
+  } else if (mimeType === "image/avif" || mimeType === "video/mp4") {
+    // ISO BMFF box header contains 'ftyp' at bytes 4..7
+    if (
+      bytes.byteLength < 12 ||
+      bytes[4] !== 0x66 || // f
+      bytes[5] !== 0x74 || // t
+      bytes[6] !== 0x79 || // y
+      bytes[7] !== 0x70 // p
+    ) {
+      return { valid: false, error: `Invalid ${mimeType} ftyp box signature.` };
+    }
+  } else if (mimeType === "video/webm") {
+    if (
+      bytes.byteLength < 4 ||
+      bytes[0] !== 0x1a ||
+      bytes[1] !== 0x45 ||
+      bytes[2] !== 0xdf ||
+      bytes[3] !== 0xa3
+    ) {
+      return { valid: false, error: "Invalid WebM EBML header signature." };
+    }
+  } else if (mimeType === "image/svg+xml") {
+    const textSample = new TextDecoder("utf-8", { fatal: false }).decode(
+      bytes.subarray(0, Math.min(bytes.byteLength, 8192))
+    );
+    if (!/<svg[\s>]/i.test(textSample)) {
+      return { valid: false, error: "Invalid SVG content." };
+    }
+    if (/<script[\s>]|javascript:|onload\s*=|onerror\s*=/i.test(textSample)) {
+      return { valid: false, error: "SVG contains disallowed executable script content." };
+    }
+  }
+
+  return { valid: true };
 }

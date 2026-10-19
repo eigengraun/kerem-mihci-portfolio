@@ -6,7 +6,7 @@ import {
   buildProjectLevelAnalytics,
   type AnalyticsDateRange
 } from "@/lib/admin/googleAnalyticsAndGsc";
-import { getAdminProjects } from "@/lib/portfolio/repository";
+import { getAdminProjects, getPublishedProjects } from "@/lib/portfolio/repository";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +22,7 @@ export async function GET(request: Request) {
   const [ga4, gsc, projects] = await Promise.all([
     fetchGa4Analytics(range),
     fetchSearchConsoleAnalytics(range),
-    getAdminProjects()
+    getAdminProjects().catch(() => getPublishedProjects())
   ]);
 
   const projectInsights = buildProjectLevelAnalytics(projects, ga4, gsc);

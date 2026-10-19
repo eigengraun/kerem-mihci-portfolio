@@ -9,6 +9,7 @@ import {
   rollbackProjectRevisionInD1
 } from "@/lib/portfolio/repository";
 import {
+  CmsStorageUnavailableError,
   calculateProjectCompleteness,
   type CmsPublishStatus,
   type UpsertProjectInput
@@ -24,27 +25,36 @@ export async function GET(
   if ("errorResponse" in auth) return auth.errorResponse;
 
   const { id } = await context.params;
-  const project = await getAdminProjectByIdOrSlug(decodeURIComponent(id));
-  if (!project) {
+  try {
+    const project = await getAdminProjectByIdOrSlug(decodeURIComponent(id));
+    if (!project) {
+      return NextResponse.json(
+        { ok: false, error: "Project not found" },
+        { status: 404, headers: { "Cache-Control": "no-store" } }
+      );
+    }
+
+    const revisions = await listProjectRevisionsFromD1(project.id);
     return NextResponse.json(
-      { ok: false, error: "Project not found" },
-      { status: 404, headers: { "Cache-Control": "no-store" } }
+      {
+        ok: true,
+        project: {
+          ...project,
+          status: project.cmsStatus,
+          completeness: calculateProjectCompleteness(project)
+        },
+        revisions
+      },
+      { headers: { "Cache-Control": "no-store" } }
+    );
+  } catch (error) {
+    const status = error instanceof CmsStorageUnavailableError ? 503 : 500;
+    const message = error instanceof Error ? error.message : "Failed to fetch project";
+    return NextResponse.json(
+      { ok: false, error: message },
+      { status, headers: { "Cache-Control": "no-store" } }
     );
   }
-
-  const revisions = listProjectRevisionsFromD1(project.id);
-  return NextResponse.json(
-    {
-      ok: true,
-      project: {
-        ...project,
-        status: project.cmsStatus,
-        completeness: calculateProjectCompleteness(project)
-      },
-      revisions
-    },
-    { headers: { "Cache-Control": "no-store" } }
-  );
 }
 
 export async function PUT(
@@ -56,7 +66,16 @@ export async function PUT(
 
   const { id } = await context.params;
   try {
-    const body = (await request.json()) as UpsertProjectInput & { status?: CmsPublishStatus };
+    let body: UpsertProjectInput & { status?: CmsPublishStatus };
+    try {
+      body = (await request.json()) as typeof body;
+    } catch {
+      return NextResponse.json(
+        { ok: false, error: "Invalid JSON payload" },
+        { status: 400, headers: { "Cache-Control": "no-store" } }
+      );
+    }
+
     const saved = await saveAdminProject(
       {
         ...body,
@@ -66,7 +85,7 @@ export async function PUT(
       auth.session.email,
       "update"
     );
-    const revisions = listProjectRevisionsFromD1(saved.id);
+    const revisions = await listProjectRevisionsFromD1(saved.id);
     return NextResponse.json(
       {
         ok: true,
@@ -80,10 +99,11 @@ export async function PUT(
       { headers: { "Cache-Control": "no-store" } }
     );
   } catch (error) {
+    const status = error instanceof CmsStorageUnavailableError ? 503 : 400;
     const message = error instanceof Error ? error.message : "Failed to update project";
     return NextResponse.json(
       { ok: false, error: message },
-      { status: 400, headers: { "Cache-Control": "no-store" } }
+      { status, headers: { "Cache-Control": "no-store" } }
     );
   }
 }
@@ -97,19 +117,27 @@ export async function PATCH(
 
   const { id } = await context.params;
   try {
-    const body = (await request.json()) as {
+    let body: {
       status?: CmsPublishStatus;
       cmsStatus?: CmsPublishStatus;
       notes?: string;
       rollbackRevisionNumber?: number;
     };
+    try {
+      body = (await request.json()) as typeof body;
+    } catch {
+      return NextResponse.json(
+        { ok: false, error: "Invalid JSON payload" },
+        { status: 400, headers: { "Cache-Control": "no-store" } }
+      );
+    }
 
     if (typeof body.rollbackRevisionNumber === "number") {
       const target = await getAdminProjectByIdOrSlug(decodeURIComponent(id));
       if (!target) {
         return NextResponse.json({ ok: false, error: "Project not found" }, { status: 404 });
       }
-      const restored = rollbackProjectRevisionInD1(
+      const restored = await rollbackProjectRevisionInD1(
         target.id,
         body.rollbackRevisionNumber,
         auth.session.email
@@ -122,7 +150,7 @@ export async function PATCH(
             status: restored.cmsStatus,
             completeness: calculateProjectCompleteness(restored)
           },
-          revisions: listProjectRevisionsFromD1(restored.id)
+          revisions: await listProjectRevisionsFromD1(restored.id)
         },
         { headers: { "Cache-Control": "no-store" } }
       );
@@ -150,15 +178,16 @@ export async function PATCH(
           status: updated.cmsStatus,
           completeness: calculateProjectCompleteness(updated)
         },
-        revisions: listProjectRevisionsFromD1(updated.id)
+        revisions: await listProjectRevisionsFromD1(updated.id)
       },
       { headers: { "Cache-Control": "no-store" } }
     );
   } catch (error) {
+    const status = error instanceof CmsStorageUnavailableError ? 503 : 400;
     const message = error instanceof Error ? error.message : "Failed to change project status";
     return NextResponse.json(
       { ok: false, error: message },
-      { status: 400, headers: { "Cache-Control": "no-store" } }
+      { status, headers: { "Cache-Control": "no-store" } }
     );
   }
 }
@@ -178,10 +207,11 @@ export async function DELETE(
       { headers: { "Cache-Control": "no-store" } }
     );
   } catch (error) {
+    const status = error instanceof CmsStorageUnavailableError ? 503 : 400;
     const message = error instanceof Error ? error.message : "Failed to delete project";
     return NextResponse.json(
       { ok: false, error: message },
-      { status: 400, headers: { "Cache-Control": "no-store" } }
+      { status, headers: { "Cache-Control": "no-store" } }
     );
   }
 }

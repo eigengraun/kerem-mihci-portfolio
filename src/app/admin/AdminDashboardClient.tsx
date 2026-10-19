@@ -280,7 +280,7 @@ export function AdminDashboardClient({
       featuredOrder: project.featuredOrder,
       sortOrder: project.sortOrder,
       client: project.client,
-      year: project.year || "2025",
+      year: project.year ?? "",
       liveUrl: project.liveUrl || "",
       sourceUrl: project.sourceUrl || "",
       initials: project.initials || "",
@@ -290,7 +290,10 @@ export function AdminDashboardClient({
       ogImage: project.ogImage || "",
       desktopThumbnail: project.desktopThumbnail || null,
       desktop: project.desktop,
+      desktopWeight: project.desktopWeight,
       initialWindow: project.initialWindow,
+      projectStatus: project.status,
+      services: project.services || [],
       tags: project.tags || [],
       titleTR: project.titleTR,
       titleEN: project.titleEN,
@@ -582,6 +585,7 @@ export function AdminDashboardClient({
                   </label>
                   <input
                     type="email"
+                    data-testid="admin-email-input"
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
                     className="w-full px-3.5 py-2 rounded-lg bg-black/50 border border-white/15 text-sm text-white focus:outline-none focus:border-blue-500"
@@ -594,6 +598,7 @@ export function AdminDashboardClient({
                   </label>
                   <input
                     type="password"
+                    data-testid="admin-password-input"
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
                     className="w-full px-3.5 py-2 rounded-lg bg-black/50 border border-white/15 text-sm text-white focus:outline-none focus:border-blue-500"
@@ -602,6 +607,7 @@ export function AdminDashboardClient({
                 </div>
                 <button
                   type="button"
+                  data-testid="admin-password-login-btn"
                   disabled={loginBusy}
                   onClick={() => handleLogin("master-password")}
                   className="w-full py-2.5 px-4 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-sm font-semibold text-white transition-colors cursor-pointer"
@@ -676,7 +682,7 @@ export function AdminDashboardClient({
   ];
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neutral-100">
+    <div className="min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neutral-100 overflow-x-hidden">
       {/* Sidebar Navigation */}
       <aside className="w-full lg:w-64 bg-[#10121A] border-b lg:border-b-0 lg:border-r border-white/10 flex flex-col justify-between p-4 flex-shrink-0">
         <div>
@@ -753,7 +759,7 @@ export function AdminDashboardClient({
       </aside>
 
       {/* Main Content Stage */}
-      <main className="flex-1 p-5 md:p-8 overflow-y-auto max-w-7xl mx-auto w-full space-y-6">
+      <main className="flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-hidden max-w-7xl mx-auto w-full space-y-6">
         {/* Top Action Bar */}
         <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-white/10">
           <div>
@@ -1425,7 +1431,7 @@ export function AdminDashboardClient({
                       value={formState.cover || ""}
                       onChange={(e) => setFormState({ ...formState, cover: e.target.value })}
                       placeholder="/projects/... or /api/media/..."
-                      className="flex-1 px-3 py-2 rounded-lg bg-black/40 border border-white/15 text-xs font-mono text-white"
+                      className="flex-1 min-w-0 px-3 py-2 rounded-lg bg-black/40 border border-white/15 text-xs font-mono text-white"
                     />
                     <label className="px-3 py-2 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-xs font-mono text-blue-300 cursor-pointer whitespace-nowrap">
                       {uploadingMedia ? "..." : "Upload R2"}
@@ -1454,7 +1460,7 @@ export function AdminDashboardClient({
                       value={formState.thumbnail || ""}
                       onChange={(e) => setFormState({ ...formState, thumbnail: e.target.value })}
                       placeholder="/projects/... or /api/media/..."
-                      className="flex-1 px-3 py-2 rounded-lg bg-black/40 border border-white/15 text-xs font-mono text-white"
+                      className="flex-1 min-w-0 px-3 py-2 rounded-lg bg-black/40 border border-white/15 text-xs font-mono text-white"
                     />
                     <label className="px-3 py-2 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-xs font-mono text-blue-300 cursor-pointer whitespace-nowrap">
                       Upload R2

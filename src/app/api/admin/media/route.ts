@@ -5,7 +5,7 @@ import {
   listMediaFromD1,
   deleteMediaFromD1AndR2
 } from "@/lib/portfolio/repository";
-import type { CmsMediaRecord } from "@/lib/portfolio/types";
+import { CmsStorageUnavailableError, type CmsMediaRecord } from "@/lib/portfolio/types";
 
 export const dynamic = "force-dynamic";
 
@@ -13,14 +13,23 @@ export async function GET(request: Request) {
   const auth = await requireAdminApiAuth(request);
   if ("errorResponse" in auth) return auth.errorResponse;
 
-  const url = new URL(request.url);
-  const projectId = url.searchParams.get("projectId") || undefined;
-  const media = listMediaFromD1(projectId);
+  try {
+    const url = new URL(request.url);
+    const projectId = url.searchParams.get("projectId") || undefined;
+    const media = await listMediaFromD1(projectId);
 
-  return NextResponse.json(
-    { ok: true, media },
-    { headers: { "Cache-Control": "no-store" } }
-  );
+    return NextResponse.json(
+      { ok: true, media },
+      { headers: { "Cache-Control": "no-store" } }
+    );
+  } catch (error) {
+    const status = error instanceof CmsStorageUnavailableError ? 503 : 500;
+    const message = error instanceof Error ? error.message : "Failed to list media";
+    return NextResponse.json(
+      { ok: false, error: message },
+      { status, headers: { "Cache-Control": "no-store" } }
+    );
+  }
 }
 
 export async function POST(request: Request) {
@@ -43,13 +52,13 @@ export async function POST(request: Request) {
 
     const projectId = formData.get("projectId") ? String(formData.get("projectId")) : null;
     const projectSlug = String(formData.get("projectSlug") || "general");
-    const kind = (String(formData.get("kind") || "gallery") as CmsMediaRecord["kind"]);
+    const kind = String(formData.get("kind") || "gallery") as CmsMediaRecord["kind"];
     const altTR = String(formData.get("altTR") || "");
     const altEN = String(formData.get("altEN") || "");
     const captionTR = formData.get("captionTR") ? String(formData.get("captionTR")) : undefined;
     const captionEN = formData.get("captionEN") ? String(formData.get("captionEN")) : undefined;
 
-    const savedMedia = uploadMediaToR2AndD1({
+    const savedMedia = await uploadMediaToR2AndD1({
       buffer,
       filename: blob.name || "asset.webp",
       mimeType: blob.type || "image/webp",
@@ -68,10 +77,15 @@ export async function POST(request: Request) {
       { status: 201, headers: { "Cache-Control": "no-store" } }
     );
   } catch (error) {
+    const status = error instanceof CmsStorageUnavailableError ? 503 : 400;
     const message = error instanceof Error ? error.message : "Media upload failed";
     return NextResponse.json(
-      { ok: false, error: message },
-      { status: 400, headers: { "Cache-Control": "no-store" } }
+      {
+        ok: false,
+        code: error instanceof CmsStorageUnavailableError ? error.code : "MEDIA_UPLOAD_ERROR",
+        error: message
+      },
+      { status, headers: { "Cache-Control": "no-store" } }
     );
   }
 }
@@ -86,16 +100,17 @@ export async function DELETE(request: Request) {
     if (!id) {
       return NextResponse.json({ ok: false, error: "Missing media id" }, { status: 400 });
     }
-    const result = deleteMediaFromD1AndR2(id, auth.session.email);
+    const result = await deleteMediaFromD1AndR2(id, auth.session.email);
     return NextResponse.json(
       { ok: true, ...result },
       { headers: { "Cache-Control": "no-store" } }
     );
   } catch (error) {
+    const status = error instanceof CmsStorageUnavailableError ? 503 : 400;
     const message = error instanceof Error ? error.message : "Media deletion failed";
     return NextResponse.json(
       { ok: false, error: message },
-      { status: 400, headers: { "Cache-Control": "no-store" } }
+      { status, headers: { "Cache-Control": "no-store" } }
     );
   }
 }

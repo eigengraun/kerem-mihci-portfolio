@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import crypto from "node:crypto";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 
@@ -12,58 +13,338 @@ const executablePath =
   "/Users/keremmihci/Library/Caches/ms-playwright/chromium-1243/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing";
 
 const BASE_URL = process.env.TEST_BASE_URL || "http://127.0.0.1:3099";
+const WORKER_URL = process.env.CLOUDFLARE_CMS_API_URL || "http://127.0.0.1:8787";
+const WORKER_TOKEN = process.env.CLOUDFLARE_API_SERVICE_TOKEN || "local-worker-test-secret-token-2026";
+const SESSION_SECRET =
+  process.env.ADMIN_SESSION_SECRET || "local-dev-ephemeral-hmac-secret-do-not-use-in-prod";
 
 // Minimal valid 1x1 WebP image buffer for R2 upload testing
 const TINY_WEBP_BASE64 =
   "UklGRiQAAABXRUJQVlA4IBgAAAAwAQCdASoBAAEAAwA0JaQAA3AA/vuUAAA=";
 const TINY_WEBP_BUFFER = Buffer.from(TINY_WEBP_BASE64, "base64");
 
+function forgeSignedSessionCookie(payload, secret = SESSION_SECRET) {
+  const encodedPayload = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
+  const signature = crypto
+    .createHmac("sha256", secret)
+    .update(encodedPayload)
+    .digest("base64url");
+  return `km_admin_session=${encodedPayload}.${signature}`;
+}
+
 async function runVerification() {
   const report = {
     startedAt: new Date().toISOString(),
     baseUrl: BASE_URL,
+    workerUrl: WORKER_URL,
+    workerDirectChecks: {},
+    authTestMatrix: [],
     securityAndSeoChecks: {},
     cmsPublishTestSteps: {},
-    responsiveViewports: [],
+    canonical30ProjectsCheck: {},
+    publicResponsiveViewports: [],
+    adminResponsiveViewports: [],
     allPassed: false
   };
 
-  console.log("=== 1. Security, SEO & Route Validation Checks ===");
+  console.log("=== 1. Direct Cloudflare Worker Runtime & Binding Verification ===");
+  const workerPubHealthRes = await fetch(`${WORKER_URL}/api/v1/public/health`);
+  assert.equal(workerPubHealthRes.status, 200, "Worker public health must return 200");
+  const workerPubHealth = await workerPubHealthRes.json();
+  assert.equal(workerPubHealth.ok, true);
+  assert.equal(workerPubHealth.publishedCount, 30, "Worker D1 must have 30 published projects");
 
-  // 1a. Unauthenticated /api/admin/* must return 401
-  for (const endpoint of [
+  // Worker admin endpoint without service token -> 401
+  const workerUnauthRes = await fetch(`${WORKER_URL}/api/v1/admin/projects`);
+  assert.equal(workerUnauthRes.status, 401, "Worker admin endpoint without token must return 401");
+
+  // Worker admin endpoint with invalid service token -> 401 (Test H)
+  const workerBadTokenRes = await fetch(`${WORKER_URL}/api/v1/admin/projects`, {
+    headers: { Authorization: "Bearer wrong-invalid-service-token" }
+  });
+  assert.equal(workerBadTokenRes.status, 401, "Worker admin endpoint with invalid token must return 401");
+
+  // Worker admin system endpoint with valid token -> 200
+  const workerSysRes = await fetch(`${WORKER_URL}/api/v1/admin/system`, {
+    headers: { Authorization: `Bearer ${WORKER_TOKEN}` }
+  });
+  assert.equal(workerSysRes.status, 200, "Worker /api/v1/admin/system with valid token must return 200");
+  const workerSysJson = await workerSysRes.json();
+  assert.equal(workerSysJson.d1Health.counts.total, 30);
+  assert.equal(workerSysJson.d1Health.counts.published, 30);
+  assert.deepEqual(workerSysJson.d1Health.workspaceBreakdown, [
+    { workspace: "design", status: "published", count: 18 },
+    { workspace: "web", status: "published", count: 12 }
+  ]);
+  report.workerDirectChecks = {
+    publicHealth: "PASSED (200)",
+    unauthenticatedAdminBlocked: "PASSED (401)",
+    invalidServiceTokenBlocked: "PASSED (401)",
+    validServiceTokenSystemHealth: "PASSED (200)",
+    workerWorkspaceBreakdown: workerSysJson.d1Health.workspaceBreakdown
+  };
+
+  console.log("=== 2. API Authorization Test Matrix (Tests A through H) ===");
+  const adminEndpoints = [
     "/api/admin/projects",
+    "/api/admin/projects/planfiq-website-web-uygulamasi",
     "/api/admin/media",
-    "/api/admin/analytics",
-    "/api/admin/system"
-  ]) {
-    const res = await fetch(`${BASE_URL}${endpoint}`);
-    assert.equal(res.status, 401, `Expected 401 for unauthenticated ${endpoint}, got ${res.status}`);
-  }
-  report.securityAndSeoChecks.unauthenticatedAdminApiBlocked = true;
+    "/api/admin/system",
+    "/api/admin/analytics"
+  ];
 
-  // 1b. robots.txt disallows /admin
+  // Test A — Unauthenticated request -> 401
+  for (const endpoint of adminEndpoints) {
+    const res = await fetch(`${BASE_URL}${endpoint}`);
+    assert.equal(res.status, 401, `Test A failed for ${endpoint}: got ${res.status}`);
+  }
+  report.authTestMatrix.push({
+    test: "Test A — Unauthenticated request",
+    endpoints: adminEndpoints,
+    expected: 401,
+    actual: 401,
+    result: "PASS"
+  });
+
+  // Test B — Invalid session signature -> 401
+  const badSigCookie = forgeSignedSessionCookie(
+    {
+      email: "kerem@keremmihci.com",
+      mode: "master-password",
+      iat: Date.now() - 1000,
+      exp: Date.now() + 3600_000,
+      csrfToken: "csrf-b",
+      jti: "jti-b"
+    },
+    "wrong-signing-secret"
+  );
+  for (const endpoint of adminEndpoints) {
+    const res = await fetch(`${BASE_URL}${endpoint}`, {
+      headers: { Cookie: badSigCookie }
+    });
+    assert.equal(res.status, 401, `Test B failed for ${endpoint}: got ${res.status}`);
+  }
+  report.authTestMatrix.push({
+    test: "Test B — Invalid session signature",
+    endpoints: adminEndpoints,
+    expected: 401,
+    actual: 401,
+    result: "PASS"
+  });
+
+  // Test C — Expired session -> 401
+  const expiredCookie = forgeSignedSessionCookie({
+    email: "kerem@keremmihci.com",
+    mode: "master-password",
+    iat: Date.now() - 7200_000,
+    exp: Date.now() - 10_000,
+    csrfToken: "csrf-c",
+    jti: "jti-c"
+  });
+  for (const endpoint of adminEndpoints) {
+    const res = await fetch(`${BASE_URL}${endpoint}`, {
+      headers: { Cookie: expiredCookie }
+    });
+    assert.equal(res.status, 401, `Test C failed for ${endpoint}: got ${res.status}`);
+  }
+  report.authTestMatrix.push({
+    test: "Test C — Expired session",
+    endpoints: adminEndpoints,
+    expected: 401,
+    actual: 401,
+    result: "PASS"
+  });
+
+  // Test D — Non-admin identity (validly signed token, unauthorized email) -> 403
+  const nonAdminCookie = forgeSignedSessionCookie({
+    email: "intruder@unauthorized-domain.com",
+    mode: "google-oauth",
+    iat: Date.now() - 1000,
+    exp: Date.now() + 3600_000,
+    csrfToken: "csrf-d",
+    jti: "jti-d"
+  });
+  for (const endpoint of adminEndpoints) {
+    const res = await fetch(`${BASE_URL}${endpoint}`, {
+      headers: { Cookie: nonAdminCookie }
+    });
+    assert.equal(res.status, 403, `Test D failed for ${endpoint}: got ${res.status}`);
+  }
+  report.authTestMatrix.push({
+    test: "Test D — Non-admin identity",
+    endpoints: adminEndpoints,
+    expected: 403,
+    actual: 403,
+    result: "PASS"
+  });
+
+  // Test wrong master password -> 401
+  const wrongPwRes = await fetch(`${BASE_URL}/api/admin/auth`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      mode: "master-password",
+      email: "kerem@keremmihci.com",
+      password: "wrong-password-attempt"
+    })
+  });
+  assert.equal(wrongPwRes.status, 401, "Wrong master password must return 401");
+
+  // Authenticate a real admin session via POST /api/admin/auth (Test E)
+  const masterPassword = process.env.ADMIN_MASTER_PASSWORD || "TestMasterPassword2026!";
+  const loginRes = await fetch(`${BASE_URL}/api/admin/auth`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      mode: "master-password",
+      email: "kerem@keremmihci.com",
+      password: masterPassword
+    })
+  });
+  assert.equal(loginRes.status, 200, "Admin master-password session login must return 200");
+  const loginJson = await loginRes.json();
+  const csrfToken = loginJson.session.csrfToken;
+  const rawSetCookie = loginRes.headers.getSetCookie
+    ? loginRes.headers.getSetCookie()
+    : [loginRes.headers.get("set-cookie") || ""];
+  const cookieHeader = rawSetCookie.map((c) => c.split(";")[0]).join("; ");
+
+  // Test E — Valid admin identity -> 200 across all admin read endpoints
+  for (const endpoint of adminEndpoints) {
+    const res = await fetch(`${BASE_URL}${endpoint}`, {
+      headers: { Cookie: cookieHeader }
+    });
+    assert.equal(res.status, 200, `Test E failed for ${endpoint}: got ${res.status}`);
+  }
+  report.authTestMatrix.push({
+    test: "Test E — Valid admin identity",
+    endpoints: adminEndpoints,
+    expected: 200,
+    actual: 200,
+    result: "PASS"
+  });
+
+  // Test F — Missing CSRF token on mutating request -> 403
+  const missingCsrfRes = await fetch(`${BASE_URL}/api/admin/projects`, {
+    method: "POST",
+    headers: {
+      Cookie: cookieHeader,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ slug: "csrf-test", titleTR: "Test", titleEN: "Test" })
+  });
+  assert.equal(missingCsrfRes.status, 403, `Test F (Missing CSRF) expected 403, got ${missingCsrfRes.status}`);
+  report.authTestMatrix.push({
+    test: "Test F — Missing CSRF token on mutating request",
+    endpoints: ["POST /api/admin/projects"],
+    expected: 403,
+    actual: missingCsrfRes.status,
+    result: "PASS"
+  });
+
+  // Test G — Invalid Origin header on mutating request -> 403
+  const badOriginRes = await fetch(`${BASE_URL}/api/admin/projects`, {
+    method: "POST",
+    headers: {
+      Cookie: cookieHeader,
+      "x-csrf-token": csrfToken,
+      Origin: "https://evil-attacker.example.com",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ slug: "origin-test", titleTR: "Test", titleEN: "Test" })
+  });
+  assert.equal(badOriginRes.status, 403, `Test G (Invalid Origin) expected 403, got ${badOriginRes.status}`);
+  report.authTestMatrix.push({
+    test: "Test G — Invalid Origin header",
+    endpoints: ["POST /api/admin/projects"],
+    expected: 403,
+    actual: badOriginRes.status,
+    result: "PASS"
+  });
+
+  // Test H — Invalid Worker service token -> 401
+  report.authTestMatrix.push({
+    test: "Test H — Invalid Worker service token",
+    endpoints: ["GET /api/v1/admin/projects"],
+    expected: 401,
+    actual: workerBadTokenRes.status,
+    result: "PASS"
+  });
+
+  // Additional Auth Hardening Check: Session Logout Revocation (jti)
+  const tempLoginRes = await fetch(`${BASE_URL}/api/admin/auth`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      mode: "master-password",
+      email: "kerem@keremmihci.com",
+      password: masterPassword
+    })
+  });
+  const tempCookies = (
+    tempLoginRes.headers.getSetCookie
+      ? tempLoginRes.headers.getSetCookie()
+      : [tempLoginRes.headers.get("set-cookie") || ""]
+  )
+    .map((c) => c.split(";")[0])
+    .join("; ");
+  const logoutRes = await fetch(`${BASE_URL}/api/admin/auth`, {
+    method: "DELETE",
+    headers: { Cookie: tempCookies }
+  });
+  assert.equal(logoutRes.status, 200, "Logout must return 200");
+  const replayAfterLogoutRes = await fetch(`${BASE_URL}/api/admin/projects`, {
+    headers: { Cookie: tempCookies }
+  });
+  assert.equal(
+    replayAfterLogoutRes.status,
+    401,
+    "Replaying session cookie after DELETE /api/admin/auth must return 401 (jti revoked)"
+  );
+  report.securityAndSeoChecks.sessionLogoutRevocationVerified = true;
+
+  // Additional R2 Hardening Check: Magic-byte file signature validation rejects fake image bytes
+  const fakeFormData = new FormData();
+  const fakeBlob = new Blob([Buffer.from("THIS_IS_NOT_A_VALID_WEBP_OR_PNG_FILE")], {
+    type: "image/webp"
+  });
+  fakeFormData.append("file", fakeBlob, "spoofed.webp");
+  fakeFormData.append("projectSlug", "cms-publish-test");
+  fakeFormData.append("kind", "cover");
+
+  const spoofUploadRes = await fetch(`${BASE_URL}/api/admin/media`, {
+    method: "POST",
+    headers: {
+      Cookie: cookieHeader,
+      "x-csrf-token": csrfToken
+    },
+    body: fakeFormData
+  });
+  assert.equal(
+    spoofUploadRes.status,
+    400,
+    `Expected 400 for spoofed image magic bytes, got ${spoofUploadRes.status}`
+  );
+  report.securityAndSeoChecks.magicByteSignatureEnforcementVerified = true;
+
+  console.log("=== 3. SEO & Route Validation Checks ===");
   const robotsRes = await fetch(`${BASE_URL}/robots.txt`);
   const robotsText = await robotsRes.text();
   assert.ok(robotsText.includes("Disallow: /admin"), "robots.txt must disallow /admin");
   report.securityAndSeoChecks.robotsDisallowsAdmin = true;
 
-  // 1c. Invalid single-segment path returns 404 (Soft-404 fix)
   const badLocaleRes = await fetch(`${BASE_URL}/unknown-invalid-route`);
   assert.equal(badLocaleRes.status, 404, "Unknown single-segment route must return 404");
 
-  // 1d. Invalid locale on project route returns 404
   const badProjLocaleRes = await fetch(
     `${BASE_URL}/de/project/planfiq-website-web-uygulamasi`
   );
   assert.equal(badProjLocaleRes.status, 404, "Invalid locale on project route must return 404");
 
-  // 1e. Non-existent project slug returns 404
   const missingSlugRes = await fetch(`${BASE_URL}/tr/project/non-existent-slug-99999`);
   assert.equal(missingSlugRes.status, 404, "Non-existent project slug must return 404");
   report.securityAndSeoChecks.invalidRoutesReturn404 = true;
 
-  // 1f. Valid canonical project page includes CreativeWork JSON-LD
   const validProjRes = await fetch(`${BASE_URL}/tr/project/planfiq-website-web-uygulamasi`);
   assert.equal(validProjRes.status, 200);
   const validProjHtml = await validProjRes.text();
@@ -73,22 +354,74 @@ async function runVerification() {
   );
   report.securityAndSeoChecks.projectCreativeWorkJsonLd = true;
 
-  console.log("=== 2. 13-Step No-Deploy CMS E2E Test (cms-publish-test) ===");
+  console.log("=== 4. Canonical 30-Project Consistency & Video Library Separation Check ===");
+  const initialPublicApi = await (await fetch(`${BASE_URL}/api/projects`)).json();
+  assert.equal(initialPublicApi.count, 30, "Public /api/projects must return 30 canonical projects");
 
-  // Step 1: Authenticate via /api/admin/auth (dev-fixture session)
-  const loginRes = await fetch(`${BASE_URL}/api/admin/auth`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ mode: "dev-fixture", email: "kerem@keremmihci.com" })
-  });
-  assert.equal(loginRes.status, 200, "Admin dev-fixture login must succeed");
-  const loginJson = await loginRes.json();
-  const csrfToken = loginJson.session.csrfToken;
-  const rawSetCookie = loginRes.headers.getSetCookie
-    ? loginRes.headers.getSetCookie()
-    : [loginRes.headers.get("set-cookie") || ""];
-  const cookieHeader = rawSetCookie.map((c) => c.split(";")[0]).join("; ");
+  const wsCounts = { design: 0, web: 0, "motion-ai": 0 };
+  for (const p of initialPublicApi.projects) {
+    wsCounts[p.workspace] = (wsCounts[p.workspace] || 0) + 1;
+  }
+  assert.deepEqual(wsCounts, { design: 18, web: 12, "motion-ai": 0 });
+  assert.ok(
+    !initialPublicApi.projects.some((p) => p.slug === "3d-product-family-render"),
+    "Fabricated slug 3d-product-family-render must not exist in canonical projects"
+  );
 
+  const requiredNamedSlugs = [
+    "yanarsan-yangin-website-tasarimi",
+    "eigestore-website-tasarimi",
+    "kagestudio-website-tasarimi",
+    "deva-yangin-website-tasarimi",
+    "emix-creative-website-tasarimi",
+    "iuckmk-website-tasarimi",
+    "engin-perde-website-optimizasyonu",
+    "sanda-yachting-website-ceviri-calismasi",
+    "ceylanlar-site-yonetimi-website-tasarimi",
+    "alchemia-subat-2025-dergi-tasarimi",
+    "kmz-2025",
+    "fling-arena",
+    "kagestudio-marka-kimligi",
+    "eigestore-marka-kimligi",
+    "hizir-yangin-marka-kimligi",
+    "emix-qr-menu",
+    "planfiq-logo-tasarimi",
+    "ceylanlar-site-yonetimi-marka-kimligi",
+    "deva-yangin-marka-kimligi",
+    "goobzy-logo-tasarimi",
+    "yanarsan-yangin-logo-tasarimi",
+    "emix-creative-logo-tasarimi",
+    "kixogames-logo-tasarimi",
+    "kiyris-games-logo-tasarimi",
+    "alchemia-ocak-2025-dergi-tasarimi",
+    "alchemia-aralik-2024-dergi-tasarimi",
+    "alchemia-kasim-2024-dergi-tasarimi",
+    "alchemia-nisan-2025-dergi-tasarimi",
+    "planfiq-website-web-uygulamasi",
+    "solo-leveling-manga-website"
+  ];
+  for (const slug of requiredNamedSlugs) {
+    const found = initialPublicApi.projects.find((p) => p.slug === slug);
+    assert.ok(found, `Required canonical project ${slug} must exist in /api/projects`);
+  }
+
+  // Verify every single one of the 30 canonical projects returns HTTP 200 on both /tr/project/[slug] and /en/project/[slug]
+  for (const proj of initialPublicApi.projects) {
+    const [trR, enR] = await Promise.all([
+      fetch(`${BASE_URL}/tr/project/${proj.slug}`),
+      fetch(`${BASE_URL}/en/project/${proj.slug}`)
+    ]);
+    assert.equal(trR.status, 200, `/tr/project/${proj.slug} returned ${trR.status}`);
+    assert.equal(enR.status, 200, `/en/project/${proj.slug} returned ${enR.status}`);
+  }
+  report.canonical30ProjectsCheck = {
+    totalPublished: 30,
+    workspaceDistribution: wsCounts,
+    all30TrAndEnRoutesReturn200: true,
+    namedProjectsVerified: requiredNamedSlugs.length
+  };
+
+  console.log("=== 5. No-Deploy Publishing Test Through Real Worker Route (cms-publish-test) ===");
   const adminHeaders = {
     Cookie: cookieHeader,
     "x-csrf-token": csrfToken
@@ -101,7 +434,7 @@ async function runVerification() {
     headers: adminHeaders
   });
 
-  // Step 2: Upload R2 cover image for cms-publish-test
+  // Step 2: Upload R2 cover image for cms-publish-test (stored in Worker R2 PORTFOLIO_MEDIA)
   const formData = new FormData();
   const fileBlob = new Blob([TINY_WEBP_BUFFER], { type: "image/webp" });
   formData.append("file", fileBlob, "cms-test-cover.webp");
@@ -115,22 +448,22 @@ async function runVerification() {
     headers: adminHeaders,
     body: formData
   });
-  assert.equal(uploadRes.status, 201, "R2 media upload must return 201");
+  assert.equal(uploadRes.status, 201, "R2 media upload through Worker must return 201");
   const uploadJson = await uploadRes.json();
   const uploadedMediaUrl = uploadJson.media.publicUrl;
   const uploadedMediaId = uploadJson.media.id;
   assert.ok(uploadedMediaUrl.startsWith("/api/media/projects/cms-publish-test/cover/"));
 
-  // Verify public R2 media endpoint serves the uploaded image with immutable cache header
+  // Verify public R2 media endpoint proxies from Worker R2 with immutable cache header
   const mediaFetchRes = await fetch(`${BASE_URL}${uploadedMediaUrl}`);
   assert.equal(mediaFetchRes.status, 200, "Uploaded R2 media URL must return HTTP 200");
   assert.equal(mediaFetchRes.headers.get("content-type"), "image/webp");
-  report.cmsPublishTestSteps.step2_r2MediaUpload = {
+  report.cmsPublishTestSteps.step2_r2MediaUploadViaWorker = {
     status: "PASSED",
     publicUrl: uploadedMediaUrl
   };
 
-  // Step 3: Create cms-publish-test as DRAFT
+  // Step 3: Create cms-publish-test as DRAFT via Worker D1
   const createDraftRes = await fetch(`${BASE_URL}/api/admin/projects`, {
     method: "POST",
     headers: {
@@ -155,8 +488,8 @@ async function runVerification() {
       categoryEN: "Web Application & CMS",
       summaryTR: "Yeniden derleme gerektirmeden yayınlanan dinamik CMS test projesi.",
       summaryEN: "Dynamic CMS test project published without rebuild or redeploy.",
-      descriptionTR: "Bu proje Cloudflare D1 ve R2 altyapısını doğrulamak için oluşturulmuştur.",
-      descriptionEN: "This project was created to verify the Cloudflare D1 and R2 CMS pipeline.",
+      descriptionTR: "Bu proje Cloudflare Worker D1 ve R2 altyapısını doğrulamak için oluşturulmuştur.",
+      descriptionEN: "This project was created to verify the Cloudflare Worker D1 and R2 CMS pipeline.",
       media: [
         {
           type: "image",
@@ -168,7 +501,7 @@ async function runVerification() {
     })
   });
   assert.equal(createDraftRes.status, 201, "Draft creation must return 201");
-  report.cmsPublishTestSteps.step3_createDraft = "PASSED";
+  report.cmsPublishTestSteps.step3_createDraftInWorkerD1 = "PASSED";
 
   // Step 4: Verify DRAFT is NOT publicly visible on /tr/project/cms-publish-test, /en/project/cms-publish-test, /api/projects, or /sitemap.xml
   const draftTrRes = await fetch(`${BASE_URL}/tr/project/cms-publish-test`);
@@ -213,7 +546,7 @@ async function runVerification() {
   assert.equal(publishRes.status, 200, "Publishing project must return 200");
   report.cmsPublishTestSteps.step6_publishWithoutRebuild = "PASSED";
 
-  // Step 7: Verify /tr/project/cms-publish-test and /en/project/cms-publish-test immediately return 200 with localized SEO & JSON-LD
+  // Step 7: Verify /tr/project/cms-publish-test and /en/project/cms-publish-test immediately return 200
   const pubTrRes = await fetch(`${BASE_URL}/tr/project/cms-publish-test`);
   const pubEnRes = await fetch(`${BASE_URL}/en/project/cms-publish-test`);
   assert.equal(pubTrRes.status, 200, "Published project must return 200 on /tr/project/cms-publish-test");
@@ -262,7 +595,15 @@ async function runVerification() {
       categoryTR: "Web Uygulaması & CMS",
       categoryEN: "Web Application & CMS",
       descriptionTR: "Güncellenmiş açıklama metni.",
-      descriptionEN: "Updated description text."
+      descriptionEN: "Updated description text.",
+      media: [
+        {
+          type: "image",
+          src: uploadedMediaUrl,
+          altTR: "CMS Test Görseli",
+          altEN: "CMS Test Image"
+        }
+      ]
     })
   });
   assert.equal(editRes.status, 200);
@@ -276,14 +617,10 @@ async function runVerification() {
   );
   report.cmsPublishTestSteps.step9_liveEditAndRevisionHistory = "PASSED";
 
-  // Step 10: Launch Headless Playwright Chromium to verify browser rendering of:
-  //  - /en/project/cms-publish-test deep link window & R2 image
-  //  - /admin UI & GA4/GSC non-fabrication banners
-  //  - 8 responsive viewports on /tr and /en
+  console.log("=== 6. Headless Browser E2E, Responsive Public & Responsive Admin QA ===");
   const browser = await chromium.launch({ executablePath, headless: true });
   try {
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-    // Pre-set intro seen timestamp so the desktop workspace renders immediately
     await context.addInitScript(() => {
       try {
         window.localStorage.setItem(
@@ -306,23 +643,6 @@ async function runVerification() {
       bodyText.includes("CMS Publish Test Project (Updated)"),
       "Browser must render newly published CMS project window on /en/project/cms-publish-test"
     );
-
-    // Verify /admin UI login & dashboard in browser
-    const adminPage = await context.newPage();
-    await adminPage.goto(`${BASE_URL}/admin`, { waitUntil: "networkidle" });
-    await adminPage.getByTestId("dev-admin-login-btn").click();
-    await adminPage.waitForSelector('[data-testid="admin-overview-section"]', { timeout: 10000 });
-
-    // Check GA4 tab shows NOT_CONFIGURED banner (zero fake numbers)
-    await adminPage.getByTestId("admin-tab-ga4").click();
-    await adminPage.waitForSelector('[data-testid="ga4-not-configured-banner"]', { timeout: 5000 });
-
-    // Check GSC tab shows NOT_CONFIGURED banner (zero fake numbers)
-    await adminPage.getByTestId("admin-tab-gsc").click();
-    await adminPage.waitForSelector('[data-testid="gsc-not-configured-banner"]', { timeout: 5000 });
-
-    assert.equal(consoleErrors.length, 0, `Unexpected page errors: ${consoleErrors.join(", ")}`);
-    report.cmsPublishTestSteps.step10_browserDeepLinkAndAdminUiVerified = "PASSED";
 
     // Step 11: Unpublish cms-publish-test and verify immediate 404
     const unpubRes = await fetch(`${BASE_URL}/api/admin/projects/cms-publish-test`, {
@@ -352,7 +672,7 @@ async function runVerification() {
     assert.equal(afterArchiveRes.status, 404, "Archived project must return 404");
     report.cmsPublishTestSteps.step12_archiveVerified = "PASSED";
 
-    // Step 13: Clean up test project & test R2 asset so DB returns to 30 canonical projects
+    // Step 13: Clean up test project & test R2 asset so Worker D1 returns to 30 canonical projects
     const delProjRes = await fetch(`${BASE_URL}/api/admin/projects/cms-publish-test`, {
       method: "DELETE",
       headers: adminHeaders
@@ -375,12 +695,93 @@ async function runVerification() {
     );
     report.cmsPublishTestSteps.step13_cleanupAndCanonical30Restored = "PASSED";
 
-    console.log("=== 3. Responsive Viewport Matrix Verification ===");
-    const viewports = [
+    // Verify Responsive Admin Dashboard across all 6 required viewports:
+    // 390x844, 430x932, 820x1180, 1024x768, 1440x900, 1920x1080
+    // Testing login screen, overview, projects list, project editor, media library, GA4/GSC
+    const adminViewports = [
+      { width: 390, height: 844, label: "Mobile 390x844" },
+      { width: 430, height: 932, label: "Mobile Large 430x932" },
+      { width: 820, height: 1180, label: "Tablet Portrait 820x1180" },
+      { width: 1024, height: 768, label: "Tablet Landscape 1024x768" },
+      { width: 1440, height: 900, label: "Desktop 1440x900" },
+      { width: 1920, height: 1080, label: "Large Desktop 1920x1080" }
+    ];
+
+    // First test Login Gate across all 6 viewports in a fresh unauthenticated context
+    const unauthAdminCtx = await browser.newContext();
+    const unauthAdminPage = await unauthAdminCtx.newPage();
+    for (const vp of adminViewports) {
+      await unauthAdminPage.setViewportSize({ width: vp.width, height: vp.height });
+      await unauthAdminPage.goto(`${BASE_URL}/admin`, { waitUntil: "networkidle" });
+      const loginMetrics = await unauthAdminPage.evaluate(() => ({
+        innerWidth: window.innerWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+        overflowX: document.documentElement.scrollWidth > window.innerWidth
+      }));
+      assert.equal(
+        loginMetrics.overflowX,
+        false,
+        `Admin Login overflowX at ${vp.label}: scrollWidth=${loginMetrics.scrollWidth} > innerWidth=${loginMetrics.innerWidth}`
+      );
+    }
+    // Sign in via admin-password-login-btn
+    await unauthAdminPage.setViewportSize({ width: 1440, height: 900 });
+    await unauthAdminPage.getByTestId("admin-password-input").fill(masterPassword);
+    await unauthAdminPage.getByTestId("admin-password-login-btn").click();
+    await unauthAdminPage.waitForSelector('[data-testid="admin-overview-section"]', {
+      timeout: 10000
+    });
+
+    // Check GA4 & GSC non-fabrication banners
+    await unauthAdminPage.getByTestId("admin-tab-ga4").click();
+    await unauthAdminPage.waitForSelector('[data-testid="ga4-not-configured-banner"]', {
+      timeout: 5000
+    });
+    await unauthAdminPage.getByTestId("admin-tab-gsc").click();
+    await unauthAdminPage.waitForSelector('[data-testid="gsc-not-configured-banner"]', {
+      timeout: 5000
+    });
+
+    // Now test Overview, Projects Table, Project Editor & Publishing Controls, and Media Library at each of the 6 viewports
+    for (const vp of adminViewports) {
+      await unauthAdminPage.setViewportSize({ width: vp.width, height: vp.height });
+      const sectionResults = {};
+
+      for (const tabId of ["overview", "projects", "editor", "media"]) {
+        await unauthAdminPage.getByTestId(`admin-tab-${tabId}`).click();
+        await unauthAdminPage.waitForSelector(`[data-testid="admin-${tabId}-section"]`, {
+          timeout: 5000
+        });
+        const m = await unauthAdminPage.evaluate(() => ({
+          innerWidth: window.innerWidth,
+          scrollWidth: document.documentElement.scrollWidth,
+          overflowX: document.documentElement.scrollWidth > window.innerWidth
+        }));
+        assert.equal(
+          m.overflowX,
+          false,
+          `Admin ${tabId} overflowX at ${vp.label}: scrollWidth=${m.scrollWidth} > innerWidth=${m.innerWidth}`
+        );
+        sectionResults[tabId] = "PASS (overflowX: false)";
+      }
+
+      report.adminResponsiveViewports.push({
+        ...vp,
+        loginScreen: "PASS (overflowX: false)",
+        sections: sectionResults,
+        passed: true
+      });
+    }
+    await unauthAdminCtx.close();
+    report.cmsPublishTestSteps.step10_browserDeepLinkAndAdminUiVerified = "PASSED";
+
+    // Public Portfolio OS Responsive Viewport Matrix
+    const publicViewports = [
       { width: 375, height: 812, label: "iPhone Mini (375x812)" },
       { width: 390, height: 844, label: "iPhone Standard (390x844)" },
       { width: 430, height: 932, label: "iPhone Pro Max (430x932)" },
       { width: 768, height: 1024, label: "Tablet Portrait (768x1024)" },
+      { width: 820, height: 1180, label: "iPad Air (820x1180)" },
       { width: 1024, height: 768, label: "Tablet Landscape (1024x768)" },
       { width: 1280, height: 800, label: "Laptop (1280x800)" },
       { width: 1440, height: 900, label: "Desktop (1440x900)" },
@@ -388,7 +789,7 @@ async function runVerification() {
     ];
 
     const vpPage = await context.newPage();
-    for (const vp of viewports) {
+    for (const vp of publicViewports) {
       await vpPage.setViewportSize({ width: vp.width, height: vp.height });
       await vpPage.goto(`${BASE_URL}/tr`, { waitUntil: "networkidle" });
       const metrics = await vpPage.evaluate(() => {
@@ -401,15 +802,16 @@ async function runVerification() {
       assert.equal(
         metrics.overflowX,
         false,
-        `Horizontal overflow detected at ${vp.label}: scrollWidth=${metrics.scrollWidth} > innerWidth=${metrics.innerWidth}`
+        `Public horizontal overflow at ${vp.label}: scrollWidth=${metrics.scrollWidth} > innerWidth=${metrics.innerWidth}`
       );
-      report.responsiveViewports.push({
+      report.publicResponsiveViewports.push({
         ...vp,
         overflowX: metrics.overflowX,
         passed: true
       });
     }
 
+    assert.equal(consoleErrors.length, 0, `Unexpected page errors: ${consoleErrors.join(", ")}`);
     await context.close();
   } finally {
     await browser.close();
@@ -417,6 +819,12 @@ async function runVerification() {
 
   report.allPassed = true;
   report.completedAt = new Date().toISOString();
+  fs.mkdirSync(path.join(process.cwd(), ".local-d1"), { recursive: true });
+  fs.writeFileSync(
+    path.join(process.cwd(), ".local-d1", "verification-report.json"),
+    JSON.stringify(report, null, 2),
+    "utf8"
+  );
   console.log(JSON.stringify(report, null, 2));
 }
 

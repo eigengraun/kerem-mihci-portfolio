@@ -1,7 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import { NextResponse } from "next/server";
-import { getCmsStorageMode, getLocalR2DirPath } from "@/lib/portfolio/d1Engine";
+import { getAdminSession } from "@/lib/admin/auth";
+import {
+  getCmsStorageMode,
+  getLocalR2DirPath,
+  isMediaKeyPubliclyAccessibleInLocalD1
+} from "@/lib/portfolio/d1Engine";
 
 export const dynamic = "force-dynamic";
 
@@ -32,32 +37,68 @@ export async function GET(
   }
 
   const workerBase = (process.env.CLOUDFLARE_CMS_API_URL || "").trim().replace(/\/$/, "");
+  const serviceToken = (process.env.CLOUDFLARE_API_SERVICE_TOKEN || "").trim();
+
   if (workerBase) {
     try {
       const upstream = await fetch(
         `${workerBase}/api/v1/public/media/${joinedKey}`,
         { cache: "no-store" }
       );
-      if (!upstream.ok) {
-        return NextResponse.json(
-          { ok: false, error: "Media asset not found in R2" },
-          { status: upstream.status }
-        );
+      if (upstream.ok) {
+        const buf = await upstream.arrayBuffer();
+        const ext = path.extname(joinedKey).toLowerCase();
+        const contentType =
+          upstream.headers.get("content-type") ||
+          MIME_BY_EXT[ext] ||
+          "application/octet-stream";
+        return new NextResponse(buf, {
+          status: 200,
+          headers: {
+            "Content-Type": contentType,
+            "Content-Length": String(buf.byteLength),
+            "Cache-Control": "public, max-age=31536000, immutable"
+          }
+        });
       }
-      const buf = await upstream.arrayBuffer();
-      const ext = path.extname(joinedKey).toLowerCase();
-      const contentType =
-        upstream.headers.get("content-type") ||
-        MIME_BY_EXT[ext] ||
-        "application/octet-stream";
-      return new NextResponse(buf, {
-        status: 200,
-        headers: {
-          "Content-Type": contentType,
-          "Content-Length": String(buf.byteLength),
-          "Cache-Control": "public, max-age=31536000, immutable"
+
+      // If 404 on public media route, check if requester is an authenticated admin previewing draft media
+      if (upstream.status === 404 && serviceToken) {
+        const adminSession = await getAdminSession();
+        if (adminSession) {
+          const adminUpstream = await fetch(
+            `${workerBase}/api/v1/admin/media/object/${joinedKey}`,
+            {
+              cache: "no-store",
+              headers: {
+                Authorization: `Bearer ${serviceToken}`,
+                "X-Actor-Email": adminSession.email
+              }
+            }
+          );
+          if (adminUpstream.ok) {
+            const buf = await adminUpstream.arrayBuffer();
+            const ext = path.extname(joinedKey).toLowerCase();
+            const contentType =
+              adminUpstream.headers.get("content-type") ||
+              MIME_BY_EXT[ext] ||
+              "application/octet-stream";
+            return new NextResponse(buf, {
+              status: 200,
+              headers: {
+                "Content-Type": contentType,
+                "Content-Length": String(buf.byteLength),
+                "Cache-Control": "private, no-store"
+              }
+            });
+          }
         }
-      });
+      }
+
+      return NextResponse.json(
+        { ok: false, error: "Media asset not found in R2" },
+        { status: upstream.status }
+      );
     } catch {
       return NextResponse.json(
         { ok: false, error: "Failed to fetch media from Cloudflare R2 Worker" },
@@ -74,6 +115,17 @@ export async function GET(
       },
       { status: 503 }
     );
+  }
+
+  const isPublic = isMediaKeyPubliclyAccessibleInLocalD1(joinedKey);
+  if (!isPublic) {
+    const adminSession = await getAdminSession();
+    if (!adminSession) {
+      return NextResponse.json(
+        { ok: false, error: "Media belongs to an unpublished project" },
+        { status: 404 }
+      );
+    }
   }
 
   const r2Root = path.resolve(getLocalR2DirPath());
@@ -95,7 +147,7 @@ export async function GET(
     headers: {
       "Content-Type": contentType,
       "Content-Length": String(fileBuffer.byteLength),
-      "Cache-Control": "public, max-age=31536000, immutable"
+      "Cache-Control": isPublic ? "public, max-age=31536000, immutable" : "private, no-store"
     }
   });
 }

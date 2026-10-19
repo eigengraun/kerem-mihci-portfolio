@@ -137,7 +137,7 @@ export function AdminDashboardClient({
   const [activeTab, setActiveTab] = useState<AdminTab>("overview");
 
   // Login state
-  const [loginEmail, setLoginEmail] = useState("kerem@keremmihci.com");
+  const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loginBusy, setLoginBusy] = useState(false);
@@ -256,7 +256,10 @@ export function AdminDashboardClient({
   };
 
   const handleLogout = async () => {
-    await fetch("/api/admin/auth", { method: "DELETE" });
+    await fetch("/api/admin/auth", {
+      method: "DELETE",
+      headers: csrfHeaders
+    });
     setSession(null);
   };
 

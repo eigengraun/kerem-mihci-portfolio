@@ -18,13 +18,17 @@
       "bucket_name": "kerem-portfolio-media"
     }
   ],
+  "workers_dev": true,
   "vars": {
+    "ENVIRONMENT": "local",
     "PUBLIC_SITE_ORIGIN": "https://keremmihci.com",
-    "R2_PUBLIC_BASE_URL": ""
+    "R2_PUBLIC_BASE_URL": "",
+    "ALLOW_CANONICAL_SEED": "true"
   },
   "env": {
     "staging": {
       "name": "kerem-mihci-portfolio-api-staging",
+      "workers_dev": true,
       "d1_databases": [
         {
           "binding": "PORTFOLIO_DB",
@@ -40,12 +44,15 @@
         }
       ],
       "vars": {
-        "PUBLIC_SITE_ORIGIN": "https://staging.keremmihci.com",
-        "R2_PUBLIC_BASE_URL": "https://staging-media.keremmihci.com"
+        "ENVIRONMENT": "staging",
+        "PUBLIC_SITE_ORIGIN": "https://keremmihci.com",
+        "R2_PUBLIC_BASE_URL": "",
+        "ALLOW_CANONICAL_SEED": "true"
       }
     },
     "production": {
       "name": "kerem-mihci-portfolio-api",
+      "workers_dev": false,
       "d1_databases": [
         {
           "binding": "PORTFOLIO_DB",
@@ -61,8 +68,10 @@
         }
       ],
       "vars": {
+        "ENVIRONMENT": "production",
         "PUBLIC_SITE_ORIGIN": "https://keremmihci.com",
-        "R2_PUBLIC_BASE_URL": "https://media.keremmihci.com"
+        "R2_PUBLIC_BASE_URL": "",
+        "ALLOW_CANONICAL_SEED": "false"
       }
     }
   }

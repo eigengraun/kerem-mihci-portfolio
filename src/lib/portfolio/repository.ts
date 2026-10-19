@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { projectsData, type Project, type WorkspaceId } from "@/data/projects";
 import {
   assertLocalSimulationAllowed,
@@ -34,15 +36,215 @@ import {
 } from "./types";
 
 const WORKER_TIMEOUT_MS = 8000;
+const DEFAULT_SNAPSHOT_TTL_MS = 5 * 60 * 1000; // 5 minutes max stale snapshot TTL during Worker outage
 
-// In-memory last-known-good published snapshot for post-cutover resilience
-let lastKnownPublishedSnapshot: CmsProjectRecord[] | null = null;
+export interface PublishedProjectsReadResult {
+  projects: CmsProjectRecord[];
+  degraded: boolean;
+  source:
+    | "legacy-static"
+    | "cloudflare-worker-live"
+    | "local-d1-live"
+    | "stale-verified-snapshot"
+    | "degraded-cold-start-outage";
+  reason?: string;
+}
+
+interface SnapshotCoordinationState {
+  generation: number;
+  updatedAtMs: number;
+  tombstonedIds: Record<string, number>;
+  tombstonedSlugs: Record<string, number>;
+}
+
+interface VerifiedSnapshotCache {
+  projects: CmsProjectRecord[];
+  capturedAtMs: number;
+  generation: number;
+}
+
+// Process-local verified snapshot, coordinated via shared host tombstone ledger + strict TTL
+let lastKnownPublishedSnapshot: VerifiedSnapshotCache | null = null;
+
+function getSnapshotTtlMs(): number {
+  const raw = Number(process.env.CMS_SNAPSHOT_MAX_STALE_MS || DEFAULT_SNAPSHOT_TTL_MS);
+  return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_SNAPSHOT_TTL_MS;
+}
+
+function getCoordinationFilePath(): string {
+  if (process.env.CMS_SNAPSHOT_COORDINATION_PATH) {
+    return path.resolve(process.env.CMS_SNAPSHOT_COORDINATION_PATH);
+  }
+  return path.join(process.cwd(), ".local-d1", "snapshot-coordination.json");
+}
+
+function readCoordinationState(): SnapshotCoordinationState {
+  const filePath = getCoordinationFilePath();
+  try {
+    if (fs.existsSync(filePath)) {
+      const raw = fs.readFileSync(filePath, "utf8");
+      const parsed = JSON.parse(raw) as Partial<SnapshotCoordinationState>;
+      return {
+        generation: Number(parsed.generation || 1),
+        updatedAtMs: Number(parsed.updatedAtMs || 0),
+        tombstonedIds: parsed.tombstonedIds || {},
+        tombstonedSlugs: parsed.tombstonedSlugs || {}
+      };
+    }
+  } catch {
+    // ignore read error
+  }
+  return {
+    generation: 1,
+    updatedAtMs: 0,
+    tombstonedIds: {},
+    tombstonedSlugs: {}
+  };
+}
+
+function writeCoordinationState(state: SnapshotCoordinationState): void {
+  const filePath = getCoordinationFilePath();
+  try {
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    const tmpFile = `${filePath}.${process.pid}.tmp`;
+    fs.writeFileSync(tmpFile, JSON.stringify(state), "utf8");
+    fs.renameSync(tmpFile, filePath);
+  } catch {
+    // ignore write error on read-only fs
+  }
+}
+
+/**
+ * Coordinates snapshot invalidation and unpublish/archive/delete tombstones across all Node processes on the host.
+ */
+export function recordSnapshotMutation(params: {
+  tombstoneId?: string;
+  tombstoneSlug?: string;
+  publishedProject?: CmsProjectRecord;
+  clearAllSnapshots?: boolean;
+}): void {
+  const state = readCoordinationState();
+  const now = Date.now();
+  state.generation += 1;
+  state.updatedAtMs = now;
+
+  // Prune tombstones older than 24h
+  const cutoff = now - 86400 * 1000;
+  for (const [k, ts] of Object.entries(state.tombstonedIds)) {
+    if (ts < cutoff) delete state.tombstonedIds[k];
+  }
+  for (const [k, ts] of Object.entries(state.tombstonedSlugs)) {
+    if (ts < cutoff) delete state.tombstonedSlugs[k];
+  }
+
+  if (params.tombstoneId) {
+    state.tombstonedIds[params.tombstoneId] = now;
+  }
+  if (params.tombstoneSlug) {
+    state.tombstonedSlugs[params.tombstoneSlug] = now;
+  }
+
+  if (params.publishedProject && params.publishedProject.cmsStatus === "published") {
+    delete state.tombstonedIds[params.publishedProject.id];
+    delete state.tombstonedSlugs[params.publishedProject.slug];
+  }
+
+  writeCoordinationState(state);
+
+  if (params.clearAllSnapshots) {
+    lastKnownPublishedSnapshot = null;
+    return;
+  }
+
+  if (lastKnownPublishedSnapshot) {
+    let updatedList = lastKnownPublishedSnapshot.projects.filter(
+      (p) => !state.tombstonedIds[p.id] && !state.tombstonedSlugs[p.slug]
+    );
+    if (params.publishedProject) {
+      if (params.publishedProject.cmsStatus === "published") {
+        const idx = updatedList.findIndex(
+          (p) =>
+            p.id === params.publishedProject!.id || p.slug === params.publishedProject!.slug
+        );
+        if (idx >= 0) {
+          updatedList[idx] = params.publishedProject;
+        } else {
+          updatedList = [...updatedList, params.publishedProject].sort(
+            (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)
+          );
+        }
+      } else {
+        updatedList = updatedList.filter(
+          (p) =>
+            p.id !== params.publishedProject!.id && p.slug !== params.publishedProject!.slug
+        );
+      }
+    }
+    lastKnownPublishedSnapshot = {
+      projects: updatedList,
+      capturedAtMs: lastKnownPublishedSnapshot.capturedAtMs,
+      generation: state.generation
+    };
+  }
+}
+
+function getValidCoordinatedSnapshot(): CmsProjectRecord[] | null {
+  if (!lastKnownPublishedSnapshot) {
+    return null;
+  }
+  const now = Date.now();
+  if (now - lastKnownPublishedSnapshot.capturedAtMs > getSnapshotTtlMs()) {
+    lastKnownPublishedSnapshot = null;
+    return null;
+  }
+  const coord = readCoordinationState();
+  // Filter out any project tombstoned (unpublished/archived/deleted) by any Node process
+  return lastKnownPublishedSnapshot.projects.filter(
+    (p) =>
+      p.cmsStatus === "published" &&
+      !coord.tombstonedIds[p.id] &&
+      !coord.tombstonedSlugs[p.slug]
+  );
+}
+
+function setVerifiedPublishedSnapshot(projects: CmsProjectRecord[]): void {
+  const coord = readCoordinationState();
+  const now = Date.now();
+  // Clear tombstones for projects confirmed published by fresh upstream D1 read
+  let coordChanged = false;
+  for (const p of projects) {
+    if (p.cmsStatus === "published") {
+      if (coord.tombstonedIds[p.id]) {
+        delete coord.tombstonedIds[p.id];
+        coordChanged = true;
+      }
+      if (coord.tombstonedSlugs[p.slug]) {
+        delete coord.tombstonedSlugs[p.slug];
+        coordChanged = true;
+      }
+    }
+  }
+  if (coordChanged) {
+    coord.updatedAtMs = now;
+    writeCoordinationState(coord);
+  }
+  lastKnownPublishedSnapshot = {
+    projects: projects.filter(
+      (p) =>
+        p.cmsStatus === "published" &&
+        !coord.tombstonedIds[p.id] &&
+        !coord.tombstonedSlugs[p.slug]
+    ),
+    capturedAtMs: now,
+    generation: coord.generation
+  };
+}
 
 function toLegacyCmsRecord(p: Project, index: number): CmsProjectRecord {
   return {
     ...p,
     cmsStatus: "published",
-    featuredOrder: p.featuredOrder ?? (p.featured ? index + 1 : 0),
+    featuredOrder: p.featuredOrder,
     sortOrder: p.sortOrder ?? index + 1,
     createdAt: "2025-01-15T12:00:00.000Z",
     updatedAt: "2025-01-15T12:00:00.000Z",
@@ -152,17 +354,23 @@ async function fetchWorkerJson<T>(
 }
 
 /**
- * Public read: returns all published projects according to CMS_DATA_SOURCE and CMS_STORAGE_MODE.
+ * Public read with explicit health/degraded metadata:
  * - Pre-cutover (`CMS_DATA_SOURCE=legacy`): serves canonical `projectsData` from `src/data/projects.ts`.
  * - Post-cutover (`CMS_DATA_SOURCE=cloudflare`):
- *    - Queries Cloudflare Worker `/api/v1/public/projects` (or local D1 when in `local` mode without Worker URL).
- *    - Caches verified published projects in `lastKnownPublishedSnapshot`.
- *    - Never exposes drafts and never revives archived/unpublished legacy projects after cutover.
+ *   - Queries Cloudflare Worker `/api/v1/public/projects`.
+ *   - Updates coordinated `lastKnownPublishedSnapshot`.
+ *   - If Worker becomes unreachable:
+ *     - If a valid TTL-bounded snapshot exists, returns it with any tombstoned (unpublished/archived/deleted) projects stripped out (`source: "stale-verified-snapshot", degraded: true`).
+ *     - If this is a fresh Node process (cold start) or the snapshot TTL expired, returns `projects: [], degraded: true, source: "degraded-cold-start-outage"` — NEVER silently reverting to static `src/data/projects.ts`.
  */
-export async function getPublishedProjects(): Promise<CmsProjectRecord[]> {
+export async function getPublishedProjectsWithMeta(): Promise<PublishedProjectsReadResult> {
   const dataSource = getCmsDataSource();
   if (dataSource === "legacy") {
-    return projectsData.map(toLegacyCmsRecord);
+    return {
+      projects: projectsData.map(toLegacyCmsRecord),
+      degraded: false,
+      source: "legacy-static"
+    };
   }
 
   if (shouldUseWorkerApi()) {
@@ -171,35 +379,61 @@ export async function getPublishedProjects(): Promise<CmsProjectRecord[]> {
         "/api/v1/public/projects"
       );
       const publishedOnly = (res.projects || []).filter((p) => p.cmsStatus === "published");
-      lastKnownPublishedSnapshot = publishedOnly;
-      return publishedOnly;
+      setVerifiedPublishedSnapshot(publishedOnly);
+      return {
+        projects: getValidCoordinatedSnapshot() || publishedOnly,
+        degraded: false,
+        source: "cloudflare-worker-live"
+      };
     } catch (error) {
-      console.error(
-        "[portfolio/repository] Worker public projects read failed in cloudflare mode:",
-        error
-      );
-      if (lastKnownPublishedSnapshot) {
-        return lastKnownPublishedSnapshot;
+      const errReason = error instanceof Error ? error.message : String(error);
+      const validSnapshot = getValidCoordinatedSnapshot();
+      if (validSnapshot !== null) {
+        return {
+          projects: validSnapshot,
+          degraded: true,
+          source: "stale-verified-snapshot",
+          reason: errReason
+        };
       }
-      return [];
+      return {
+        projects: [],
+        degraded: true,
+        source: "degraded-cold-start-outage",
+        reason:
+          "Cloudflare Worker is unreachable and no verified snapshot exists on this Node process."
+      };
     }
   }
 
-  // Local mode without remote Worker URL
   const published = listPublishedProjectsFromD1().filter((p) => p.cmsStatus === "published");
-  lastKnownPublishedSnapshot = published;
-  return published;
+  setVerifiedPublishedSnapshot(published);
+  return {
+    projects: getValidCoordinatedSnapshot() || published,
+    degraded: false,
+    source: "local-d1-live"
+  };
+}
+
+export async function getPublishedProjects(): Promise<CmsProjectRecord[]> {
+  const res = await getPublishedProjectsWithMeta();
+  return res.projects;
 }
 
 /**
  * Public read: returns a single published project by slug.
- * Draft and archived projects always return null.
+ * Draft, unpublished, archived, and tombstoned projects always return null.
  */
 export async function getPublishedProjectBySlug(slug: string): Promise<CmsProjectRecord | null> {
   const dataSource = getCmsDataSource();
   if (dataSource === "legacy") {
     const idx = projectsData.findIndex((p) => p.slug === slug);
     return idx >= 0 ? toLegacyCmsRecord(projectsData[idx], idx) : null;
+  }
+
+  const coord = readCoordinationState();
+  if (coord.tombstonedSlugs[slug]) {
+    return null;
   }
 
   if (shouldUseWorkerApi()) {
@@ -216,11 +450,10 @@ export async function getPublishedProjectBySlug(slug: string): Promise<CmsProjec
         // 404 from Worker
         return null;
       }
-      if (lastKnownPublishedSnapshot) {
+      const validSnapshot = getValidCoordinatedSnapshot();
+      if (validSnapshot) {
         return (
-          lastKnownPublishedSnapshot.find(
-            (p) => p.slug === slug && p.cmsStatus === "published"
-          ) || null
+          validSnapshot.find((p) => p.slug === slug && p.cmsStatus === "published") || null
         );
       }
       return null;
@@ -284,14 +517,30 @@ export async function saveAdminProject(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...input, actionType: actionLabel })
     });
-    // Refresh snapshot asynchronously
-    lastKnownPublishedSnapshot = null;
-    return res.project;
+    const saved = res.project;
+    if (saved.cmsStatus !== "published") {
+      recordSnapshotMutation({
+        tombstoneId: saved.id,
+        tombstoneSlug: saved.slug,
+        publishedProject: saved
+      });
+    } else {
+      recordSnapshotMutation({ publishedProject: saved });
+    }
+    return saved;
   }
 
   assertLocalSimulationAllowed("saveAdminProject");
   const saved = upsertProjectLocal(input, actorEmail, actionLabel);
-  lastKnownPublishedSnapshot = null;
+  if (saved.cmsStatus !== "published") {
+    recordSnapshotMutation({
+      tombstoneId: saved.id,
+      tombstoneSlug: saved.slug,
+      publishedProject: saved
+    });
+  } else {
+    recordSnapshotMutation({ publishedProject: saved });
+  }
   return saved;
 }
 
@@ -313,13 +562,30 @@ export async function changeAdminProjectStatus(
         body: JSON.stringify({ cmsStatus: newStatus, notes })
       }
     );
-    lastKnownPublishedSnapshot = null;
-    return res.project;
+    const updated = res.project;
+    if (updated.cmsStatus !== "published") {
+      recordSnapshotMutation({
+        tombstoneId: updated.id,
+        tombstoneSlug: updated.slug,
+        publishedProject: updated
+      });
+    } else {
+      recordSnapshotMutation({ publishedProject: updated });
+    }
+    return updated;
   }
 
   assertLocalSimulationAllowed("changeAdminProjectStatus");
   const updated = updateStatusLocal(idOrSlug, newStatus, actorEmail, notes);
-  lastKnownPublishedSnapshot = null;
+  if (updated.cmsStatus !== "published") {
+    recordSnapshotMutation({
+      tombstoneId: updated.id,
+      tombstoneSlug: updated.slug,
+      publishedProject: updated
+    });
+  } else {
+    recordSnapshotMutation({ publishedProject: updated });
+  }
   return updated;
 }
 
@@ -337,13 +603,19 @@ export async function removeAdminProject(
         actorEmail
       }
     );
-    lastKnownPublishedSnapshot = null;
+    recordSnapshotMutation({
+      tombstoneId: res.deletedId,
+      tombstoneSlug: res.slug
+    });
     return { deletedId: res.deletedId, slug: res.slug };
   }
 
   assertLocalSimulationAllowed("removeAdminProject");
   const deleted = deleteProjectLocal(idOrSlug, actorEmail);
-  lastKnownPublishedSnapshot = null;
+  recordSnapshotMutation({
+    tombstoneId: deleted.deletedId,
+    tombstoneSlug: deleted.slug
+  });
   return deleted;
 }
 
@@ -365,13 +637,13 @@ export async function updateFeaturedOrderingInD1(
         featuredItems
       })
     });
-    lastKnownPublishedSnapshot = null;
+    recordSnapshotMutation({ clearAllSnapshots: true });
     return;
   }
 
   assertLocalSimulationAllowed("updateFeaturedOrderingInD1");
   updateFeaturedLocal(workspace, featuredItems, actorEmail);
-  lastKnownPublishedSnapshot = null;
+  recordSnapshotMutation({ clearAllSnapshots: true });
 }
 
 export async function listProjectRevisionsFromD1(
@@ -410,13 +682,30 @@ export async function rollbackProjectRevisionInD1(
         body: JSON.stringify({ rollbackRevisionNumber: revisionNumber })
       }
     );
-    lastKnownPublishedSnapshot = null;
-    return res.project;
+    const restored = res.project;
+    if (restored.cmsStatus !== "published") {
+      recordSnapshotMutation({
+        tombstoneId: restored.id,
+        tombstoneSlug: restored.slug,
+        publishedProject: restored
+      });
+    } else {
+      recordSnapshotMutation({ publishedProject: restored });
+    }
+    return restored;
   }
 
   assertLocalSimulationAllowed("rollbackProjectRevisionInD1");
   const restored = rollbackRevisionLocal(projectId, revisionNumber, actorEmail);
-  lastKnownPublishedSnapshot = null;
+  if (restored.cmsStatus !== "published") {
+    recordSnapshotMutation({
+      tombstoneId: restored.id,
+      tombstoneSlug: restored.slug,
+      publishedProject: restored
+    });
+  } else {
+    recordSnapshotMutation({ publishedProject: restored });
+  }
   return restored;
 }
 
@@ -462,6 +751,8 @@ export async function uploadMediaToR2AndD1(params: {
   captionTR?: string;
   captionEN?: string;
   actorEmail: string;
+  customStorageKey?: string;
+  simulateD1Error?: boolean;
 }): Promise<CmsMediaRecord> {
   const sigCheck = validateMediaFileSignature(
     params.buffer,
@@ -489,6 +780,8 @@ export async function uploadMediaToR2AndD1(params: {
     if (params.altEN) form.append("altEN", params.altEN);
     if (params.captionTR) form.append("captionTR", params.captionTR);
     if (params.captionEN) form.append("captionEN", params.captionEN);
+    if (params.customStorageKey) form.append("customStorageKey", params.customStorageKey);
+    if (params.simulateD1Error) form.append("simulateD1Error", "true");
 
     const res = await fetchWorkerJson<{ ok: boolean; media: CmsMediaRecord }>(
       "/api/v1/admin/media/upload",

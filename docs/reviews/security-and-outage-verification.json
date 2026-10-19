@@ -1,0 +1,51 @@
+{
+  "startedAt": "2026-10-19T20:23:20.614Z",
+  "passwordSecurityAndIdentity": {
+    "scryptCliGenerated": true,
+    "productionRejectsSha256AndPlaintext": "PASS",
+    "productionRequiresExplicitAllowedEmails": "PASS"
+  },
+  "durableSessionTests": {
+    "singleSessionLogoutAndCrossProcessRejection": "PASS",
+    "revocationSurvivesProcessRestart": "PASS",
+    "globalLogoutAllSessionsAcrossProcesses": "PASS",
+    "shortTtlExpirationVerified": "PASS"
+  },
+  "rateLimitingTests": {
+    "sixthAttemptReturns429WithRetryAfter": "PASS",
+    "enforcedAcrossSecondProcess3100": "PASS",
+    "forgedXForwardedForRotationBlocked": "PASS",
+    "survivesProcessRestart": "PASS",
+    "unusedEmail": "ratelimit-1792441408287@keremmihci.com"
+  },
+  "csrfAndOriginTests": {
+    "missingCsrf403": "PASS",
+    "invalidCsrf403": "PASS",
+    "evilOrigin403": "PASS",
+    "forgedXForwardedHostWithEvilOrigin403": "PASS",
+    "missingOrigin403": "PASS",
+    "malformedOrigin403": "PASS"
+  },
+  "workerSeedGateTests": {
+    "unauthenticatedBlocked401": "PASS",
+    "invalidTokenBlocked401": "PASS",
+    "lockedAfterInitialMigration409": "PASS"
+  },
+  "mediaAndWorkerContractTests": {
+    "unsupportedMimeRejected400": "PASS",
+    "maliciousSvgRejected400": "PASS",
+    "nonexistentProjectR2RollbackVerified": "PASS",
+    "d1FailureAfterR2UploadRollbackVerified": "PASS",
+    "duplicateObjectKeyReturns409": "PASS"
+  },
+  "outageSnapshotConsistencyTests": {
+    "unpublishedProjectNeverReappearsOnProcessA3099": "PASS",
+    "unpublishedProjectNeverReappearsOnProcessB3100": "PASS",
+    "warmProcessesServeTombstoneFilteredSnapshotDuringOutage": "PASS",
+    "coldStartProcessReturns503WithZeroStaticFallback": "PASS",
+    "allProcessesRecoverImmediatelyWhenWorkerReturns": "PASS"
+  },
+  "e2eAndResponsiveSuite": "PASS",
+  "allPassed": true,
+  "completedAt": "2026-10-19T20:23:46.731Z"
+}

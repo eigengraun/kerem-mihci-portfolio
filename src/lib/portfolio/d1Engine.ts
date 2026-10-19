@@ -76,6 +76,8 @@ interface ExtraProjectMetadataJson {
   desktopClusterId?: string;
   projectStatus?: ProjectStatus;
   hasExplicitSeo?: boolean;
+  hasExplicitExternalLinks?: boolean;
+  hasExplicitOgImage?: boolean;
   mediaMeta?: MediaItemMeta[];
 }
 
@@ -250,6 +252,26 @@ CREATE TABLE IF NOT EXISTS site_settings (
   updated_at TEXT NOT NULL,
   updated_by TEXT
 );
+CREATE TABLE IF NOT EXISTS admin_sessions (
+  jti_hash TEXT PRIMARY KEY,
+  actor_email TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'owner',
+  csrf_token_hash TEXT NOT NULL,
+  issued_at INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL,
+  revoked_at INTEGER,
+  revoked_reason TEXT,
+  ip_hash TEXT,
+  user_agent TEXT,
+  last_seen_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS admin_rate_limits (
+  scope_key TEXT PRIMARY KEY,
+  attempt_count INTEGER NOT NULL DEFAULT 0,
+  window_started_at INTEGER NOT NULL,
+  locked_until INTEGER NOT NULL DEFAULT 0,
+  updated_at INTEGER NOT NULL
+);
 CREATE INDEX IF NOT EXISTS idx_projects_slug ON projects(slug);
 CREATE INDEX IF NOT EXISTS idx_projects_status_workspace ON projects(status, workspace, sort_order);
 CREATE INDEX IF NOT EXISTS idx_projects_featured ON projects(status, workspace, featured, featured_order);
@@ -258,6 +280,9 @@ CREATE INDEX IF NOT EXISTS idx_project_media_project_sort ON project_media(proje
 CREATE INDEX IF NOT EXISTS idx_project_revisions_project ON project_revisions(project_id, revision_number DESC);
 CREATE INDEX IF NOT EXISTS idx_publishing_events_project ON publishing_events(project_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_created ON admin_audit_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_admin_sessions_actor_active ON admin_sessions(actor_email, revoked_at, expires_at);
+CREATE INDEX IF NOT EXISTS idx_admin_sessions_expires ON admin_sessions(expires_at);
+CREATE INDEX IF NOT EXISTS idx_admin_rate_limits_updated ON admin_rate_limits(updated_at);
 `;
 
 let cachedDb: SqliteDatabase | null = null;
@@ -316,8 +341,6 @@ export function seedCanonicalProjects(
   let inserted = 0;
   let updated = 0;
 
-  const featuredCounter: Record<string, number> = { design: 0, web: 0, "motion-ai": 0 };
-
   db.exec("BEGIN TRANSACTION;");
   try {
     for (let idx = 0; idx < projectsData.length; idx++) {
@@ -330,7 +353,7 @@ export function seedCanonicalProjects(
         continue;
       }
 
-      const fOrder = p.featuredOrder ?? (p.featured ? ++featuredCounter[p.workspace] : 0);
+      const fOrder = typeof p.featuredOrder === "number" ? p.featuredOrder : 0;
       const sortOrder = p.sortOrder ?? idx + 1;
       const desktopThumbJson = p.desktopThumbnail ? JSON.stringify(p.desktopThumbnail) : null;
 
@@ -370,6 +393,8 @@ export function seedCanonicalProjects(
         desktopClusterId: p.desktopClusterId,
         projectStatus: p.status || "completed",
         hasExplicitSeo: Boolean(p.seo),
+        hasExplicitExternalLinks: p.externalLinks !== undefined,
+        hasExplicitOgImage: p.ogImage !== undefined,
         mediaMeta
       };
       const tagsJson = JSON.stringify(extraMeta);
@@ -658,8 +683,10 @@ export function mapRowsToCmsProjects(
         : "graphic-design";
 
     const liveUrl = row.live_url ? String(row.live_url) : undefined;
-    const externalLinks: ProjectExternalLink[] =
-      extra.externalLinks !== undefined
+    const externalLinks: ProjectExternalLink[] | undefined =
+      extra.hasExplicitExternalLinks === false
+        ? undefined
+        : extra.externalLinks !== undefined
         ? extra.externalLinks
         : liveUrl
         ? [
@@ -705,6 +732,7 @@ export function mapRowsToCmsProjects(
       tr.description !== null && tr.description !== undefined ? String(tr.description) : "";
     const rawDescEN =
       en.description !== null && en.description !== undefined ? String(en.description) : "";
+    const rawFeaturedOrder = Number(row.featured_order || 0);
 
     return {
       id,
@@ -718,7 +746,7 @@ export function mapRowsToCmsProjects(
           ? extra.categoryIds
           : [defaultCategory],
       featured: Number(row.featured) === 1,
-      featuredOrder: Number(row.featured_order || 0),
+      featuredOrder: rawFeaturedOrder > 0 ? rawFeaturedOrder : undefined,
       sortOrder: Number(row.sort_order || 0),
       titleTR: String(tr.title || row.slug),
       titleEN: String(en.title || tr.title || row.slug),
@@ -761,7 +789,7 @@ export function mapRowsToCmsProjects(
       cover: row.cover_image_url ? String(row.cover_image_url) : undefined,
       thumbnail: row.thumbnail_url ? String(row.thumbnail_url) : undefined,
       desktopIcon: row.desktop_icon_url ? String(row.desktop_icon_url) : undefined,
-      ogImage: ogImg,
+      ogImage: extra.hasExplicitOgImage === false ? undefined : ogImg,
       desktopThumbnail,
       seo: showSeo
         ? {
@@ -956,6 +984,10 @@ export function upsertProjectInD1(
     servicesTR: input.servicesTR ?? existingMeta.servicesTR,
     servicesEN: input.servicesEN ?? existingMeta.servicesEN,
     externalLinks: input.externalLinks ?? existingMeta.externalLinks,
+    hasExplicitExternalLinks:
+      input.externalLinks !== undefined
+        ? true
+        : existingMeta.hasExplicitExternalLinks ?? false,
     contentBlocks: input.contentBlocks ?? existingMeta.contentBlocks,
     desktopLabelTR: input.desktopLabelTR ?? existingMeta.desktopLabelTR,
     desktopLabelEN: input.desktopLabelEN ?? existingMeta.desktopLabelEN,
@@ -968,7 +1000,11 @@ export function upsertProjectInD1(
     desktopWidth: input.desktop?.width ?? existingMeta.desktopWidth,
     desktopWeight: input.desktopWeight ?? existingMeta.desktopWeight,
     projectStatus: input.projectStatus ?? existingMeta.projectStatus ?? "completed",
-    hasExplicitSeo: input.seo !== undefined ? Boolean(input.seo) : existingMeta.hasExplicitSeo,
+    hasExplicitSeo: input.seo !== undefined ? Boolean(input.seo) : existingMeta.hasExplicitSeo ?? false,
+    hasExplicitOgImage:
+      input.ogImage !== undefined
+        ? Boolean(input.ogImage)
+        : existingMeta.hasExplicitOgImage ?? false,
     mediaMeta
   };
 
@@ -1292,6 +1328,7 @@ export function deleteProjectInD1(
 
   db.exec("BEGIN TRANSACTION;");
   try {
+    db.prepare(`DELETE FROM project_media WHERE project_id = ? AND kind = 'gallery'`).run(projectId);
     db.prepare(`DELETE FROM projects WHERE id = ?`).run(projectId);
     db.prepare(
       `INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
@@ -1424,6 +1461,8 @@ export function uploadMediaToR2AndD1(params: {
   captionTR?: string;
   captionEN?: string;
   actorEmail: string;
+  customStorageKey?: string;
+  simulateD1Error?: boolean;
 }): CmsMediaRecord {
   assertLocalSimulationAllowed("uploadMediaToR2AndD1");
 
@@ -1438,7 +1477,9 @@ export function uploadMediaToR2AndD1(params: {
     altEN = "",
     captionTR,
     captionEN,
-    actorEmail
+    actorEmail,
+    customStorageKey,
+    simulateD1Error = false
   } = params;
 
   const sigCheck = validateMediaFileSignature(buffer, mimeType, filename);
@@ -1459,7 +1500,10 @@ export function uploadMediaToR2AndD1(params: {
   const yyyy = String(now.getUTCFullYear());
   const mm = String(now.getUTCMonth() + 1).padStart(2, "0");
   const shortUuid = crypto.randomUUID().slice(0, 8);
-  const storageKey = `projects/${safeSlug}/${kind}/${yyyy}/${mm}/${shortUuid}-${safeFilename}`;
+  const storageKey =
+    customStorageKey && !customStorageKey.includes("..") && !customStorageKey.startsWith("/")
+      ? customStorageKey
+      : `projects/${safeSlug}/${kind}/${yyyy}/${mm}/${shortUuid}-${safeFilename}`;
 
   const r2Root = path.resolve(getLocalR2DirPath());
   const fullFilePath = path.resolve(r2Root, storageKey);
@@ -1480,6 +1524,18 @@ export function uploadMediaToR2AndD1(params: {
   const db = getD1Database();
   db.exec("BEGIN TRANSACTION;");
   try {
+    if (projectId) {
+      const existingProj = db
+        .prepare(`SELECT id FROM projects WHERE id = ? LIMIT 1`)
+        .get(projectId);
+      if (!existingProj) {
+        throw new Error(`Referenced project "${projectId}" does not exist.`);
+      }
+    }
+    if (simulateD1Error) {
+      throw new Error("Simulated D1 write failure after R2 upload.");
+    }
+
     db.prepare(
       `INSERT INTO project_media (
         id, project_id, kind, media_type, storage_key, public_url, filename,
@@ -1545,6 +1601,34 @@ export function uploadMediaToR2AndD1(params: {
     createdAt: isoNow,
     updatedAt: isoNow
   };
+}
+
+export function isMediaKeyPubliclyAccessibleInLocalD1(storageKey: string): boolean {
+  const db = getD1Database();
+  const row = db
+    .prepare(
+      `SELECT pm.project_id, p.status as project_status
+       FROM project_media pm
+       LEFT JOIN projects p ON pm.project_id = p.id
+       WHERE pm.storage_key = ?
+       LIMIT 1`
+    )
+    .get(storageKey);
+
+  if (row && row.project_id) {
+    return String(row.project_status) === "published";
+  }
+
+  const parts = storageKey.split("/");
+  if (parts[0] === "projects" && parts[1] && parts[1] !== "general") {
+    const slug = parts[1];
+    const proj = db.prepare(`SELECT status FROM projects WHERE slug = ? LIMIT 1`).get(slug);
+    if (proj) {
+      return String(proj.status) === "published";
+    }
+  }
+
+  return true;
 }
 
 export function listMediaFromD1(projectId?: string): CmsMediaRecord[] {
@@ -1726,12 +1810,8 @@ export function reconcileProjectsListWithCanonical(d1Projects: CmsProjectRecord[
     check("client", canonical.client, found.client);
     check("year", canonical.year, found.year);
     check("featured", canonical.featured, found.featured);
-    if (canonical.featuredOrder !== undefined) {
-      check("featuredOrder", canonical.featuredOrder, found.featuredOrder);
-    }
-    if (canonical.sortOrder !== undefined) {
-      check("sortOrder", canonical.sortOrder, found.sortOrder);
-    }
+    check("featuredOrder", canonical.featuredOrder, found.featuredOrder);
+    check("sortOrder", canonical.sortOrder, found.sortOrder);
     check("categoryIds", canonical.categoryIds, found.categoryIds);
     check("categoryTR", canonical.categoryTR, found.categoryTR);
     check("categoryEN", canonical.categoryEN, found.categoryEN);
@@ -1740,14 +1820,15 @@ export function reconcileProjectsListWithCanonical(d1Projects: CmsProjectRecord[
     check("servicesTR", canonical.servicesTR, found.servicesTR);
     check("servicesEN", canonical.servicesEN, found.servicesEN);
     check("services", canonical.services, found.services);
-    check("tools", canonical.tools ?? [], found.tools ?? []);
+    check("tools", canonical.tools, found.tools);
     check("roleTR", canonical.roleTR, found.roleTR);
     check("roleEN", canonical.roleEN, found.roleEN);
-    check("externalLinks", canonical.externalLinks ?? [], found.externalLinks ?? []);
+    check("externalLinks", canonical.externalLinks, found.externalLinks);
     check("thumbnail", canonical.thumbnail, found.thumbnail);
     check("desktopIcon", canonical.desktopIcon, found.desktopIcon);
     check("desktopThumbnail", canonical.desktopThumbnail, found.desktopThumbnail);
     check("cover", canonical.cover, found.cover);
+    check("ogImage", canonical.ogImage, found.ogImage);
     check("media.count", (canonical.media || []).length, (found.media || []).length);
     check(
       "media.paths",
@@ -1794,4 +1875,293 @@ export function reconcileCanonicalProjectsWithD1() {
   }
   const d1Projects = listAllProjectsForAdminFromD1();
   return reconcileProjectsListWithCanonical(d1Projects);
+}
+
+// ============================================================
+// DURABLE D1 ADMIN SESSIONS & RATE LIMITING (LOCAL SQLITE D1)
+// ============================================================
+
+export interface DurableSessionRecord {
+  jtiHash: string;
+  actorEmail: string;
+  role: string;
+  csrfTokenHash: string;
+  issuedAt: number;
+  expiresAt: number;
+  revokedAt: number | null;
+  revokedReason: string | null;
+}
+
+export function createDurableAdminSessionInLocalD1(params: {
+  jtiHash: string;
+  actorEmail: string;
+  role: string;
+  csrfTokenHash: string;
+  issuedAt: number;
+  expiresAt: number;
+  ipHash?: string | null;
+  userAgent?: string | null;
+}): void {
+  const db = getD1Database();
+  const nowSec = Math.floor(Date.now() / 1000);
+  // Prune expired sessions older than 24h past expiry
+  db.prepare(`DELETE FROM admin_sessions WHERE expires_at < ?`).run(nowSec - 86400);
+
+  db.prepare(
+    `INSERT INTO admin_sessions (
+      jti_hash, actor_email, role, csrf_token_hash, issued_at, expires_at,
+      revoked_at, revoked_reason, ip_hash, user_agent, last_seen_at
+    ) VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?, ?)
+    ON CONFLICT(jti_hash) DO UPDATE SET
+      actor_email = excluded.actor_email,
+      role = excluded.role,
+      csrf_token_hash = excluded.csrf_token_hash,
+      issued_at = excluded.issued_at,
+      expires_at = excluded.expires_at,
+      revoked_at = NULL,
+      revoked_reason = NULL,
+      last_seen_at = excluded.last_seen_at`
+  ).run(
+    params.jtiHash,
+    params.actorEmail,
+    params.role,
+    params.csrfTokenHash,
+    params.issuedAt,
+    params.expiresAt,
+    params.ipHash ?? null,
+    (params.userAgent || "").slice(0, 250) || null,
+    nowSec
+  );
+}
+
+export function verifyDurableAdminSessionInLocalD1(jtiHash: string): {
+  valid: boolean;
+  reason?: string;
+  session?: DurableSessionRecord;
+} {
+  const db = getD1Database();
+  const nowSec = Math.floor(Date.now() / 1000);
+  // Opportunistic expired cleanup
+  db.prepare(`DELETE FROM admin_sessions WHERE expires_at < ? AND revoked_at IS NULL`).run(
+    nowSec - 86400
+  );
+
+  const row = db
+    .prepare(`SELECT * FROM admin_sessions WHERE jti_hash = ? LIMIT 1`)
+    .get(jtiHash);
+  if (!row) {
+    return { valid: false, reason: "session_not_found" };
+  }
+
+  const revokedAt =
+    row.revoked_at !== null && row.revoked_at !== undefined ? Number(row.revoked_at) : null;
+  const expiresAt = Number(row.expires_at);
+
+  if (revokedAt !== null) {
+    return { valid: false, reason: "session_revoked" };
+  }
+  if (expiresAt <= nowSec) {
+    return { valid: false, reason: "session_expired" };
+  }
+
+  db.prepare(`UPDATE admin_sessions SET last_seen_at = ? WHERE jti_hash = ?`).run(
+    nowSec,
+    jtiHash
+  );
+
+  return {
+    valid: true,
+    session: {
+      jtiHash: String(row.jti_hash),
+      actorEmail: String(row.actor_email),
+      role: String(row.role),
+      csrfTokenHash: String(row.csrf_token_hash),
+      issuedAt: Number(row.issued_at),
+      expiresAt,
+      revokedAt: null,
+      revokedReason: null
+    }
+  };
+}
+
+export function revokeDurableAdminSessionInLocalD1(params: {
+  jtiHash?: string;
+  actorEmail?: string;
+  revokeAllForActor?: boolean;
+  reason?: string;
+}): { revokedCount: number } {
+  const db = getD1Database();
+  const nowSec = Math.floor(Date.now() / 1000);
+  const reason = params.reason || "user_logout";
+
+  let revokedCount = 0;
+  if (params.revokeAllForActor && params.actorEmail) {
+    const res = db
+      .prepare(
+        `UPDATE admin_sessions
+         SET revoked_at = ?, revoked_reason = ?
+         WHERE actor_email = ? AND revoked_at IS NULL`
+      )
+      .run(nowSec, reason, params.actorEmail);
+    revokedCount += Number(res.changes || 0);
+  }
+  if (params.jtiHash) {
+    const res = db
+      .prepare(
+        `UPDATE admin_sessions
+         SET revoked_at = ?, revoked_reason = ?
+         WHERE jti_hash = ? AND revoked_at IS NULL`
+      )
+      .run(nowSec, reason, params.jtiHash);
+    revokedCount += Number(res.changes || 0);
+  }
+
+  return { revokedCount };
+}
+
+const MAX_RATE_LIMIT_BUCKETS = 1000;
+
+export function checkDurableLoginRateLimitInLocalD1(params: {
+  scopeKeys: string[];
+  nowMs?: number;
+}): { allowed: boolean; retryAfterSec: number; remainingAttempts: number } {
+  const db = getD1Database();
+  const nowMs = params.nowMs ?? Date.now();
+  const nowSec = Math.floor(nowMs / 1000);
+
+  // Prune expired buckets
+  db.prepare(
+    `DELETE FROM admin_rate_limits
+     WHERE (locked_until <= ? AND window_started_at <= ?)`
+  ).run(nowSec, nowSec - 900);
+
+  let worstRetryAfter = 0;
+  let minRemaining = 5;
+
+  for (const key of params.scopeKeys) {
+    const row = db
+      .prepare(`SELECT * FROM admin_rate_limits WHERE scope_key = ? LIMIT 1`)
+      .get(key);
+    if (!row) continue;
+
+    const lockedUntil = Number(row.locked_until || 0);
+    const windowStartedAt = Number(row.window_started_at || 0);
+    const attemptCount = Number(row.attempt_count || 0);
+
+    if (lockedUntil > nowSec) {
+      const retry = Math.max(1, lockedUntil - nowSec);
+      if (retry > worstRetryAfter) worstRetryAfter = retry;
+      minRemaining = 0;
+      continue;
+    }
+
+    if (nowSec - windowStartedAt > 900) {
+      db.prepare(`DELETE FROM admin_rate_limits WHERE scope_key = ?`).run(key);
+      continue;
+    }
+
+    const rem = Math.max(0, 5 - attemptCount);
+    if (rem < minRemaining) minRemaining = rem;
+  }
+
+  if (worstRetryAfter > 0) {
+    return { allowed: false, retryAfterSec: worstRetryAfter, remainingAttempts: 0 };
+  }
+
+  return { allowed: true, retryAfterSec: 0, remainingAttempts: minRemaining };
+}
+
+export function recordDurableFailedLoginInLocalD1(params: {
+  scopeKeys: string[];
+  nowMs?: number;
+  windowSec?: number;
+  maxAttempts?: number;
+  lockoutSec?: number;
+}): { locked: boolean; retryAfterSec: number; remainingAttempts: number } {
+  const db = getD1Database();
+  const nowMs = params.nowMs ?? Date.now();
+  const nowSec = Math.floor(nowMs / 1000);
+  const windowSec = params.windowSec ?? 15 * 60;
+  const maxAttempts = params.maxAttempts ?? 5;
+  const lockoutSec = params.lockoutSec ?? 15 * 60;
+
+  // Enforce bounded table size (prevent unbounded growth DoS)
+  db.prepare(
+    `DELETE FROM admin_rate_limits
+     WHERE (locked_until <= ? AND window_started_at <= ?)`
+  ).run(nowSec, nowSec - windowSec);
+
+  const countRow = db
+    .prepare(`SELECT COUNT(*) as count FROM admin_rate_limits`)
+    .get();
+  if (Number(countRow?.count || 0) >= MAX_RATE_LIMIT_BUCKETS) {
+    db.prepare(
+      `DELETE FROM admin_rate_limits
+       WHERE scope_key IN (
+         SELECT scope_key FROM admin_rate_limits
+         ORDER BY updated_at ASC
+         LIMIT 200
+       )`
+    ).run();
+  }
+
+  let anyLocked = false;
+  let maxRetrySec = 0;
+  let minRemaining = maxAttempts;
+
+  for (const key of params.scopeKeys) {
+    const existing = db
+      .prepare(`SELECT * FROM admin_rate_limits WHERE scope_key = ? LIMIT 1`)
+      .get(key);
+
+    let count = 1;
+    let windowStart = nowSec;
+    let lockedUntil = 0;
+
+    if (existing) {
+      const prevWindow = Number(existing.window_started_at || 0);
+      const prevLocked = Number(existing.locked_until || 0);
+      if (nowSec - prevWindow <= windowSec && prevLocked <= nowSec) {
+        count = Number(existing.attempt_count || 0) + 1;
+        windowStart = prevWindow;
+      } else if (prevLocked > nowSec) {
+        count = Number(existing.attempt_count || 0) + 1;
+        windowStart = prevWindow;
+        lockedUntil = prevLocked;
+      }
+    }
+
+    if (count >= maxAttempts && lockedUntil <= nowSec) {
+      lockedUntil = nowSec + lockoutSec;
+    }
+
+    db.prepare(
+      `INSERT INTO admin_rate_limits (scope_key, attempt_count, window_started_at, locked_until, updated_at)
+       VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT(scope_key) DO UPDATE SET
+         attempt_count = excluded.attempt_count,
+         window_started_at = excluded.window_started_at,
+         locked_until = excluded.locked_until,
+         updated_at = excluded.updated_at`
+    ).run(key, count, windowStart, lockedUntil, nowSec);
+
+    if (lockedUntil > nowSec) {
+      anyLocked = true;
+      const retry = Math.max(1, lockedUntil - nowSec);
+      if (retry > maxRetrySec) maxRetrySec = retry;
+      minRemaining = 0;
+    } else {
+      const rem = Math.max(0, maxAttempts - count);
+      if (rem < minRemaining) minRemaining = rem;
+    }
+  }
+
+  return { locked: anyLocked, retryAfterSec: maxRetrySec, remainingAttempts: minRemaining };
+}
+
+export function clearDurableLoginRateLimitInLocalD1(scopeKeys: string[]): void {
+  const db = getD1Database();
+  for (const key of scopeKeys) {
+    db.prepare(`DELETE FROM admin_rate_limits WHERE scope_key = ?`).run(key);
+  }
 }

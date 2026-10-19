@@ -57,6 +57,10 @@ export async function POST(request: Request) {
     const altEN = String(formData.get("altEN") || "");
     const captionTR = formData.get("captionTR") ? String(formData.get("captionTR")) : undefined;
     const captionEN = formData.get("captionEN") ? String(formData.get("captionEN")) : undefined;
+    const customStorageKey = formData.get("customStorageKey")
+      ? String(formData.get("customStorageKey")).trim()
+      : undefined;
+    const simulateD1Error = String(formData.get("simulateD1Error") || "") === "true";
 
     const savedMedia = await uploadMediaToR2AndD1({
       buffer,
@@ -69,7 +73,9 @@ export async function POST(request: Request) {
       altEN,
       captionTR,
       captionEN,
-      actorEmail: auth.session.email
+      actorEmail: auth.session.email,
+      customStorageKey,
+      simulateD1Error
     });
 
     return NextResponse.json(
@@ -77,8 +83,10 @@ export async function POST(request: Request) {
       { status: 201, headers: { "Cache-Control": "no-store" } }
     );
   } catch (error) {
-    const status = error instanceof CmsStorageUnavailableError ? 503 : 400;
     const message = error instanceof Error ? error.message : "Media upload failed";
+    const isCollision = /collision/i.test(message);
+    const status =
+      error instanceof CmsStorageUnavailableError ? 503 : isCollision ? 409 : 400;
     return NextResponse.json(
       {
         ok: false,

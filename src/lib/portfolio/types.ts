@@ -29,7 +29,7 @@ export class CmsStorageUnavailableError extends Error {
 
 export interface CmsProjectRecord extends Project {
   cmsStatus: CmsPublishStatus;
-  featuredOrder: number;
+  featuredOrder?: number;
   sortOrder: number;
   liveUrl?: string;
   sourceUrl?: string;

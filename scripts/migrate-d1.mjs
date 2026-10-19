@@ -10,7 +10,25 @@ const dbPath = process.env.LOCAL_D1_DB_PATH
 const shouldClean =
   process.argv.includes("--clean") || process.env.CLEAN_MIGRATE === "true";
 
-if (shouldClean) {
+if (shouldClean && fs.existsSync(dbPath)) {
+  try {
+    const checkDb = new DatabaseSync(dbPath);
+    const revRow = checkDb
+      .prepare(
+        "SELECT COUNT(*) as count FROM project_revisions WHERE action != 'seed_migration'"
+      )
+      .get();
+    checkDb.close();
+    if (Number(revRow?.count || 0) > 0 && process.env.ALLOW_DESTRUCTIVE_TEST_RESET !== "true") {
+      throw new Error(
+        `Refusing to run --clean on ${dbPath} because it contains ${revRow.count} non-seed editorial revision(s). Use an isolated temporary LOCAL_D1_DB_PATH instead.`
+      );
+    }
+  } catch (err) {
+    if (err instanceof Error && err.message.startsWith("Refusing to run --clean")) {
+      throw err;
+    }
+  }
   for (const suffix of ["", "-wal", "-shm"]) {
     const target = `${dbPath}${suffix}`;
     if (fs.existsSync(target)) {
@@ -76,7 +94,6 @@ function runSeedPass(upsertExisting) {
   let inserted = 0;
   let updated = 0;
   let skipped = 0;
-  const featuredCounter = { design: 0, web: 0, "motion-ai": 0 };
 
   db.exec("BEGIN TRANSACTION;");
   try {
@@ -91,7 +108,7 @@ function runSeedPass(upsertExisting) {
         continue;
       }
 
-      const fOrder = p.featuredOrder ?? (p.featured ? ++featuredCounter[p.workspace] : 0);
+      const fOrder = p.featuredOrder ?? 0;
       const sortOrder = p.sortOrder ?? idx + 1;
       const desktopThumbJson = p.desktopThumbnail ? JSON.stringify(p.desktopThumbnail) : null;
       const liveLink = p.externalLinks?.find((l) => l.type === "live")?.href || null;
@@ -116,6 +133,7 @@ function runSeedPass(upsertExisting) {
         servicesTR: p.servicesTR,
         servicesEN: p.servicesEN,
         externalLinks: p.externalLinks,
+        hasExplicitExternalLinks: p.externalLinks !== undefined,
         contentBlocks: p.contentBlocks,
         desktopLabelTR: p.desktopLabelTR,
         desktopLabelEN: p.desktopLabelEN,
@@ -131,6 +149,7 @@ function runSeedPass(upsertExisting) {
         desktopClusterId: p.desktopClusterId,
         projectStatus: p.status || "completed",
         hasExplicitSeo: Boolean(p.seo),
+        hasExplicitOgImage: Boolean(p.ogImage),
         mediaMeta
       };
       const tagsJson = JSON.stringify(extraMeta);
@@ -396,6 +415,13 @@ for (const src of projectsData) {
     }
   };
 
+  const hydratedFeaturedOrder =
+    Number(row.featured_order || 0) > 0 ? Number(row.featured_order) : undefined;
+  const hydratedExternalLinks =
+    meta.hasExplicitExternalLinks === false ? undefined : meta.externalLinks;
+  const hydratedOgImage =
+    meta.hasExplicitOgImage === false ? undefined : row.og_image_url || undefined;
+
   check("id", src.id, row.id);
   check("slug", src.slug, row.slug);
   check("workspace", src.workspace, row.workspace);
@@ -404,8 +430,8 @@ for (const src of projectsData) {
   check("client", src.client, row.client_name);
   check("year", src.year, row.year !== "" ? row.year : undefined);
   check("featured", src.featured, Boolean(row.featured));
-  if (src.featuredOrder !== undefined) check("featuredOrder", src.featuredOrder, row.featured_order);
-  if (src.sortOrder !== undefined) check("sortOrder", src.sortOrder, row.sort_order);
+  check("featuredOrder", src.featuredOrder, hydratedFeaturedOrder);
+  check("sortOrder", src.sortOrder, row.sort_order);
   check("categoryIds", src.categoryIds, meta.categoryIds);
   check("categoryTR", src.categoryTR, tr.category_label);
   check("categoryEN", src.categoryEN, en.category_label);
@@ -417,11 +443,12 @@ for (const src of projectsData) {
   check("tools", src.tools, meta.tools);
   check("roleTR", src.roleTR || null, tr.role);
   check("roleEN", src.roleEN || null, en.role);
-  check("externalLinks", src.externalLinks || [], meta.externalLinks || []);
+  check("externalLinks", src.externalLinks, hydratedExternalLinks);
   check("thumbnail", src.thumbnail || null, row.thumbnail_url);
   check("desktopIcon", src.desktopIcon || null, row.desktop_icon_url);
   check("desktopThumbnail", src.desktopThumbnail || null, row.desktop_thumbnail_json ? JSON.parse(row.desktop_thumbnail_json) : null);
   check("cover", src.cover || null, row.cover_image_url);
+  check("ogImage", src.ogImage, hydratedOgImage);
   check("media.count", (src.media || []).length, media.length);
   check(
     "media.paths",
@@ -461,7 +488,13 @@ if (process.env.CLOUDFLARE_CMS_API_URL && process.env.CLOUDFLARE_API_SERVICE_TOK
       "Content-Type": "application/json",
       Authorization: `Bearer ${process.env.CLOUDFLARE_API_SERVICE_TOKEN}`
     },
-    body: JSON.stringify({ projects: projectsData, upsertExisting: false })
+    body: JSON.stringify({
+      projects: projectsData,
+      upsertExisting: shouldClean,
+      forceUnlockSeed: shouldClean,
+      allowDestructiveOverwrite: shouldClean,
+      lockAfterSeed: true
+    })
   });
   workerSeedResult = await seedRes.json();
 }

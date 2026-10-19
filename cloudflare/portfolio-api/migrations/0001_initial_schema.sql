@@ -150,6 +150,30 @@ CREATE TABLE IF NOT EXISTS site_settings (
   updated_by TEXT
 );
 
+-- 10. Durable Admin Sessions (Hashed Token Identifiers Only — Never Raw Tokens)
+CREATE TABLE IF NOT EXISTS admin_sessions (
+  jti_hash TEXT PRIMARY KEY,
+  actor_email TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'owner',
+  csrf_token_hash TEXT NOT NULL,
+  issued_at INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL,
+  revoked_at INTEGER,
+  revoked_reason TEXT,
+  ip_hash TEXT,
+  user_agent TEXT,
+  last_seen_at INTEGER NOT NULL
+);
+
+-- 11. Durable Login Rate Limits (Cross-Process & Restart-Safe Lockout Store)
+CREATE TABLE IF NOT EXISTS admin_rate_limits (
+  scope_key TEXT PRIMARY KEY,
+  attempt_count INTEGER NOT NULL DEFAULT 0,
+  window_started_at INTEGER NOT NULL,
+  locked_until INTEGER NOT NULL DEFAULT 0,
+  updated_at INTEGER NOT NULL
+);
+
 -- ============================================================
 -- Indexes
 -- ============================================================
@@ -161,3 +185,6 @@ CREATE INDEX IF NOT EXISTS idx_project_media_project_sort ON project_media(proje
 CREATE INDEX IF NOT EXISTS idx_project_revisions_project ON project_revisions(project_id, revision_number DESC);
 CREATE INDEX IF NOT EXISTS idx_publishing_events_project ON publishing_events(project_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_created ON admin_audit_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_admin_sessions_actor_active ON admin_sessions(actor_email, revoked_at, expires_at);
+CREATE INDEX IF NOT EXISTS idx_admin_sessions_expires ON admin_sessions(expires_at);
+CREATE INDEX IF NOT EXISTS idx_admin_rate_limits_updated ON admin_rate_limits(updated_at);

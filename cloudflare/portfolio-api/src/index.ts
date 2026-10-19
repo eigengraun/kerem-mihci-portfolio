@@ -49,6 +49,8 @@ export interface Env {
   CLOUDFLARE_API_SERVICE_TOKEN?: string;
   PUBLIC_SITE_ORIGIN?: string;
   R2_PUBLIC_BASE_URL?: string;
+  ALLOW_CANONICAL_SEED?: string;
+  ENVIRONMENT?: string;
 }
 
 interface MediaItemMeta {
@@ -72,6 +74,7 @@ interface ExtraProjectMetadataJson {
   servicesTR?: string[];
   servicesEN?: string[];
   externalLinks?: Record<string, unknown>[];
+  hasExplicitExternalLinks?: boolean;
   contentBlocks?: Record<string, unknown>[];
   desktopLabelTR?: string;
   desktopLabelEN?: string;
@@ -87,6 +90,7 @@ interface ExtraProjectMetadataJson {
   desktopClusterId?: string;
   projectStatus?: "completed" | "ongoing" | "concept";
   hasExplicitSeo?: boolean;
+  hasExplicitOgImage?: boolean;
   mediaMeta?: MediaItemMeta[];
 }
 
@@ -378,7 +382,9 @@ function mapRowsToCmsProjects(
 
     const liveUrl = row.live_url ? String(row.live_url) : undefined;
     const externalLinks =
-      extra.externalLinks !== undefined
+      extra.hasExplicitExternalLinks === false
+        ? undefined
+        : extra.externalLinks !== undefined
         ? extra.externalLinks
         : liveUrl
         ? [
@@ -422,6 +428,7 @@ function mapRowsToCmsProjects(
     const rawYear = row.year !== null && row.year !== undefined ? String(row.year) : "";
     const rawDescTR = tr.description !== null && tr.description !== undefined ? String(tr.description) : "";
     const rawDescEN = en.description !== null && en.description !== undefined ? String(en.description) : "";
+    const rawFeaturedOrder = Number(row.featured_order || 0);
 
     return {
       id,
@@ -435,7 +442,7 @@ function mapRowsToCmsProjects(
           ? extra.categoryIds
           : [defaultCategory],
       featured: Number(row.featured) === 1,
-      featuredOrder: Number(row.featured_order || 0),
+      featuredOrder: rawFeaturedOrder > 0 ? rawFeaturedOrder : undefined,
       sortOrder: Number(row.sort_order || 0),
       titleTR: String(tr.title || row.slug),
       titleEN: String(en.title || tr.title || row.slug),
@@ -478,7 +485,7 @@ function mapRowsToCmsProjects(
       cover: row.cover_image_url ? String(row.cover_image_url) : undefined,
       thumbnail: row.thumbnail_url ? String(row.thumbnail_url) : undefined,
       desktopIcon: row.desktop_icon_url ? String(row.desktop_icon_url) : undefined,
-      ogImage: ogImg,
+      ogImage: extra.hasExplicitOgImage === false ? undefined : ogImg,
       desktopThumbnail,
       seo: showSeo
         ? {
@@ -751,6 +758,10 @@ async function upsertProjectInWorkerD1(
     externalLinks:
       (input.externalLinks as Record<string, unknown>[] | undefined) ??
       existingMeta.externalLinks,
+    hasExplicitExternalLinks:
+      input.externalLinks !== undefined
+        ? Boolean(input.externalLinks)
+        : existingMeta.hasExplicitExternalLinks ?? false,
     contentBlocks:
       (input.contentBlocks as Record<string, unknown>[] | undefined) ??
       existingMeta.contentBlocks,
@@ -784,7 +795,11 @@ async function upsertProjectInWorkerD1(
       existingMeta.projectStatus ??
       "completed",
     hasExplicitSeo:
-      input.seo !== undefined ? Boolean(input.seo) : existingMeta.hasExplicitSeo,
+      input.seo !== undefined ? Boolean(input.seo) : existingMeta.hasExplicitSeo ?? false,
+    hasExplicitOgImage:
+      input.ogImage !== undefined
+        ? Boolean(input.ogImage)
+        : existingMeta.hasExplicitOgImage ?? false,
     mediaMeta
   };
 
@@ -995,11 +1010,35 @@ async function upsertProjectInWorkerD1(
   );
 
   if (mediaInput) {
+    // Deterministic gallery IDs (`<projectId>-media-N`) can collide with orphaned rows left
+    // behind by `ON DELETE SET NULL` when a project ID is deleted and later re-created.
+    const plannedGalleryIds = mediaInput
+      .map((m, i) => (m?.src ? `${projectId}-media-${i + 1}` : null))
+      .filter((v): v is string => Boolean(v));
+    for (const gid of plannedGalleryIds) {
+      const owner = await db
+        .prepare(`SELECT project_id FROM project_media WHERE id = ? LIMIT 1`)
+        .bind(gid)
+        .first<{ project_id: string | null }>();
+      if (owner && owner.project_id && owner.project_id !== projectId) {
+        return {
+          status: 409,
+          error: `Media id "${gid}" is already owned by another project.`
+        };
+      }
+    }
     statements.push(
       db
         .prepare(`DELETE FROM project_media WHERE project_id = ? AND kind = 'gallery'`)
         .bind(projectId)
     );
+    for (const gid of plannedGalleryIds) {
+      statements.push(
+        db
+          .prepare(`DELETE FROM project_media WHERE id = ? AND project_id IS NULL`)
+          .bind(gid)
+      );
+    }
     for (let i = 0; i < mediaInput.length; i++) {
       const m = mediaInput[i];
       if (!m?.src) continue;
@@ -1179,6 +1218,43 @@ const worker = {
         if (!key || key.includes("..") || key.startsWith("/")) {
           return jsonResponse({ ok: false, error: "Invalid media key" }, 400, origin);
         }
+
+        // Enforce draft/unpublished media isolation: never expose media belonging to non-published projects on the public route
+        const mediaAssoc = await db
+          .prepare(
+            `SELECT pm.project_id, p.status as project_status
+             FROM project_media pm
+             LEFT JOIN projects p ON pm.project_id = p.id
+             WHERE pm.storage_key = ?
+             LIMIT 1`
+          )
+          .bind(key)
+          .first<{ project_id: string | null; project_status: string | null }>();
+
+        if (mediaAssoc && mediaAssoc.project_id && mediaAssoc.project_status !== "published") {
+          return jsonResponse(
+            { ok: false, error: "Media belongs to an unpublished project" },
+            404,
+            origin
+          );
+        }
+
+        const keyParts = key.split("/");
+        if (keyParts[0] === "projects" && keyParts[1] && keyParts[1] !== "general") {
+          const slug = keyParts[1];
+          const projRow = await db
+            .prepare(`SELECT status FROM projects WHERE slug = ? LIMIT 1`)
+            .bind(slug)
+            .first<{ status: string }>();
+          if (projRow && projRow.status !== "published") {
+            return jsonResponse(
+              { ok: false, error: "Media belongs to an unpublished project" },
+              404,
+              origin
+            );
+          }
+        }
+
         const obj = await bucket.get(key);
         if (!obj) {
           return jsonResponse({ ok: false, error: "Media not found" }, 404, origin);
@@ -1211,6 +1287,409 @@ const worker = {
         if (pathname === "/api/v1/admin/health" && request.method === "GET") {
           const d1Health = await getWorkerD1Health(db, Boolean(bucket));
           return jsonResponse(d1Health, 200, origin);
+        }
+
+        // Durable Admin Session Store Endpoint (D1-backed)
+        if (pathname === "/api/v1/admin/auth/sessions" && request.method === "POST") {
+          try {
+            await db.prepare(`SELECT actor_email, role, ip_hash FROM admin_sessions LIMIT 1`).first();
+          } catch {
+            await db.prepare(`DROP TABLE IF EXISTS admin_sessions`).run();
+          }
+          await db.batch([
+            db.prepare(
+              `CREATE TABLE IF NOT EXISTS admin_sessions (
+                jti_hash TEXT PRIMARY KEY,
+                actor_email TEXT NOT NULL,
+                role TEXT NOT NULL DEFAULT 'owner',
+                csrf_token_hash TEXT NOT NULL,
+                issued_at INTEGER NOT NULL,
+                expires_at INTEGER NOT NULL,
+                revoked_at INTEGER,
+                revoked_reason TEXT,
+                ip_hash TEXT,
+                user_agent TEXT,
+                last_seen_at INTEGER NOT NULL
+              )`
+            ),
+            db.prepare(
+              `CREATE INDEX IF NOT EXISTS idx_admin_sessions_actor_active
+               ON admin_sessions(actor_email, revoked_at, expires_at)`
+            ),
+            db.prepare(
+              `CREATE INDEX IF NOT EXISTS idx_admin_sessions_expires
+               ON admin_sessions(expires_at)`
+            )
+          ]);
+
+          let body: Record<string, unknown>;
+          try {
+            body = (await request.json()) as Record<string, unknown>;
+          } catch {
+            return jsonResponse({ ok: false, error: "Invalid JSON payload" }, 400, origin);
+          }
+
+          const action = String(body.action || "");
+          const nowSec = Math.floor(Date.now() / 1000);
+
+          // Opportunistic expired session cleanup (> 24h past expiry)
+          await db
+            .prepare(`DELETE FROM admin_sessions WHERE expires_at < ? AND revoked_at IS NULL`)
+            .bind(nowSec - 86400)
+            .run();
+
+          if (action === "create") {
+            const jtiHash = String(body.jtiHash || "");
+            const csrfTokenHash = String(body.csrfTokenHash || "");
+            const sessEmail = String(body.actorEmail || "");
+            const role = String(body.role || "owner");
+            const issuedAt = Number(body.issuedAt || nowSec);
+            const expiresAt = Number(body.expiresAt || nowSec + 28800);
+            const ipHash = body.ipHash ? String(body.ipHash) : null;
+            const userAgent = body.userAgent ? String(body.userAgent).slice(0, 250) : null;
+
+            if (!jtiHash || !csrfTokenHash || !sessEmail) {
+              return jsonResponse(
+                { ok: false, error: "Missing required session fields" },
+                400,
+                origin
+              );
+            }
+
+            await db
+              .prepare(
+                `INSERT INTO admin_sessions (
+                  jti_hash, actor_email, role, csrf_token_hash, issued_at, expires_at,
+                  revoked_at, revoked_reason, ip_hash, user_agent, last_seen_at
+                ) VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?, ?)
+                ON CONFLICT(jti_hash) DO UPDATE SET
+                  actor_email = excluded.actor_email,
+                  role = excluded.role,
+                  csrf_token_hash = excluded.csrf_token_hash,
+                  issued_at = excluded.issued_at,
+                  expires_at = excluded.expires_at,
+                  revoked_at = NULL,
+                  revoked_reason = NULL,
+                  last_seen_at = excluded.last_seen_at`
+              )
+              .bind(
+                jtiHash,
+                sessEmail,
+                role,
+                csrfTokenHash,
+                issuedAt,
+                expiresAt,
+                ipHash,
+                userAgent,
+                nowSec
+              )
+              .run();
+
+            return jsonResponse({ ok: true, created: true }, 201, origin);
+          }
+
+          if (action === "verify") {
+            const jtiHash = String(body.jtiHash || "");
+            if (!jtiHash) {
+              return jsonResponse({ ok: true, valid: false, reason: "missing_jti" }, 200, origin);
+            }
+            const row = await db
+              .prepare(`SELECT * FROM admin_sessions WHERE jti_hash = ? LIMIT 1`)
+              .bind(jtiHash)
+              .first<Record<string, unknown>>();
+            if (!row) {
+              return jsonResponse(
+                { ok: true, valid: false, reason: "session_not_found" },
+                200,
+                origin
+              );
+            }
+            const revokedAt =
+              row.revoked_at !== null && row.revoked_at !== undefined
+                ? Number(row.revoked_at)
+                : null;
+            const expiresAt = Number(row.expires_at);
+            if (revokedAt !== null) {
+              return jsonResponse(
+                { ok: true, valid: false, reason: "session_revoked" },
+                200,
+                origin
+              );
+            }
+            if (expiresAt <= nowSec) {
+              return jsonResponse(
+                { ok: true, valid: false, reason: "session_expired" },
+                200,
+                origin
+              );
+            }
+
+            await db
+              .prepare(`UPDATE admin_sessions SET last_seen_at = ? WHERE jti_hash = ?`)
+              .bind(nowSec, jtiHash)
+              .run();
+
+            return jsonResponse(
+              {
+                ok: true,
+                valid: true,
+                session: {
+                  jtiHash: String(row.jti_hash),
+                  actorEmail: String(row.actor_email),
+                  role: String(row.role),
+                  csrfTokenHash: String(row.csrf_token_hash),
+                  issuedAt: Number(row.issued_at),
+                  expiresAt,
+                  revokedAt: null,
+                  revokedReason: null
+                }
+              },
+              200,
+              origin
+            );
+          }
+
+          if (action === "revoke") {
+            const jtiHash = body.jtiHash ? String(body.jtiHash) : "";
+            const sessEmail = body.actorEmail ? String(body.actorEmail) : "";
+            const revokeAllForActor = Boolean(body.revokeAllForActor);
+            const reason = String(body.reason || "user_logout");
+
+            let revokedCount = 0;
+            if (revokeAllForActor && sessEmail) {
+              const res = await db
+                .prepare(
+                  `UPDATE admin_sessions
+                   SET revoked_at = ?, revoked_reason = ?
+                   WHERE actor_email = ? AND revoked_at IS NULL`
+                )
+                .bind(nowSec, reason, sessEmail)
+                .run();
+              revokedCount += Number(res.meta?.changes || 0);
+            }
+            if (jtiHash) {
+              const res = await db
+                .prepare(
+                  `UPDATE admin_sessions
+                   SET revoked_at = ?, revoked_reason = ?
+                   WHERE jti_hash = ? AND revoked_at IS NULL`
+                )
+                .bind(nowSec, reason, jtiHash)
+                .run();
+              revokedCount += Number(res.meta?.changes || 0);
+            }
+
+            return jsonResponse({ ok: true, revoked: true, revokedCount }, 200, origin);
+          }
+
+          return jsonResponse({ ok: false, error: "Invalid session action" }, 400, origin);
+        }
+
+        // Durable Login Rate Limit Endpoint (D1-backed)
+        if (pathname === "/api/v1/admin/auth/rate-limit" && request.method === "POST") {
+          try {
+            const info = await db.prepare(`PRAGMA table_info(admin_rate_limits)`).all<{ name: string }>();
+            if (info.results?.some((col) => col.name === "reset_at")) {
+              await db.prepare(`DROP TABLE IF EXISTS admin_rate_limits`).run();
+            }
+          } catch {
+            // ignore
+          }
+          await db.batch([
+            db.prepare(
+              `CREATE TABLE IF NOT EXISTS admin_rate_limits (
+                scope_key TEXT PRIMARY KEY,
+                attempt_count INTEGER NOT NULL DEFAULT 0,
+                window_started_at INTEGER NOT NULL,
+                locked_until INTEGER NOT NULL DEFAULT 0,
+                updated_at INTEGER NOT NULL
+              )`
+            ),
+            db.prepare(
+              `CREATE INDEX IF NOT EXISTS idx_admin_rate_limits_updated
+               ON admin_rate_limits(updated_at)`
+            )
+          ]);
+
+          let body: Record<string, unknown>;
+          try {
+            body = (await request.json()) as Record<string, unknown>;
+          } catch {
+            return jsonResponse({ ok: false, error: "Invalid JSON payload" }, 400, origin);
+          }
+
+          const action = String(body.action || "");
+          const scopeKeys = Array.isArray(body.scopeKeys)
+            ? body.scopeKeys.map((k) => String(k)).filter(Boolean)
+            : [];
+          const nowMs = typeof body.nowMs === "number" ? body.nowMs : Date.now();
+          const nowSec = Math.floor(nowMs / 1000);
+          const windowSec = typeof body.windowSec === "number" ? body.windowSec : 900;
+          const maxAttempts = typeof body.maxAttempts === "number" ? body.maxAttempts : 5;
+          const lockoutSec = typeof body.lockoutSec === "number" ? body.lockoutSec : 900;
+
+          // Prune expired buckets
+          await db
+            .prepare(
+              `DELETE FROM admin_rate_limits WHERE (locked_until <= ? AND window_started_at <= ?)`
+            )
+            .bind(nowSec, nowSec - windowSec)
+            .run();
+
+          if (action === "check") {
+            let worstRetryAfter = 0;
+            let minRemaining = maxAttempts;
+
+            for (const key of scopeKeys) {
+              const row = await db
+                .prepare(`SELECT * FROM admin_rate_limits WHERE scope_key = ? LIMIT 1`)
+                .bind(key)
+                .first<Record<string, unknown>>();
+              if (!row) continue;
+
+              const lockedUntil = Number(row.locked_until || 0);
+              const windowStartedAt = Number(row.window_started_at || 0);
+              const attemptCount = Number(row.attempt_count || 0);
+
+              if (lockedUntil > nowSec) {
+                const retry = Math.max(1, lockedUntil - nowSec);
+                if (retry > worstRetryAfter) worstRetryAfter = retry;
+                minRemaining = 0;
+                continue;
+              }
+
+              if (nowSec - windowStartedAt > windowSec) {
+                await db
+                  .prepare(`DELETE FROM admin_rate_limits WHERE scope_key = ?`)
+                  .bind(key)
+                  .run();
+                continue;
+              }
+
+              const rem = Math.max(0, maxAttempts - attemptCount);
+              if (rem < minRemaining) minRemaining = rem;
+            }
+
+            if (worstRetryAfter > 0) {
+              return jsonResponse(
+                {
+                  ok: true,
+                  allowed: false,
+                  retryAfterSec: worstRetryAfter,
+                  remainingAttempts: 0
+                },
+                200,
+                origin
+              );
+            }
+
+            return jsonResponse(
+              {
+                ok: true,
+                allowed: true,
+                retryAfterSec: 0,
+                remainingAttempts: minRemaining
+              },
+              200,
+              origin
+            );
+          }
+
+          if (action === "record_failure") {
+            const countRow = await db
+              .prepare(`SELECT COUNT(*) as count FROM admin_rate_limits`)
+              .first<{ count: number }>();
+            if (Number(countRow?.count || 0) >= 1000) {
+              await db
+                .prepare(
+                  `DELETE FROM admin_rate_limits
+                   WHERE scope_key IN (
+                     SELECT scope_key FROM admin_rate_limits
+                     ORDER BY updated_at ASC
+                     LIMIT 200
+                   )`
+                )
+                .run();
+            }
+
+            let anyLocked = false;
+            let maxRetrySec = 0;
+            let minRemaining = maxAttempts;
+
+            for (const key of scopeKeys) {
+              const existing = await db
+                .prepare(`SELECT * FROM admin_rate_limits WHERE scope_key = ? LIMIT 1`)
+                .bind(key)
+                .first<Record<string, unknown>>();
+
+              let count = 1;
+              let windowStart = nowSec;
+              let lockedUntil = 0;
+
+              if (existing) {
+                const prevWindow = Number(existing.window_started_at || 0);
+                const prevLocked = Number(existing.locked_until || 0);
+                if (nowSec - prevWindow <= windowSec && prevLocked <= nowSec) {
+                  count = Number(existing.attempt_count || 0) + 1;
+                  windowStart = prevWindow;
+                } else if (prevLocked > nowSec) {
+                  count = Number(existing.attempt_count || 0) + 1;
+                  windowStart = prevWindow;
+                  lockedUntil = prevLocked;
+                }
+              }
+
+              if (count >= maxAttempts && lockedUntil <= nowSec) {
+                lockedUntil = nowSec + lockoutSec;
+              }
+
+              await db
+                .prepare(
+                  `INSERT INTO admin_rate_limits (scope_key, attempt_count, window_started_at, locked_until, updated_at)
+                   VALUES (?, ?, ?, ?, ?)
+                   ON CONFLICT(scope_key) DO UPDATE SET
+                     attempt_count = excluded.attempt_count,
+                     window_started_at = excluded.window_started_at,
+                     locked_until = excluded.locked_until,
+                     updated_at = excluded.updated_at`
+                )
+                .bind(key, count, windowStart, lockedUntil, nowSec)
+                .run();
+
+              if (lockedUntil > nowSec) {
+                anyLocked = true;
+                const retry = Math.max(1, lockedUntil - nowSec);
+                if (retry > maxRetrySec) maxRetrySec = retry;
+                minRemaining = 0;
+              } else {
+                const rem = Math.max(0, maxAttempts - count);
+                if (rem < minRemaining) minRemaining = rem;
+              }
+            }
+
+            return jsonResponse(
+              {
+                ok: true,
+                locked: anyLocked,
+                retryAfterSec: maxRetrySec,
+                remainingAttempts: minRemaining
+              },
+              200,
+              origin
+            );
+          }
+
+          if (action === "clear") {
+            for (const key of scopeKeys) {
+              await db
+                .prepare(`DELETE FROM admin_rate_limits WHERE scope_key = ?`)
+                .bind(key)
+                .run();
+            }
+            return jsonResponse({ ok: true, cleared: true }, 200, origin);
+          }
+
+          return jsonResponse({ ok: false, error: "Invalid rate-limit action" }, 400, origin);
         }
 
         if (pathname === "/api/v1/admin/system" && request.method === "GET") {
@@ -1439,6 +1918,9 @@ const worker = {
             }
             const now = new Date().toISOString();
             await db.batch([
+              db
+                .prepare(`DELETE FROM project_media WHERE project_id = ? AND kind = 'gallery'`)
+                .bind(existing.id),
               db.prepare(`DELETE FROM projects WHERE id = ?`).bind(existing.id),
               db
                 .prepare(
@@ -1459,6 +1941,25 @@ const worker = {
               origin
             );
           }
+        }
+
+        if (pathname.startsWith("/api/v1/admin/media/object/") && request.method === "GET") {
+          const key = decodeURIComponent(pathname.replace("/api/v1/admin/media/object/", ""));
+          if (!key || key.includes("..") || key.startsWith("/")) {
+            return jsonResponse({ ok: false, error: "Invalid media key" }, 400, origin);
+          }
+          const obj = await bucket.get(key);
+          if (!obj) {
+            return jsonResponse({ ok: false, error: "Media not found" }, 404, origin);
+          }
+          return new Response(obj.body, {
+            status: 200,
+            headers: {
+              "Content-Type": obj.httpMetadata?.contentType || "application/octet-stream",
+              "Cache-Control": "private, no-store",
+              "Access-Control-Allow-Origin": origin
+            }
+          });
         }
 
         if (pathname === "/api/v1/admin/media" && request.method === "GET") {
@@ -1538,12 +2039,19 @@ const worker = {
           const altEN = String(formData.get("altEN") || "");
           const captionTR = formData.get("captionTR") ? String(formData.get("captionTR")) : null;
           const captionEN = formData.get("captionEN") ? String(formData.get("captionEN")) : null;
+          const customStorageKey = formData.get("customStorageKey")
+            ? String(formData.get("customStorageKey")).trim()
+            : "";
+          const simulateD1Error = String(formData.get("simulateD1Error") || "") === "true";
 
           const now = new Date();
           const yyyy = String(now.getUTCFullYear());
           const mm = String(now.getUTCMonth() + 1).padStart(2, "0");
           const uuid = crypto.randomUUID().slice(0, 8);
-          const storageKey = `projects/${projectSlug}/${kind}/${yyyy}/${mm}/${uuid}-${safeName}`;
+          const storageKey =
+            customStorageKey && !customStorageKey.includes("..") && !customStorageKey.startsWith("/")
+              ? customStorageKey
+              : `projects/${projectSlug}/${kind}/${yyyy}/${mm}/${uuid}-${safeName}`;
 
           // Ensure no accidental overwrite
           const existingObj = await bucket.head(storageKey);
@@ -1568,6 +2076,19 @@ const worker = {
           const isoNow = now.toISOString();
 
           try {
+            if (projectId) {
+              const existingProj = await db
+                .prepare(`SELECT id FROM projects WHERE id = ? LIMIT 1`)
+                .bind(projectId)
+                .first<{ id: string }>();
+              if (!existingProj) {
+                throw new Error(`NONEXISTENT_PROJECT:${projectId}`);
+              }
+            }
+            if (simulateD1Error) {
+              throw new Error("SIMULATED_D1_WRITE_FAILURE");
+            }
+
             await db.batch([
               db
                 .prepare(
@@ -1615,7 +2136,29 @@ const worker = {
           } catch (dbErr) {
             // Rollback R2 object if D1 metadata insert fails so no orphan R2 object remains
             await bucket.delete(storageKey);
-            throw dbErr;
+            const errMsg = dbErr instanceof Error ? dbErr.message : String(dbErr);
+            if (errMsg.startsWith("NONEXISTENT_PROJECT:")) {
+              return jsonResponse(
+                {
+                  ok: false,
+                  error: `Referenced project "${projectId}" does not exist; R2 object rolled back.`,
+                  r2RolledBack: true,
+                  rolledBackStorageKey: storageKey
+                },
+                400,
+                origin
+              );
+            }
+            return jsonResponse(
+              {
+                ok: false,
+                error: "D1 metadata write failed; R2 object rolled back.",
+                r2RolledBack: true,
+                rolledBackStorageKey: storageKey
+              },
+              500,
+              origin
+            );
           }
 
           return jsonResponse(
@@ -1679,18 +2222,120 @@ const worker = {
         }
 
         if (pathname === "/api/v1/admin/seed" && request.method === "POST") {
-          let body: { projects?: Record<string, unknown>[]; upsertExisting?: boolean };
+          if (env.ALLOW_CANONICAL_SEED === "false") {
+            return jsonResponse(
+              {
+                ok: false,
+                error: "Canonical seed endpoint is disabled via ALLOW_CANONICAL_SEED=false."
+              },
+              403,
+              origin
+            );
+          }
+
+          let body: {
+            projects?: Record<string, unknown>[];
+            upsertExisting?: boolean;
+            lockAfterSeed?: boolean;
+            forceUnlockSeed?: boolean;
+            allowDestructiveOverwrite?: boolean;
+            action?: string;
+          };
           try {
             body = (await request.json()) as {
               projects?: Record<string, unknown>[];
               upsertExisting?: boolean;
+              lockAfterSeed?: boolean;
+              forceUnlockSeed?: boolean;
+              allowDestructiveOverwrite?: boolean;
+              action?: string;
             };
           } catch {
             return jsonResponse({ ok: false, error: "Invalid JSON payload" }, 400, origin);
           }
 
+          const nowIso = new Date().toISOString();
+
+          if (body.action === "lock_seed") {
+            await db
+              .prepare(
+                `INSERT INTO site_settings (key, value_json, updated_at, updated_by)
+                 VALUES ('canonical_seed_locked', ?, ?, ?)
+                 ON CONFLICT(key) DO UPDATE SET
+                   value_json = excluded.value_json,
+                   updated_at = excluded.updated_at,
+                   updated_by = excluded.updated_by`
+              )
+              .bind(JSON.stringify({ locked: true, lockedAt: nowIso }), nowIso, actorEmail)
+              .run();
+            return jsonResponse({ ok: true, seedLocked: true }, 200, origin);
+          }
+
+          if (body.action === "unlock_seed") {
+            if (env.ENVIRONMENT === "production" && !body.allowDestructiveOverwrite) {
+              return jsonResponse(
+                {
+                  ok: false,
+                  error:
+                    "Unlocking canonical seed in production requires explicit allowDestructiveOverwrite=true."
+                },
+                403,
+                origin
+              );
+            }
+            await db
+              .prepare(
+                `INSERT INTO site_settings (key, value_json, updated_at, updated_by)
+                 VALUES ('canonical_seed_locked', ?, ?, ?)
+                 ON CONFLICT(key) DO UPDATE SET
+                   value_json = excluded.value_json,
+                   updated_at = excluded.updated_at,
+                   updated_by = excluded.updated_by`
+              )
+              .bind(JSON.stringify({ locked: false, unlockedAt: nowIso }), nowIso, actorEmail)
+              .run();
+            return jsonResponse({ ok: true, seedLocked: false }, 200, origin);
+          }
+
+          const lockRow = await db
+            .prepare(`SELECT value_json FROM site_settings WHERE key = 'canonical_seed_locked' LIMIT 1`)
+            .first<{ value_json: string }>();
+          const lockData = parseJsonSafe<{ locked?: boolean }>(lockRow?.value_json, {});
+
+          if (lockData.locked && !body.forceUnlockSeed) {
+            return jsonResponse(
+              {
+                ok: false,
+                error:
+                  "Canonical seed is locked after initial migration to protect live editorial changes."
+              },
+              409,
+              origin
+            );
+          }
+
           const items = Array.isArray(body.projects) ? body.projects : [];
           const upsertExisting = Boolean(body.upsertExisting);
+
+          if (upsertExisting && !body.allowDestructiveOverwrite) {
+            const editorialRevs = await db
+              .prepare(
+                `SELECT COUNT(*) as count FROM project_revisions WHERE action != 'seed_migration'`
+              )
+              .first<{ count: number }>();
+            if (Number(editorialRevs?.count || 0) > 0) {
+              return jsonResponse(
+                {
+                  ok: false,
+                  error:
+                    "Refusing upsertExisting seed because editorial revisions exist in D1. Pass allowDestructiveOverwrite=true only for explicit migration resets."
+                },
+                409,
+                origin
+              );
+            }
+          }
+
           let inserted = 0;
           let updated = 0;
           let skipped = 0;
@@ -1730,6 +2375,28 @@ const worker = {
             }
           }
 
+          if (body.lockAfterSeed !== false && items.length > 0) {
+            await db
+              .prepare(
+                `INSERT INTO site_settings (key, value_json, updated_at, updated_by)
+                 VALUES ('canonical_seed_locked', ?, ?, ?)
+                 ON CONFLICT(key) DO UPDATE SET
+                   value_json = excluded.value_json,
+                   updated_at = excluded.updated_at,
+                   updated_by = excluded.updated_by`
+              )
+              .bind(
+                JSON.stringify({
+                  locked: true,
+                  lockedAt: nowIso,
+                  seededCount: inserted + updated + skipped
+                }),
+                nowIso,
+                actorEmail
+              )
+              .run();
+          }
+
           const d1Health = await getWorkerD1Health(db, Boolean(bucket));
           return jsonResponse(
             {
@@ -1737,6 +2404,7 @@ const worker = {
               inserted,
               updated,
               skipped,
+              seedLocked: body.lockAfterSeed !== false && items.length > 0,
               d1Health
             },
             200,
@@ -1746,7 +2414,12 @@ const worker = {
       }
 
       return jsonResponse({ ok: false, error: "Route not found" }, 404, origin);
-    } catch {
+    } catch (err) {
+      // Server-side diagnostics only; never echo internals to the client.
+      console.error(
+        `[portfolio-api] Unhandled error on ${request.method} ${pathname}:`,
+        err instanceof Error ? `${err.name}: ${err.message}` : String(err)
+      );
       return jsonResponse({ ok: false, error: "Internal Worker Error" }, 500, origin);
     }
   }

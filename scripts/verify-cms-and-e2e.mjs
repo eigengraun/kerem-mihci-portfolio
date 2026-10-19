@@ -14,7 +14,20 @@ const executablePath =
 
 const BASE_URL = process.env.TEST_BASE_URL || "http://127.0.0.1:3099";
 const WORKER_URL = process.env.CLOUDFLARE_CMS_API_URL || "http://127.0.0.1:8787";
-const WORKER_TOKEN = process.env.CLOUDFLARE_API_SERVICE_TOKEN || "local-worker-test-secret-token-2026";
+const WORKER_TOKEN = process.env.CLOUDFLARE_API_SERVICE_TOKEN || "local-worker-service-secret-token-2026";
+
+// Bounded HTTP: each request times out instead of hanging the suite.
+const HTTP_TIMEOUT_MS = Number(process.env.HARNESS_HTTP_TIMEOUT_MS || 30000);
+const rawFetch = globalThis.fetch;
+globalThis.fetch = (input, init = {}) =>
+  rawFetch(input, {
+    ...init,
+    signal: init.signal || AbortSignal.timeout(HTTP_TIMEOUT_MS)
+  }).catch((err) => {
+    const target = typeof input === "string" ? input : String(input?.url || input);
+    err.message = `[e2e fetch ${init.method || "GET"} ${target}] ${err.message}`;
+    throw err;
+  });
 const SESSION_SECRET =
   process.env.ADMIN_SESSION_SECRET || "local-dev-ephemeral-hmac-secret-do-not-use-in-prod";
 
@@ -316,7 +329,8 @@ async function runVerification() {
     method: "POST",
     headers: {
       Cookie: cookieHeader,
-      "x-csrf-token": csrfToken
+      "x-csrf-token": csrfToken,
+      Origin: BASE_URL
     },
     body: fakeFormData
   });
@@ -424,7 +438,8 @@ async function runVerification() {
   console.log("=== 5. No-Deploy Publishing Test Through Real Worker Route (cms-publish-test) ===");
   const adminHeaders = {
     Cookie: cookieHeader,
-    "x-csrf-token": csrfToken
+    "x-csrf-token": csrfToken,
+    Origin: BASE_URL
   };
   report.cmsPublishTestSteps.step1_adminAuth = "PASSED";
 
@@ -454,9 +469,11 @@ async function runVerification() {
   const uploadedMediaId = uploadJson.media.id;
   assert.ok(uploadedMediaUrl.startsWith("/api/media/projects/cms-publish-test/cover/"));
 
-  // Verify public R2 media endpoint proxies from Worker R2 with immutable cache header
-  const mediaFetchRes = await fetch(`${BASE_URL}${uploadedMediaUrl}`);
-  assert.equal(mediaFetchRes.status, 200, "Uploaded R2 media URL must return HTTP 200");
+  // Verify admin-authenticated R2 media endpoint proxies from Worker R2
+  const mediaFetchRes = await fetch(`${BASE_URL}${uploadedMediaUrl}`, {
+    headers: { Cookie: cookieHeader }
+  });
+  assert.equal(mediaFetchRes.status, 200, "Uploaded R2 media URL must return HTTP 200 for admin");
   assert.equal(mediaFetchRes.headers.get("content-type"), "image/webp");
   report.cmsPublishTestSteps.step2_r2MediaUploadViaWorker = {
     status: "PASSED",
@@ -500,14 +517,32 @@ async function runVerification() {
       ]
     })
   });
+  if (createDraftRes.status !== 201) {
+    console.error("Draft creation response body:", await createDraftRes.clone().text());
+  }
   assert.equal(createDraftRes.status, 201, "Draft creation must return 201");
   report.cmsPublishTestSteps.step3_createDraftInWorkerD1 = "PASSED";
 
-  // Step 4: Verify DRAFT is NOT publicly visible on /tr/project/cms-publish-test, /en/project/cms-publish-test, /api/projects, or /sitemap.xml
+  // Step 4: Verify DRAFT is NOT publicly visible on /tr/project/cms-publish-test, /en/project/cms-publish-test, /api/projects, /sitemap.xml, OR public /api/media/...
   const draftTrRes = await fetch(`${BASE_URL}/tr/project/cms-publish-test`);
   const draftEnRes = await fetch(`${BASE_URL}/en/project/cms-publish-test`);
   assert.equal(draftTrRes.status, 404, "Draft project must return 404 on public /tr route");
   assert.equal(draftEnRes.status, 404, "Draft project must return 404 on public /en route");
+
+  const draftPublicMediaRes = await fetch(`${BASE_URL}${uploadedMediaUrl}`);
+  assert.equal(
+    draftPublicMediaRes.status,
+    404,
+    "Unpublished draft project media must NOT be publicly accessible before publish (expected 404)"
+  );
+  const draftAdminMediaRes = await fetch(`${BASE_URL}${uploadedMediaUrl}`, {
+    headers: { Cookie: cookieHeader }
+  });
+  assert.equal(
+    draftAdminMediaRes.status,
+    200,
+    "Admin-authenticated preview must be able to fetch draft project media (expected 200)"
+  );
 
   const draftSitemapText = await (await fetch(`${BASE_URL}/sitemap.xml`)).text();
   assert.ok(
@@ -546,11 +581,18 @@ async function runVerification() {
   assert.equal(publishRes.status, 200, "Publishing project must return 200");
   report.cmsPublishTestSteps.step6_publishWithoutRebuild = "PASSED";
 
-  // Step 7: Verify /tr/project/cms-publish-test and /en/project/cms-publish-test immediately return 200
+  // Step 7: Verify /tr/project/cms-publish-test, /en/project/cms-publish-test, and public /api/media/... immediately return 200
   const pubTrRes = await fetch(`${BASE_URL}/tr/project/cms-publish-test`);
   const pubEnRes = await fetch(`${BASE_URL}/en/project/cms-publish-test`);
   assert.equal(pubTrRes.status, 200, "Published project must return 200 on /tr/project/cms-publish-test");
   assert.equal(pubEnRes.status, 200, "Published project must return 200 on /en/project/cms-publish-test");
+
+  const pubMediaRes = await fetch(`${BASE_URL}${uploadedMediaUrl}`);
+  assert.equal(
+    pubMediaRes.status,
+    200,
+    "Published project media must immediately return 200 on public /api/media/... route"
+  );
 
   const pubTrHtml = await pubTrRes.text();
   const pubEnHtml = await pubEnRes.text();
@@ -656,7 +698,22 @@ async function runVerification() {
     assert.equal(unpubRes.status, 200);
     const afterUnpubRes = await fetch(`${BASE_URL}/tr/project/cms-publish-test`);
     assert.equal(afterUnpubRes.status, 404, "Unpublished project must immediately return 404");
+    const afterUnpubEnRes = await fetch(`${BASE_URL}/en/project/cms-publish-test`);
+    assert.equal(afterUnpubEnRes.status, 404, "Unpublished project must return 404 on /en route");
+    const unpubSitemapText = await (await fetch(`${BASE_URL}/sitemap.xml`)).text();
+    assert.ok(
+      !unpubSitemapText.includes("/tr/project/cms-publish-test") &&
+        !unpubSitemapText.includes("/en/project/cms-publish-test") &&
+        !unpubSitemapText.includes("cms-publish-test"),
+      "Unpublished project must be completely removed from /sitemap.xml (both TR and EN URLs)"
+    );
+    const unpubApiJson = await (await fetch(`${BASE_URL}/api/projects`)).json();
+    assert.ok(
+      !unpubApiJson.projects.some((p) => p.slug === "cms-publish-test"),
+      "Unpublished project must be removed from /api/projects"
+    );
     report.cmsPublishTestSteps.step11_unpublishImmediate404 = "PASSED";
+    report.cmsPublishTestSteps.step11b_unpublishSitemapAndApiRemoval = "PASSED";
 
     // Step 12: Archive cms-publish-test and verify 404
     const archiveRes = await fetch(`${BASE_URL}/api/admin/projects/cms-publish-test`, {
@@ -724,8 +781,9 @@ async function runVerification() {
         `Admin Login overflowX at ${vp.label}: scrollWidth=${loginMetrics.scrollWidth} > innerWidth=${loginMetrics.innerWidth}`
       );
     }
-    // Sign in via admin-password-login-btn
+    // Sign in via admin-email-input + admin-password-login-btn
     await unauthAdminPage.setViewportSize({ width: 1440, height: 900 });
+    await unauthAdminPage.getByTestId("admin-email-input").fill("kerem@keremmihci.com");
     await unauthAdminPage.getByTestId("admin-password-input").fill(masterPassword);
     await unauthAdminPage.getByTestId("admin-password-login-btn").click();
     await unauthAdminPage.waitForSelector('[data-testid="admin-overview-section"]', {

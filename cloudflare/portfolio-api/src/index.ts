@@ -1740,7 +1740,7 @@ const worker = {
           { ok: true, count: videos.length, videos },
           200,
           origin,
-          "public, max-age=60, s-maxage=300, stale-while-revalidate=600"
+          "no-store, no-cache, must-revalidate"
         );
       }
 
@@ -1752,13 +1752,18 @@ const worker = {
           [slug, "published"]
         );
         if (videos.length === 0) {
-          return jsonResponse({ ok: false, error: "Video not found" }, 404, origin);
+          return jsonResponse(
+            { ok: false, error: "Video not found" },
+            404,
+            origin,
+            "no-store, no-cache, must-revalidate"
+          );
         }
         return jsonResponse(
           { ok: true, video: videos[0] },
           200,
           origin,
-          "public, max-age=60, s-maxage=300, stale-while-revalidate=600"
+          "no-store, no-cache, must-revalidate"
         );
       }
 
@@ -1856,8 +1861,7 @@ const worker = {
             status: 304,
             headers: {
               ETag: objectEtag,
-              "Cache-Control":
-                "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
+              "Cache-Control": "public, max-age=0, must-revalidate, s-maxage=3600",
               "Access-Control-Allow-Origin": origin
             }
           });
@@ -1865,10 +1869,7 @@ const worker = {
 
         const headers = new Headers();
         headers.set("Content-Type", obj.httpMetadata?.contentType || "application/octet-stream");
-        headers.set(
-          "Cache-Control",
-          "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400"
-        );
+        headers.set("Cache-Control", "public, max-age=0, must-revalidate, s-maxage=3600");
         headers.set("Access-Control-Allow-Origin", origin);
         headers.set("Accept-Ranges", "bytes");
         if (objectEtag) {
@@ -2719,6 +2720,195 @@ const worker = {
                 .bind(`audit-${crypto.randomUUID()}`, actorEmail, existing.id, JSON.stringify({ slug: existing.slug }), now)
             ]);
             return jsonResponse({ ok: true, deletedId: existing.id, slug: existing.slug }, 200, origin);
+          }
+        }
+
+        if (pathname === "/api/v1/admin/videos/upload" && request.method === "POST") {
+          let formData: FormData;
+          try {
+            formData = await request.formData();
+          } catch {
+            return jsonResponse({ ok: false, error: "Invalid multipart form data" }, 400, origin);
+          }
+          const file = formData.get("file");
+          if (!file || typeof file === "string") {
+            return jsonResponse({ ok: false, error: "Missing file in form data" }, 400, origin);
+          }
+          const blob = file as File;
+          const mimeType = blob.type || "application/octet-stream";
+          const safeName = sanitizeFilename(blob.name || "asset");
+          const arrayBuffer = await blob.arrayBuffer();
+          const bytes = new Uint8Array(arrayBuffer);
+
+          const assetTypeRaw = String(formData.get("assetType") || "video");
+          if (assetTypeRaw !== "video" && assetTypeRaw !== "poster" && assetTypeRaw !== "thumbnail") {
+            return jsonResponse({ ok: false, error: "Invalid assetType" }, 400, origin);
+          }
+          const assetType = assetTypeRaw as "video" | "poster" | "thumbnail";
+
+          // Validate format, magic bytes, and size
+          if (assetType === "video") {
+            if (mimeType !== "video/mp4" && mimeType !== "video/webm") {
+              return jsonResponse(
+                { ok: false, error: `Invalid video MIME type "${mimeType}". Allowed: video/mp4, video/webm.` },
+                400,
+                origin
+              );
+            }
+            if (bytes.byteLength > MAX_VIDEO_BYTES) {
+              return jsonResponse({ ok: false, error: "Video exceeds 100 MB limit." }, 413, origin);
+            }
+          } else if (assetType === "poster") {
+            if (mimeType !== "image/webp" && mimeType !== "image/jpeg" && mimeType !== "image/png") {
+              return jsonResponse(
+                { ok: false, error: `Invalid poster MIME type "${mimeType}". Allowed: image/webp, image/jpeg, image/png.` },
+                400,
+                origin
+              );
+            }
+            if (bytes.byteLength > 5 * 1024 * 1024) {
+              return jsonResponse({ ok: false, error: "Poster exceeds 5 MB limit." }, 413, origin);
+            }
+          } else if (assetType === "thumbnail") {
+            if (mimeType !== "image/webp" && mimeType !== "image/jpeg" && mimeType !== "image/png") {
+              return jsonResponse(
+                { ok: false, error: `Invalid thumbnail MIME type "${mimeType}". Allowed: image/webp, image/jpeg, image/png.` },
+                400,
+                origin
+              );
+            }
+            if (bytes.byteLength > 2 * 1024 * 1024) {
+              return jsonResponse({ ok: false, error: "Thumbnail exceeds 2 MB limit." }, 413, origin);
+            }
+          }
+
+          const sigCheck = validateMediaBufferSignature(bytes, mimeType, safeName);
+          if (!sigCheck.valid) {
+            return jsonResponse({ ok: false, error: sigCheck.error }, sigCheck.status || 400, origin);
+          }
+
+          const rawSlug = String(formData.get("videoSlug") || "new-video");
+          const cleanSlug = normalizeSlug(rawSlug) || "new-video";
+          const rawVideoId = formData.get("videoId") ? String(formData.get("videoId")).trim() : null;
+          const ext = safeName.includes(".") ? safeName.slice(safeName.lastIndexOf(".")) : (mimeType.startsWith("video/") ? ".mp4" : ".webp");
+          const uuid = crypto.randomUUID().slice(0, 8);
+          const storageKey = `videos/${cleanSlug}/${assetType}-${Date.now()}-${uuid}${ext}`;
+
+          const existingObj = await bucket.head(storageKey);
+          if (existingObj) {
+            return jsonResponse({ ok: false, error: "Storage key collision detected; please retry upload." }, 409, origin);
+          }
+
+          await bucket.put(storageKey, arrayBuffer, {
+            httpMetadata: { contentType: mimeType }
+          });
+
+          const now = new Date().toISOString();
+          let targetVideoId = rawVideoId;
+          let oldStorageKey: string | null = null;
+
+          try {
+            if (targetVideoId) {
+              const existing = await db
+                .prepare(`SELECT id, slug FROM portfolio_videos WHERE id = ?`)
+                .bind(targetVideoId)
+                .first<{ id: string; slug: string }>();
+              if (!existing) {
+                await db
+                  .prepare(`INSERT INTO portfolio_videos (id, slug, status, created_at, updated_at) VALUES (?, ?, 'draft', ?, ?)`)
+                  .bind(targetVideoId, cleanSlug, now, now)
+                  .run();
+              }
+            } else {
+              const existingBySlug = await db
+                .prepare(`SELECT id FROM portfolio_videos WHERE slug = ?`)
+                .bind(cleanSlug)
+                .first<{ id: string }>();
+              if (existingBySlug?.id) {
+                targetVideoId = String(existingBySlug.id);
+              } else {
+                targetVideoId = `vid-${cleanSlug}`;
+                await db
+                  .prepare(`INSERT INTO portfolio_videos (id, slug, status, created_at, updated_at) VALUES (?, ?, 'draft', ?, ?)`)
+                  .bind(targetVideoId, cleanSlug, now, now)
+                  .run();
+              }
+            }
+
+            const existingAsset = await db
+              .prepare(`SELECT * FROM portfolio_video_assets WHERE video_id = ? AND asset_type = ?`)
+              .bind(targetVideoId, assetType)
+              .first<{ id: string; storage_key: string; created_at: string }>();
+
+            if (existingAsset?.storage_key) {
+              oldStorageKey = String(existingAsset.storage_key);
+            }
+
+            const assetId = existingAsset?.id ? String(existingAsset.id) : `vast-${targetVideoId}-${assetType}`;
+            const publicUrl = `/api/media/${storageKey}`;
+
+            await db.batch([
+              db
+                .prepare(
+                  `INSERT INTO portfolio_video_assets (
+                    id, video_id, asset_type, storage_mode, storage_key, public_url,
+                    mime_type, byte_size, width, height, duration_seconds, created_at, updated_at
+                  ) VALUES (?, ?, ?, 'r2', ?, ?, ?, ?, NULL, NULL, NULL, ?, ?)
+                  ON CONFLICT(video_id, asset_type) DO UPDATE SET
+                    storage_mode = 'r2',
+                    storage_key = excluded.storage_key,
+                    public_url = excluded.public_url,
+                    mime_type = excluded.mime_type,
+                    byte_size = excluded.byte_size,
+                    updated_at = excluded.updated_at`
+                )
+                .bind(
+                  assetId,
+                  targetVideoId,
+                  assetType,
+                  storageKey,
+                  publicUrl,
+                  mimeType,
+                  bytes.byteLength,
+                  existingAsset?.created_at ? String(existingAsset.created_at) : now,
+                  now
+                ),
+              db.prepare(`UPDATE portfolio_videos SET updated_at = ? WHERE id = ?`).bind(now, targetVideoId),
+              db
+                .prepare(
+                  `INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+                   VALUES (?, ?, 'video_asset_upload', 'portfolio_video_assets', ?, ?, ?)`
+                )
+                .bind(
+                  `audit-${crypto.randomUUID()}`,
+                  actorEmail,
+                  assetId,
+                  JSON.stringify({ videoId: targetVideoId, assetType, storageKey, byteSize: bytes.byteLength }),
+                  now
+                )
+            ]);
+
+            if (oldStorageKey && oldStorageKey !== storageKey) {
+              await bucket.delete(oldStorageKey).catch(() => {});
+            }
+
+            const asset = {
+              id: assetId,
+              videoId: targetVideoId,
+              assetType,
+              storageMode: "r2",
+              storageKey,
+              publicUrl,
+              mimeType,
+              byteSize: bytes.byteLength,
+              createdAt: existingAsset?.created_at ? String(existingAsset.created_at) : now,
+              updatedAt: now
+            };
+
+            return jsonResponse({ ok: true, asset, publicUrl }, 201, origin);
+          } catch (dbErr) {
+            await bucket.delete(storageKey).catch(() => {});
+            throw dbErr;
           }
         }
 

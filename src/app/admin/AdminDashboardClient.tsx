@@ -1048,16 +1048,16 @@ export function AdminDashboardClient({
     targetField: "poster" | "src" | "thumbnail"
   ) => {
     setUploadingMedia(true);
+    setVideoSaveMessage(null);
     try {
+      const assetType = targetField === "src" ? "video" : targetField;
       const fd = new FormData();
       fd.append("file", file);
-      fd.append("kind", targetField === "src" ? "video" : "poster");
-      fd.append("projectSlug", videoFormState.slug || "videos");
-      if (videoFormState.id) fd.append("projectId", videoFormState.id);
-      fd.append("altTR", videoFormState.titleTR || file.name);
-      fd.append("altEN", videoFormState.titleEN || file.name);
+      fd.append("assetType", assetType);
+      fd.append("videoSlug", videoFormState.slug || "new-video");
+      if (videoFormState.id) fd.append("videoId", videoFormState.id);
 
-      const res = await fetch("/api/admin/media", {
+      const res = await fetch("/api/admin/videos/upload", {
         method: "POST",
         headers: {
           ...csrfHeaders
@@ -1066,23 +1066,26 @@ export function AdminDashboardClient({
       });
       const data = await res.json();
       if (!res.ok || !data.ok) {
-        setVideoSaveMessage({ type: "err", text: data.error || "Media upload failed." });
+        setVideoSaveMessage({ type: "err", text: data.error || "Video asset upload failed." });
         return;
       }
 
-      const uploaded: CmsMediaRecord = data.media;
+      const uploadedUrl = data.publicUrl || data.asset?.publicUrl;
+      const videoId = data.asset?.videoId;
+
       setVideoFormState((prev) => ({
         ...prev,
-        [targetField]: uploaded.publicUrl,
-        ...(targetField === "poster" && !prev.thumbnail ? { thumbnail: uploaded.publicUrl } : {})
+        [targetField]: uploadedUrl,
+        ...(targetField === "poster" && !prev.thumbnail ? { thumbnail: uploadedUrl } : {}),
+        ...(videoId && !prev.id ? { id: videoId } : {})
       }));
       await loadCoreData();
       setVideoSaveMessage({
         type: "ok",
-        text: `Uploaded ${uploaded.filename} (${uploaded.publicUrl})`
+        text: `Uploaded ${assetType}: ${uploadedUrl}`
       });
     } catch {
-      setVideoSaveMessage({ type: "err", text: "Error uploading media file." });
+      setVideoSaveMessage({ type: "err", text: "Error uploading video asset." });
     } finally {
       setUploadingMedia(false);
     }
@@ -3200,6 +3203,9 @@ export function AdminDashboardClient({
                       />
                     </label>
                   </div>
+                  <span className="text-[10px] text-[#64748B] font-mono mt-1 block">
+                    WebP, PNG, JPEG (max 5 MB)
+                  </span>
                 </div>
 
                 {/* Video Source Configuration */}
@@ -3229,6 +3235,9 @@ export function AdminDashboardClient({
                       />
                     </label>
                   </div>
+                  <span className="text-[10px] text-[#64748B] font-mono mt-1 block">
+                    MP4, WebM (H.264/AAC, max 100 MB)
+                  </span>
                 </div>
 
                 {/* Duration & Aspect Ratio */}

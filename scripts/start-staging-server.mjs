@@ -30,14 +30,17 @@ if (fs.existsSync(envStagingPath)) {
   }
 }
 
-// Fallback staging environment defaults
+// Storage and runtime environment defaults
 process.env.NODE_ENV = "production";
-process.env.CMS_STORAGE_MODE = "staging";
-process.env.CMS_DATA_SOURCE = "cloudflare";
+process.env.CMS_STORAGE_MODE = process.env.CMS_STORAGE_MODE || "staging";
+process.env.CMS_DATA_SOURCE = process.env.CMS_DATA_SOURCE || "cloudflare";
 process.env.PORT = "3099";
 process.env.HOSTNAME = "127.0.0.1";
 
-if (!process.env.CLOUDFLARE_CMS_API_URL) {
+if (process.env.CMS_STORAGE_MODE === "local") {
+  delete process.env.CLOUDFLARE_CMS_API_URL;
+  delete process.env.CLOUDFLARE_API_SERVICE_TOKEN;
+} else if (!process.env.CLOUDFLARE_CMS_API_URL) {
   process.env.CLOUDFLARE_CMS_API_URL = "https://kerem-mihci-portfolio-api-staging.kerem-mihci.workers.dev";
 }
 

@@ -105,16 +105,22 @@ export const useSessionStore = create<SessionStoreState>((set) => ({
       };
     });
   },
-  hydrateVideos: (videos: PortfolioVideo[], isCmsMode = true) => {
-    if (!Array.isArray(videos) || videos.length === 0) return;
+  hydrateVideos: (videos: PortfolioVideo[], isCmsMode = false) => {
+    if (!Array.isArray(videos)) return;
     set((state) => {
-      // In CMS mode, respect explicit sortOrder ASC.
+      // In CMS mode, respect explicit sortOrder ASC and allow clearing to empty array.
       // In legacy mode, preserve seeded PRNG shuffle.
-      const resolvedVideos = isCmsMode
-        ? [...videos].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
-        : shuffleArray(videos, createMulberry32(state.sessionSeed + 1));
+      if (isCmsMode) {
+        const resolvedVideos = [...videos].sort(
+          (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)
+        );
+        return {
+          sessionVideos: resolvedVideos
+        };
+      }
+      if (videos.length === 0) return state;
       return {
-        sessionVideos: resolvedVideos
+        sessionVideos: shuffleArray(videos, createMulberry32(state.sessionSeed + 1))
       };
     });
   },

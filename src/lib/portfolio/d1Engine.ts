@@ -35,7 +35,8 @@ import {
   type CmsVideoRevisionRecord,
   type UpsertVideoInput,
   normalizeSlug,
-  validateMediaFileSignature
+  validateMediaFileSignature,
+  validateVideoAssetSignature
 } from "./types";
 
 interface SqliteStatement {
@@ -112,12 +113,9 @@ export function getCmsDataSource(): CmsDataSource {
   return "cloudflare";
 }
 
-export function assertLocalSimulationAllowed(operation: string, allowStagingFallback = false): void {
+export function assertLocalSimulationAllowed(operation: string): void {
   const mode = getCmsStorageMode();
   if (mode !== "local") {
-    if (allowStagingFallback && mode === "staging") {
-      return;
-    }
     throw new CmsStorageUnavailableError(
       `[CMS Fail-Closed] Operation "${operation}" blocked: local SQLite/R2 simulation is strictly disabled when CMS_STORAGE_MODE="${mode}". Configure CLOUDFLARE_CMS_API_URL and CLOUDFLARE_API_SERVICE_TOKEN.`
     );
@@ -372,8 +370,8 @@ CREATE INDEX IF NOT EXISTS idx_portfolio_video_revisions_lookup ON portfolio_vid
 let cachedDb: SqliteDatabase | null = null;
 let cachedDbPath: string | null = null;
 
-export function getD1Database(allowStagingFallback = false): SqliteDatabase {
-  assertLocalSimulationAllowed("getD1Database", allowStagingFallback);
+export function getD1Database(): SqliteDatabase {
+  assertLocalSimulationAllowed("getD1Database");
 
   const dbPath = getDbFilePath();
   if (cachedDb && cachedDbPath === dbPath && fs.existsSync(dbPath)) {
@@ -412,34 +410,27 @@ export function getD1Database(allowStagingFallback = false): SqliteDatabase {
     db.exec(SCHEMA_SQL_FALLBACK);
   }
 
-  // Ensure admin_sessions has actor_email column (in case legacy local DB existed)
+  // Non-destructive compatibility check for admin_sessions (preserve all existing sessions)
   try {
     const sessionTableCols = db
       .prepare("PRAGMA table_info(admin_sessions)")
       .all() as { name: string }[];
-    const hasActorEmail = sessionTableCols.some((c) => c.name === "actor_email");
-    if (!hasActorEmail && sessionTableCols.length > 0) {
-      db.exec("DROP TABLE admin_sessions;");
-      db.exec(`
-        CREATE TABLE IF NOT EXISTS admin_sessions (
-          jti_hash TEXT PRIMARY KEY,
-          actor_email TEXT NOT NULL,
-          role TEXT NOT NULL DEFAULT 'owner',
-          csrf_token_hash TEXT NOT NULL,
-          issued_at INTEGER NOT NULL,
-          expires_at INTEGER NOT NULL,
-          revoked_at INTEGER,
-          revoked_reason TEXT,
-          ip_hash TEXT,
-          user_agent TEXT,
-          last_seen_at INTEGER NOT NULL
-        );
-        CREATE INDEX IF NOT EXISTS idx_admin_sessions_actor_active ON admin_sessions(actor_email, revoked_at, expires_at);
-        CREATE INDEX IF NOT EXISTS idx_admin_sessions_expires ON admin_sessions(expires_at);
-      `);
+    const colNames = new Set(sessionTableCols.map((c) => c.name));
+    if (sessionTableCols.length > 0 && !colNames.has("actor_email")) {
+      db.exec("ALTER TABLE admin_sessions ADD COLUMN actor_email TEXT;");
+      if (colNames.has("email")) {
+        db.exec("UPDATE admin_sessions SET actor_email = email WHERE actor_email IS NULL;");
+      }
+      if (!colNames.has("role")) {
+        db.exec("ALTER TABLE admin_sessions ADD COLUMN role TEXT NOT NULL DEFAULT 'owner';");
+      }
+      if (!colNames.has("ip_hash")) {
+        db.exec("ALTER TABLE admin_sessions ADD COLUMN ip_hash TEXT;");
+      }
+      db.exec("CREATE INDEX IF NOT EXISTS idx_admin_sessions_actor_active ON admin_sessions(actor_email, revoked_at, expires_at);");
     }
   } catch {
-    // Ignore if pragma fails
+    // Non-destructive compatibility check
   }
 
   const countRow = db.prepare("SELECT COUNT(*) as count FROM projects").get() as
@@ -2582,8 +2573,8 @@ export function mapRowsToCmsVideos(
 }
 
 export function listAllVideosForAdminFromD1(): CmsVideoRecord[] {
-  assertLocalSimulationAllowed("listAllVideosForAdminFromD1", true);
-  const db = getD1Database(true);
+  assertLocalSimulationAllowed("listAllVideosForAdminFromD1");
+  const db = getD1Database();
   const videoRows = db
     .prepare(`SELECT * FROM portfolio_videos ORDER BY sort_order ASC, id ASC`)
     .all();
@@ -2603,8 +2594,8 @@ export function listAllVideosForAdminFromD1(): CmsVideoRecord[] {
 }
 
 export function listPublishedVideosFromD1(): CmsVideoRecord[] {
-  assertLocalSimulationAllowed("listPublishedVideosFromD1", true);
-  const db = getD1Database(true);
+  assertLocalSimulationAllowed("listPublishedVideosFromD1");
+  const db = getD1Database();
   const videoRows = db
     .prepare(
       `SELECT * FROM portfolio_videos WHERE status = 'published' ORDER BY sort_order ASC, id ASC`
@@ -2626,8 +2617,8 @@ export function listPublishedVideosFromD1(): CmsVideoRecord[] {
 }
 
 export function getVideoByIdFromD1(id: string): CmsVideoRecord | null {
-  assertLocalSimulationAllowed("getVideoByIdFromD1", true);
-  const db = getD1Database(true);
+  assertLocalSimulationAllowed("getVideoByIdFromD1");
+  const db = getD1Database();
   const row = db.prepare(`SELECT * FROM portfolio_videos WHERE id = ? LIMIT 1`).get(id);
   if (!row) return null;
 
@@ -2643,8 +2634,8 @@ export function getVideoByIdFromD1(id: string): CmsVideoRecord | null {
 }
 
 export function getVideoBySlugFromD1(slug: string): CmsVideoRecord | null {
-  assertLocalSimulationAllowed("getVideoBySlugFromD1", true);
-  const db = getD1Database(true);
+  assertLocalSimulationAllowed("getVideoBySlugFromD1");
+  const db = getD1Database();
   const row = db.prepare(`SELECT * FROM portfolio_videos WHERE slug = ? LIMIT 1`).get(slug);
   if (!row) return null;
 
@@ -2665,8 +2656,8 @@ export function upsertVideoInD1(
   actorEmail: string,
   actionLabel = "update"
 ): CmsVideoRecord {
-  assertLocalSimulationAllowed("upsertVideoInD1", true);
-  const db = getD1Database(true);
+  assertLocalSimulationAllowed("upsertVideoInD1");
+  const db = getD1Database();
   const cleanSlug = normalizeSlug(input.slug || input.titleEN || input.titleTR);
   if (!cleanSlug) {
     throw new Error("Video slug is required.");
@@ -2979,8 +2970,8 @@ export function upsertVideoInD1(
 }
 
 export function deleteVideoFromD1(id: string, actorEmail: string): { deletedId: string } {
-  assertLocalSimulationAllowed("deleteVideoFromD1", true);
-  const db = getD1Database(true);
+  assertLocalSimulationAllowed("deleteVideoFromD1");
+  const db = getD1Database();
   const existing = getVideoByIdFromD1(id);
   if (!existing) {
     throw new Error(`Video with id "${id}" not found.`);
@@ -3007,8 +2998,8 @@ export function updateVideoOrderingInD1(
   orderings: { id: string; sortOrder: number }[],
   actorEmail: string
 ): { updatedCount: number } {
-  assertLocalSimulationAllowed("updateVideoOrderingInD1", true);
-  const db = getD1Database(true);
+  assertLocalSimulationAllowed("updateVideoOrderingInD1");
+  const db = getD1Database();
   const now = new Date().toISOString();
   let count = 0;
 
@@ -3028,8 +3019,8 @@ export function updateVideoOrderingInD1(
 }
 
 export function listVideoRevisionsFromD1(videoId: string): CmsVideoRevisionRecord[] {
-  assertLocalSimulationAllowed("listVideoRevisionsFromD1", true);
-  const db = getD1Database(true);
+  assertLocalSimulationAllowed("listVideoRevisionsFromD1");
+  const db = getD1Database();
   const rows = db
     .prepare(
       `SELECT * FROM portfolio_video_revisions WHERE video_id = ? ORDER BY revision_number DESC LIMIT 50`
@@ -3052,8 +3043,8 @@ export function rollbackVideoRevisionInD1(
   revisionNumber: number,
   actorEmail: string
 ): CmsVideoRecord {
-  assertLocalSimulationAllowed("rollbackVideoRevisionInD1", true);
-  const db = getD1Database(true);
+  assertLocalSimulationAllowed("rollbackVideoRevisionInD1");
+  const db = getD1Database();
   const row = db
     .prepare(
       `SELECT * FROM portfolio_video_revisions WHERE video_id = ? AND revision_number = ? LIMIT 1`
@@ -3089,8 +3080,8 @@ export function seedCanonicalVideosInLocalD1(force = false): {
   skippedCount: number;
   totalVideos: number;
 } {
-  assertLocalSimulationAllowed("seedCanonicalVideosInLocalD1", true);
-  const db = getD1Database(true);
+  assertLocalSimulationAllowed("seedCanonicalVideosInLocalD1");
+  const db = getD1Database();
   let insertedCount = 0;
   let skippedCount = 0;
 
@@ -3150,3 +3141,188 @@ export function seedCanonicalVideosInLocalD1(force = false): {
     totalVideos: videosData.length
   };
 }
+
+export function uploadVideoAssetToStorageAndD1(params: {
+  buffer: Buffer;
+  filename: string;
+  mimeType: string;
+  videoId?: string | null;
+  videoSlug: string;
+  assetType: "video" | "poster" | "thumbnail";
+  actorEmail: string;
+  width?: number | null;
+  height?: number | null;
+  durationSeconds?: number | null;
+}): CmsVideoAssetRecord {
+  assertLocalSimulationAllowed("uploadVideoAssetToStorageAndD1");
+
+  const {
+    buffer,
+    filename,
+    mimeType,
+    videoId: initialVideoId = null,
+    videoSlug,
+    assetType,
+    actorEmail,
+    width = null,
+    height = null,
+    durationSeconds = null
+  } = params;
+
+  // Strict signature, format, and size validation
+  const sigCheck = validateVideoAssetSignature(buffer, mimeType, filename, assetType);
+  if (!sigCheck.valid) {
+    throw new Error(sigCheck.error || "Invalid video asset.");
+  }
+
+  const cleanSlug = normalizeSlug(videoSlug) || "new-video";
+  const ext =
+    path.extname(filename).toLowerCase() ||
+    (mimeType.startsWith("video/") ? ".mp4" : ".webp");
+  const randomSuffix = crypto.randomUUID().slice(0, 8);
+  const storageKey = `videos/${cleanSlug}/${assetType}-${Date.now()}-${randomSuffix}${ext}`;
+  const publicUrl = `/api/media/${storageKey}`;
+
+  // Write new file to local R2 simulation storage
+  const r2Root = path.resolve(getLocalR2DirPath());
+  const r2FilePath = path.resolve(r2Root, storageKey);
+  if (!r2FilePath.startsWith(r2Root + path.sep)) {
+    throw new Error("Invalid storage destination key.");
+  }
+
+  fs.mkdirSync(path.dirname(r2FilePath), { recursive: true });
+  fs.writeFileSync(r2FilePath, buffer);
+
+  const db = getD1Database();
+  const now = new Date().toISOString();
+
+  let targetVideoId = initialVideoId;
+  let oldStorageKey: string | null = null;
+
+  try {
+    // 1. Resolve or establish target video identity
+    if (targetVideoId) {
+      const existing = db
+        .prepare(`SELECT id, slug FROM portfolio_videos WHERE id = ?`)
+        .get(targetVideoId);
+      if (!existing) {
+        db.prepare(
+          `INSERT INTO portfolio_videos (id, slug, status, created_at, updated_at) VALUES (?, ?, 'draft', ?, ?)`
+        ).run(targetVideoId, cleanSlug, now, now);
+      }
+    } else {
+      const existingBySlug = db
+        .prepare(`SELECT id FROM portfolio_videos WHERE slug = ?`)
+        .get(cleanSlug);
+      if (existingBySlug?.id) {
+        targetVideoId = String(existingBySlug.id);
+      } else {
+        targetVideoId = `vid-${cleanSlug}`;
+        db.prepare(
+          `INSERT INTO portfolio_videos (id, slug, status, created_at, updated_at) VALUES (?, ?, 'draft', ?, ?)`
+        ).run(targetVideoId, cleanSlug, now, now);
+      }
+    }
+
+    // 2. Check if an asset of this type already exists for replacement
+    const existingAsset = db
+      .prepare(`SELECT * FROM portfolio_video_assets WHERE video_id = ? AND asset_type = ?`)
+      .get(targetVideoId, assetType) as Record<string, unknown> | undefined;
+
+    if (existingAsset?.storage_key) {
+      oldStorageKey = String(existingAsset.storage_key);
+    }
+
+    // 3. Atomically upsert asset record
+    const assetId = existingAsset?.id
+      ? String(existingAsset.id)
+      : `vast-${targetVideoId}-${assetType}`;
+    db.prepare(
+      `INSERT INTO portfolio_video_assets (
+        id, video_id, asset_type, storage_mode, storage_key, public_url,
+        mime_type, byte_size, width, height, duration_seconds, created_at, updated_at
+      ) VALUES (?, ?, ?, 'r2', ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(video_id, asset_type) DO UPDATE SET
+        storage_mode = 'r2',
+        storage_key = excluded.storage_key,
+        public_url = excluded.public_url,
+        mime_type = excluded.mime_type,
+        byte_size = excluded.byte_size,
+        width = excluded.width,
+        height = excluded.height,
+        duration_seconds = excluded.duration_seconds,
+        updated_at = excluded.updated_at`
+    ).run(
+      assetId,
+      targetVideoId,
+      assetType,
+      storageKey,
+      publicUrl,
+      mimeType,
+      buffer.byteLength,
+      width,
+      height,
+      durationSeconds,
+      existingAsset?.created_at ? String(existingAsset.created_at) : now,
+      now
+    );
+
+    // 4. Update parent video updated_at timestamp
+    db.prepare(`UPDATE portfolio_videos SET updated_at = ? WHERE id = ?`).run(now, targetVideoId);
+
+    // 5. Audit log
+    db.prepare(
+      `INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+       VALUES (?, ?, 'video_asset_upload', 'portfolio_video_assets', ?, ?, ?)`
+    ).run(
+      `audit-${crypto.randomUUID()}`,
+      actorEmail,
+      assetId,
+      JSON.stringify({
+        videoId: targetVideoId,
+        assetType,
+        storageKey,
+        byteSize: buffer.byteLength
+      }),
+      now
+    );
+
+    // 6. Safe cleanup of old asset file after database transaction succeeds
+    if (oldStorageKey && oldStorageKey !== storageKey) {
+      const oldPath = path.resolve(r2Root, oldStorageKey);
+      if (oldPath.startsWith(r2Root + path.sep) && fs.existsSync(oldPath)) {
+        try {
+          fs.unlinkSync(oldPath);
+        } catch {
+          // ignore cleanup error
+        }
+      }
+    }
+
+    return {
+      id: assetId,
+      videoId: targetVideoId,
+      assetType,
+      storageMode: "r2",
+      storageKey,
+      publicUrl,
+      mimeType,
+      byteSize: buffer.byteLength,
+      width,
+      height,
+      durationSeconds,
+      createdAt: existingAsset?.created_at ? String(existingAsset.created_at) : now,
+      updatedAt: now
+    };
+  } catch (err) {
+    if (fs.existsSync(r2FilePath)) {
+      try {
+        fs.unlinkSync(r2FilePath);
+      } catch {
+        // ignore
+      }
+    }
+    throw err;
+  }
+}
+

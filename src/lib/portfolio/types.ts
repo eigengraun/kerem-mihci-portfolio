@@ -532,3 +532,61 @@ export function validateMediaFileSignature(
 
   return { valid: true };
 }
+
+export function validateVideoAssetSignature(
+  bytes: Uint8Array,
+  mimeType: string,
+  filename: string,
+  assetType: "video" | "poster" | "thumbnail"
+): { valid: boolean; error?: string } {
+  if (bytes.byteLength === 0) {
+    return { valid: false, error: "Uploaded file is empty." };
+  }
+
+  if (assetType === "video") {
+    if (mimeType !== "video/mp4" && mimeType !== "video/webm") {
+      return {
+        valid: false,
+        error: `Invalid video MIME type "${mimeType}". Supported web formats: video/mp4, video/webm.`
+      };
+    }
+    const maxBytes = 100 * 1024 * 1024; // 100 MB
+    if (bytes.byteLength > maxBytes) {
+      return {
+        valid: false,
+        error: `Video exceeds maximum allowed size of 100 MB (${bytes.byteLength} bytes).`
+      };
+    }
+  } else if (assetType === "poster") {
+    if (mimeType !== "image/webp" && mimeType !== "image/jpeg" && mimeType !== "image/png") {
+      return {
+        valid: false,
+        error: `Invalid poster MIME type "${mimeType}". Supported image formats: image/webp, image/jpeg, image/png.`
+      };
+    }
+    const maxBytes = 5 * 1024 * 1024; // 5 MB
+    if (bytes.byteLength > maxBytes) {
+      return {
+        valid: false,
+        error: `Poster image exceeds maximum allowed size of 5 MB (${bytes.byteLength} bytes).`
+      };
+    }
+  } else if (assetType === "thumbnail") {
+    if (mimeType !== "image/webp" && mimeType !== "image/jpeg" && mimeType !== "image/png") {
+      return {
+        valid: false,
+        error: `Invalid thumbnail MIME type "${mimeType}". Supported image formats: image/webp, image/jpeg, image/png.`
+      };
+    }
+    const maxBytes = 2 * 1024 * 1024; // 2 MB
+    if (bytes.byteLength > maxBytes) {
+      return {
+        valid: false,
+        error: `Thumbnail image exceeds maximum allowed size of 2 MB (${bytes.byteLength} bytes).`
+      };
+    }
+  }
+
+  return validateMediaFileSignature(bytes, mimeType, filename);
+}
+

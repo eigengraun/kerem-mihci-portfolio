@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { siteConfig } from "@/lib/siteConfig";
 import { generatePersonJsonLd, generateWebSiteJsonLd } from "@/lib/seo";
 import { isValidLocale } from "@/lib/i18n";
-import { getPublishedProjects, getPublishedVideos } from "@/lib/portfolio/repository";
+import { getPublishedProjects, getPublishedVideos, getCmsDataSource } from "@/lib/portfolio/repository";
 import { ClientLocalePage } from "./ClientLocalePage";
 
 export const dynamic = "force-dynamic";
@@ -73,6 +73,7 @@ export default async function LocaleDesktopPage({
     getPublishedProjects(),
     getPublishedVideos()
   ]);
+  const isCmsMode = getCmsDataSource() !== "legacy";
   const personJsonLd = generatePersonJsonLd(locale);
   const websiteJsonLd = generateWebSiteJsonLd(locale);
 
@@ -89,6 +90,7 @@ export default async function LocaleDesktopPage({
       <ClientLocalePage
         initialProjects={publishedProjects}
         initialVideos={publishedVideos}
+        isCmsMode={isCmsMode}
       />
     </>
   );

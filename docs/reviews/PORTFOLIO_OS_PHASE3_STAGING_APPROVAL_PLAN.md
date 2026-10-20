@@ -1,114 +1,120 @@
-# Portfolio OS Phase 3: Cloudflare Staging Deployment & Approval Plan
+# Portfolio OS Phase 3 & 3.1: Cloudflare Staging Deployment & Approval Plan
 
 **Author:** Antigravity Autonomous Agent  
 **Branch:** `feature/cloudflare-cms-dashboard`  
-**Current Local Commit / Head:** Phase 3 Complete & Verified  
+**Current Local Head:** Phase 3.1 Release Blocker Remediation Verified (58/58 Tests Green)  
 **Remote Target:** Cloudflare Staging Worker (`kerem-mihci-portfolio-api-staging`) & D1 (`kerem-portfolio-db-staging`)  
 **Status:** **PENDING USER AUTHORIZATION (VERDICT A REQUIRED)**  
 
 ---
 
 > [!IMPORTANT]
-> **SAFETY COMMITMENT**: In strict adherence to user instructions, **NO remote Cloudflare D1 migrations, remote Worker deployments, or remote R2 file mutations have been executed**.
-> All Phase 3 development and end-to-end verification (28/28 checks green) was conducted using local SQLite D1 simulation.
-> Remote execution requires explicit user authorization of this plan.
+> **SAFETY COMMITMENT CONFIRMATION**:
+> In strict compliance with user instructions, **ZERO remote Cloudflare D1 migrations, ZERO remote Worker deployments, and ZERO remote R2 mutations have been performed**.
+> All development, additive migrations, magic byte validators, and end-to-end tests (58/58 checks passed) were conducted exclusively against isolated local SQLite and local R2 simulation.
+> Remote execution will occur only when the user explicitly grants authorization by choosing **Verdict A**.
 
 ---
 
 ## 1. Scope of Remote Changes
 
-Upon user sign-off (**Verdict A**), the following atomic actions will be deployed to the Cloudflare staging environment:
+Upon user authorization (**Verdict A**), the following atomic operations will deploy Phase 3 & 3.1 to the Cloudflare staging environment:
 
-### 1.1 Remote D1 Database Migration (`0002_videos_and_reels_schema.sql`)
-- Creates 4 additive tables on `kerem-portfolio-db-staging`:
-  1. `portfolio_videos` (Primary video entity with status, orientation, AI flags, sortOrder, and metadata)
-  2. `portfolio_video_translations` (Bilingual TR/EN titles, short titles, descriptions, and full descriptions)
-  3. `portfolio_video_assets` (Media assets: video MP4, poster WebP, thumbnail WebP with public URLs and keys)
-  4. `portfolio_video_revisions` (Historical revision snapshots for point-in-time rollbacks)
-- Creates 8 high-performance lookup indexes for instant slug resolution, status filtering, and sorting.
-- Zero destructive modifications to existing project tables (`projects`, `project_translations`, `project_media`, etc.).
+### 1.1 Remote D1 Migration: `0002_videos_and_reels_schema.sql`
+- Applies additive schema to `kerem-portfolio-db-staging` (`0efef7a7-cc93-4dc2-8cb7-db28379fe01f`):
+  1. `portfolio_videos` (id, slug, status, orientation, video_type, production_method, ai_assisted, client_name, year, duration, aspect_ratio, featured, sort_order, autoplay_preview, timestamps)
+  2. `portfolio_video_translations` (id, video_id, locale, title, short_title, description, full_description, services_json, updated_at)
+  3. `portfolio_video_assets` (id, video_id, asset_type, storage_mode, storage_key, public_url, mime_type, byte_size, width, height, duration_seconds, timestamps)
+  4. `portfolio_video_revisions` (id, video_id, revision_number, action, snapshot_json, actor_email, created_at)
+- Creates 8 performance lookup indexes.
+- **Strict Non-Destructive Guarantee**: Zero modifications or deletions to existing `projects`, `project_translations`, `project_media`, or `admin_sessions` tables.
 
 ### 1.2 Remote Cloudflare Worker Deployment
 - Deploys updated `cloudflare/portfolio-api/src/index.ts` to `https://kerem-mihci-portfolio-api-staging.kerem-mihci.workers.dev`.
-- Adds public and admin endpoints:
-  - `GET /api/v1/public/videos`
-  - `GET /api/v1/public/videos/:slug`
-  - `GET /api/v1/admin/videos`
-  - `POST /api/v1/admin/videos`
-  - `POST /api/v1/admin/videos/reorder`
-  - `GET /api/v1/admin/videos/:id`
-  - `PUT /api/v1/admin/videos/:id`
-  - `DELETE /api/v1/admin/videos/:id`
-  - `GET /api/v1/admin/videos/:id/revisions`
-  - `POST /api/v1/admin/videos/:id/revisions`
-- Updates media proxy authorization to validate `portfolio_video_assets` joined to published videos.
-- Aggregates video metrics into `/api/v1/health` endpoint.
+- Registers dedicated endpoints:
+  - `GET /api/v1/public/videos` (with `Cache-Control: no-store, no-cache, must-revalidate`)
+  - `GET /api/v1/public/videos/:slug` (immediate 404 on unpublish)
+  - `GET /api/v1/public/media/*` (public conditional streaming with HTTP 206 / 416 support)
+  - `GET /api/v1/admin/videos` (authenticated completeness calculation)
+  - `POST /api/v1/admin/videos` (create video draft)
+  - `GET /api/v1/admin/videos/:id` (detail inspection)
+  - `PUT /api/v1/admin/videos/:id` (update metadata, status, publishing)
+  - `DELETE /api/v1/admin/videos/:id` (cascaded deletion)
+  - `POST /api/v1/admin/videos/reorder` (atomic batch sort order update)
+  - `GET /api/v1/admin/videos/:id/revisions` (list point-in-time snapshots)
+  - `POST /api/v1/admin/videos/:id/revisions` (rollback to snapshot)
+  - `POST /api/v1/admin/videos/upload` (dedicated R2 video/poster upload with magic byte signature enforcement)
 
-### 1.3 Remote D1 Canonical Video Seeding
-- Seeds the 21 canonical videos (19 portrait 9:16 reels, 2 landscape 16:9 videos) from `src/data/videos.ts` into remote staging D1.
-- Guarantees 100% parity between static canonical source and remote D1 database.
+### 1.3 Remote Canonical Video Seeding
+- Seeds the 21 canonical videos (19 portrait, 2 landscape) from `src/data/videos.ts` into remote staging D1.
+- Validates 100% parity against canonical source.
 
 ---
 
-## 2. Step-by-Step Execution Procedure
+## 2. Step-by-Step Executable Commands
 
 ```mermaid
 flowchart TD
-    A["User Signs Off (Verdict A)"] --> B["Step 1: Apply Remote D1 Migration (0002)"]
-    B --> C["Step 2: Deploy Cloudflare Staging Worker"]
-    C --> D["Step 3: Run Remote Canonical Video Seed"]
-    D --> E["Step 4: Execute Remote Verification Suite"]
-    E --> F{"28/28 Checks Pass?"}
-    F -- Yes --> G["Phase 3 Fully Operational on Real Staging!"]
-    F -- No --> H["Step 5: Automated Rollback & Audit"]
+    A["User Sign-Off (Verdict A)"] --> B["Step 1: Apply Remote D1 Migration (0002)"]
+    B --> C["Step 2: Deploy Staging Cloudflare Worker"]
+    C --> D["Step 3: Seed Canonical Videos to Staging D1"]
+    D --> E["Step 4: Execute Verification Suite against Staging"]
+    E --> F{"All Checks Pass?"}
+    F -- Yes --> G["Phase 3.1 Fully Operational on Cloudflare Staging!"]
+    F -- No --> H["Step 5: Non-Destructive Safe Rollback"]
 ```
 
 ### Step 1: Apply Remote D1 Migration
 ```bash
-npx wrangler d1 migrations apply kerem-portfolio-db-staging --remote
+npx wrangler d1 migrations apply kerem-portfolio-db-staging \
+  --config cloudflare/portfolio-api/wrangler.jsonc \
+  --env staging \
+  --remote
 ```
-*Verification*: Check exit code 0 and table presence in `kerem-portfolio-db-staging`.
+*Expected Output*: `Migration 0002_videos_and_reels_schema.sql applied successfully`.
 
 ### Step 2: Deploy Cloudflare Staging Worker
 ```bash
-npm run deploy:worker:staging
+npx wrangler deploy \
+  --config cloudflare/portfolio-api/wrangler.jsonc \
+  --env staging
 ```
-*Verification*: Ping `https://kerem-mihci-portfolio-api-staging.kerem-mihci.workers.dev/api/v1/health` and verify HTTP 200 with D1 operational.
+*Expected Output*: `Uploaded kerem-mihci-portfolio-api-staging to https://kerem-mihci-portfolio-api-staging.kerem-mihci.workers.dev`.
 
-### Step 3: Run Remote Canonical Video Seed
+### Step 3: Seed Canonical Videos to Remote Staging D1
 ```bash
-node scripts/import-canonical-videos-to-d1.mjs --remote
+node scripts/import-canonical-videos-to-d1.mjs --staging
 ```
-*Verification*: Query remote staging Worker `GET /api/v1/public/videos` and verify `count === 21`.
+*Expected Output*: `SUCCESS: 21/21 Canonical Videos Verified with 100% Parity`.
 
-### Step 4: Run Remote Verification Suite
+### Step 4: Verify Remote Staging Health & Public Endpoints
 ```bash
-node scripts/verify-phase3-video-cms.mjs --remote
+# 1. Health & Statistics Check
+curl -s "https://kerem-mihci-portfolio-api-staging.kerem-mihci.workers.dev/api/v1/health" | jq .
+
+# 2. Public Video Feed Check
+curl -s "https://kerem-mihci-portfolio-api-staging.kerem-mihci.workers.dev/api/v1/public/videos" | jq .count
+
+# 3. Public Single Video Check
+curl -sI "https://kerem-mihci-portfolio-api-staging.kerem-mihci.workers.dev/api/v1/public/videos/ai-moda-kombin-reels"
 ```
-*Verification*: All 28 checks in Groups A–F must pass against real staging Cloudflare Worker.
 
 ---
 
-## 3. Rollback & Failsafe Plan
+## 3. Non-Destructive Rollback Procedure
 
-In the event of any unexpected error during remote execution:
-1. **Worker Rollback**: Instant rollback to previous deployment using `wrangler rollback` or redeploying last verified commit.
-2. **Database Rollback**:
-   - `0002_videos_and_reels_schema.sql` tables are completely isolated and namespaced (`portfolio_video_*`).
-   - Project tables and media remain completely untouched.
-   - If necessary, tables can be dropped cleanly without affecting existing production or staging project data:
-     ```sql
-     DROP TABLE IF EXISTS portfolio_video_revisions;
-     DROP TABLE IF EXISTS portfolio_video_assets;
-     DROP TABLE IF EXISTS portfolio_video_translations;
-     DROP TABLE IF EXISTS portfolio_videos;
-     ```
-3. **Fail-Closed Guarantee**: If remote Worker is temporarily unavailable, local repository layer falls back to static canonical archive, ensuring zero downtime for public visitors.
+If remote staging exhibits any anomalies during execution, roll back cleanly without affecting existing projects:
 
----
+```bash
+# 1. Roll back Cloudflare Worker to previous deployment version
+npx wrangler rollback \
+  --config cloudflare/portfolio-api/wrangler.jsonc \
+  --env staging
 
-## 4. Required Sign-Off Command
-
-To proceed with remote staging deployment, the user can respond with:
-
-> **"Proceed with Verdict A: Deploy Phase 3 Videos & Reels CMS to Cloudflare Staging"**
+# 2. If video table cleanup is needed, execute targeted drop of video tables ONLY (NEVER drop projects or admin_sessions)
+npx wrangler d1 execute kerem-portfolio-db-staging \
+  --config cloudflare/portfolio-api/wrangler.jsonc \
+  --env staging \
+  --remote \
+  --command="DROP TABLE IF EXISTS portfolio_video_revisions; DROP TABLE IF EXISTS portfolio_video_assets; DROP TABLE IF EXISTS portfolio_video_translations; DROP TABLE IF EXISTS portfolio_videos;"
+```

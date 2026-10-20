@@ -12,9 +12,10 @@ import type { PortfolioVideo } from "@/data/videos";
 interface ClientLocalePageProps {
   initialProjects?: Project[];
   initialVideos?: PortfolioVideo[];
+  isCmsMode?: boolean;
 }
 
-export function ClientLocalePage({ initialProjects, initialVideos }: ClientLocalePageProps) {
+export function ClientLocalePage({ initialProjects, initialVideos, isCmsMode = false }: ClientLocalePageProps) {
   const params = useParams();
   const locale = (params?.locale as Locale) || "tr";
   const { setLocale } = useDesktopStore();
@@ -28,10 +29,10 @@ export function ClientLocalePage({ initialProjects, initialVideos }: ClientLocal
   }, [initialProjects, hydrateProjects]);
 
   useEffect(() => {
-    if (Array.isArray(initialVideos) && initialVideos.length > 0) {
-      hydrateVideos(initialVideos);
+    if (Array.isArray(initialVideos)) {
+      hydrateVideos(initialVideos, isCmsMode);
     }
-  }, [initialVideos, hydrateVideos]);
+  }, [initialVideos, hydrateVideos, isCmsMode]);
 
   useEffect(() => {
     if (locale === "tr" || locale === "en") {

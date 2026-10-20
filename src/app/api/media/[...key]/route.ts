@@ -245,25 +245,32 @@ export async function GET(
       const total = stat.size;
       const start = match[1] ? parseInt(match[1], 10) : 0;
       const end = match[2] ? parseInt(match[2], 10) : total - 1;
-      if (start < total && end >= start) {
-        const chunkLen = end - start + 1;
-        const fileStream = fs.createReadStream(resolvedPath, { start, end });
-        const webStream = Readable.toWeb(fileStream);
-        const headers = new Headers({
-          "Content-Type": contentType,
-          "Content-Range": `bytes ${start}-${end}/${total}`,
-          "Accept-Ranges": "bytes",
-          "Content-Length": String(chunkLen),
-          ETag: localEtag,
-          "Cache-Control": isPublic
-            ? "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400"
-            : "private, no-store, no-cache, must-revalidate"
-        });
-        return new Response(webStream as BodyInit, {
-          status: 206,
-          headers
+      if (start >= total || end < start) {
+        return new Response(null, {
+          status: 416,
+          headers: {
+            "Content-Range": `bytes */${total}`,
+            "Content-Type": contentType
+          }
         });
       }
+      const chunkLen = end - start + 1;
+      const fileStream = fs.createReadStream(resolvedPath, { start, end });
+      const webStream = Readable.toWeb(fileStream);
+      const headers = new Headers({
+        "Content-Type": contentType,
+        "Content-Range": `bytes ${start}-${end}/${total}`,
+        "Accept-Ranges": "bytes",
+        "Content-Length": String(chunkLen),
+        ETag: localEtag,
+        "Cache-Control": isPublic
+          ? "public, max-age=0, must-revalidate, s-maxage=3600"
+          : "private, no-store, no-cache, must-revalidate"
+      });
+      return new Response(webStream as BodyInit, {
+        status: 206,
+        headers
+      });
     }
   }
 
@@ -275,7 +282,7 @@ export async function GET(
     "Accept-Ranges": "bytes",
     ETag: localEtag,
     "Cache-Control": isPublic
-      ? "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400"
+      ? "public, max-age=0, must-revalidate, s-maxage=3600"
       : "private, no-store, no-cache, must-revalidate"
   });
 

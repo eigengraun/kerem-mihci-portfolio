@@ -1,0 +1,82 @@
+{
+  "manifestVersion": "1.0.0",
+  "generatedAt": "2026-10-20T17:34:20.093Z",
+  "environment": "staging",
+  "branch": "feature/cloudflare-cms-dashboard",
+  "gitCommit": "b1a4a2cfee1211d956b019eef56297f6be695c5e",
+  "operator": "kerem.mihci@ogr.iuc.edu.tr",
+  "status": "COMPLETED_AND_VERIFIED",
+  "targetResources": {
+    "cloudflareAccount": {
+      "name": "Kerem.mihci@ogr.iuc.edu.tr's Account",
+      "id": "9791a288e2e99e7f3403590480e3ad6f"
+    },
+    "worker": {
+      "name": "kerem-mihci-portfolio-api-staging",
+      "activeDeploymentVersion": "3c0fcc95-989b-4856-8fad-bc5c8d6d8061",
+      "preDeploymentVersion": "3da74ed3-ec9a-41a2-931f-c0453b15e4e2"
+    },
+    "database": {
+      "name": "kerem-portfolio-db-staging",
+      "id": "0efef7a7-cc93-4dc2-8cb7-db28379fe01f"
+    },
+    "storage": {
+      "bucket": "kerem-portfolio-media-staging"
+    }
+  },
+  "executedBackup": {
+    "command": "npx wrangler d1 export kerem-portfolio-db-staging --remote --output /var/folders/0d/xtlrt9cj0lg4qw5b6zpcsyd40000gn/T/portfolio-staging-backups/staging-pre-phase3-1792517660093.sql",
+    "backupPath": "/var/folders/0d/xtlrt9cj0lg4qw5b6zpcsyd40000gn/T/portfolio-staging-backups/staging-pre-phase3-1792517660093.sql",
+    "byteSize": 638314,
+    "sha256": "2152c6db2d65e70ec74a9a3bd0223c1f023204f47ae1edbb74fa9ba021c66187",
+    "umask": "077",
+    "filePermissions": "0600",
+    "storageLocation": "outside_git (/var/folders/0d/xtlrt9cj0lg4qw5b6zpcsyd40000gn/T/portfolio-staging-backups/)",
+    "sqliteIntegrity": "ok",
+    "verifiedTables": [
+      "projects",
+      "project_translations",
+      "project_media",
+      "admin_sessions"
+    ],
+    "verifiedProjects": 31,
+    "verifiedPublishedProjects": 30,
+    "verifiedDraftProjects": 1,
+    "verifiedMediaRecords": 72,
+    "criteriaPassed": 13,
+    "criteriaFailed": 0
+  },
+  "postRolloutIntegrity": {
+    "databaseMigration": {
+      "migrationFile": "0002_videos_and_reels_schema.sql",
+      "status": "APPLIED_SUCCESS",
+      "commandsExecuted": 14,
+      "executionDurationMs": 1.93
+    },
+    "postMigrationCounts": {
+      "canonicalVideosPublished": 21,
+      "canonicalVideosDraft": 0,
+      "totalVideos": 21,
+      "videoTranslations": 42,
+      "videoAssets": 42,
+      "projectsPublished": 30,
+      "projectsDraft": 1,
+      "totalProjects": 31,
+      "projectMedia": 72
+    }
+  },
+  "recoveryProcedures": {
+    "workerRollback": {
+      "command": "npx wrangler rollback --config cloudflare/portfolio-api/wrangler.jsonc --env staging",
+      "targetVersion": "3da74ed3-ec9a-41a2-931f-c0453b15e4e2",
+      "databaseImpact": "none"
+    },
+    "schemaIsolation": {
+      "rule": "Schema 0002 is strictly additive. DROP TABLE commands are strictly prohibited."
+    },
+    "dataRestoration": {
+      "status": "REQUIRES_SEPARATE_OPERATOR_APPROVAL",
+      "caution": "Full SQL restore may overwrite existing records. Never execute automatically."
+    }
+  }
+}

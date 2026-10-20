@@ -1837,8 +1837,14 @@ const worker = {
         }
       }
 
-      if (pathname.startsWith("/api/v1/public/media/") && request.method === "GET") {
-        const key = decodeURIComponent(pathname.replace("/api/v1/public/media/", ""));
+      if (
+        (pathname.startsWith("/api/v1/public/media/") || pathname.startsWith("/api/media/")) &&
+        request.method === "GET"
+      ) {
+        const prefix = pathname.startsWith("/api/v1/public/media/")
+          ? "/api/v1/public/media/"
+          : "/api/media/";
+        const key = decodeURIComponent(pathname.replace(prefix, ""));
         if (!key || key.includes("..") || key.startsWith("/")) {
           return jsonResponse(
             { ok: false, error: "Invalid media key" },
@@ -1912,7 +1918,28 @@ const worker = {
           getOptions.range = request.headers;
         }
 
-        const obj = await bucket.get(key, getOptions);
+        let obj: R2ObjectBody | null = null;
+        try {
+          obj = await bucket.get(key, getOptions);
+        } catch (r2Err: unknown) {
+          const errMsg = r2Err instanceof Error ? r2Err.message : String(r2Err);
+          if (
+            rangeHeader &&
+            (errMsg.toLowerCase().includes("range") ||
+              errMsg.toLowerCase().includes("satisfiable") ||
+              (r2Err as { name?: string })?.name === "RangeError")
+          ) {
+            return new Response(null, {
+              status: 416,
+              headers: {
+                "Content-Range": `bytes */*`,
+                "Access-Control-Allow-Origin": origin,
+                "Cache-Control": "no-store, no-cache, must-revalidate"
+              }
+            });
+          }
+          throw r2Err;
+        }
         if (!obj) {
           return jsonResponse(
             { ok: false, error: "Media not found" },
@@ -3004,7 +3031,28 @@ const worker = {
           if (rangeHeader) {
             getOptions.range = request.headers;
           }
-          const obj = await bucket.get(key, getOptions);
+          let obj: R2ObjectBody | null = null;
+        try {
+          obj = await bucket.get(key, getOptions);
+        } catch (r2Err: unknown) {
+          const errMsg = r2Err instanceof Error ? r2Err.message : String(r2Err);
+          if (
+            rangeHeader &&
+            (errMsg.toLowerCase().includes("range") ||
+              errMsg.toLowerCase().includes("satisfiable") ||
+              (r2Err as { name?: string })?.name === "RangeError")
+          ) {
+            return new Response(null, {
+              status: 416,
+              headers: {
+                "Content-Range": `bytes */*`,
+                "Access-Control-Allow-Origin": origin,
+                "Cache-Control": "no-store, no-cache, must-revalidate"
+              }
+            });
+          }
+          throw r2Err;
+        }
           if (!obj) {
             return jsonResponse({ ok: false, error: "Media not found" }, 404, origin);
           }

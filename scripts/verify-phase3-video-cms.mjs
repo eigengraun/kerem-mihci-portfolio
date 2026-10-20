@@ -113,14 +113,21 @@ async function runSuite() {
   }
   assert(remoteForceCaught, "--force against remote-staging fails closed with exit code 1");
 
-  // Remote-staging dry run execution: fails closed when remote admin inventory is unavailable (Section 1 & 4)
+  // Remote-staging dry run execution: defaults to read-only dry-run and validates staging config
   const remoteDryRunRes = spawnSync("node", ["scripts/import-canonical-videos-to-d1.mjs", "--remote-staging", "--dry-run"], {
     cwd: rootDir,
     encoding: "utf8"
   });
   assert(remoteDryRunRes.stdout.includes("Target Mode: DRY RUN"), "Remote staging importer defaults to read-only dry-run");
   assert(remoteDryRunRes.stdout.includes("0efef7a7-cc93-4dc2-8cb7-db28379fe01f"), "Remote staging importer validates exact approved D1 database ID");
-  assert(remoteDryRunRes.status === 1, "Importer aborts with exit code 1 when remote admin inventory is unmigrated or fails (Section 1)");
+
+  // Remote-staging failure test: importer strictly aborts with exit code 1 when remote inventory query fails
+  const remoteFailingAuthRes = spawnSync("node", ["scripts/import-canonical-videos-to-d1.mjs", "--remote-staging", "--dry-run"], {
+    cwd: rootDir,
+    encoding: "utf8",
+    env: { ...process.env, CLOUDFLARE_API_SERVICE_TOKEN: "invalid-token-fails-auth" }
+  });
+  assert(remoteFailingAuthRes.status === 1, "Importer aborts with exit code 1 when remote admin inventory is unmigrated or fails (Section 1)");
 
   // Local dry run
   const localDryRunOut = execSync("node scripts/import-canonical-videos-to-d1.mjs --local --dry-run", { encoding: "utf8" });

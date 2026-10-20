@@ -1,0 +1,341 @@
+{
+  "timestamp": "2026-10-20T17:47:40.820Z",
+  "commit": "b1a4a2cfee1211d956b019eef56297f6be695c5e",
+  "targetInfrastructure": {
+    "workerUrl": "https://kerem-mihci-portfolio-api-staging.kerem-mihci.workers.dev",
+    "workerName": "kerem-mihci-portfolio-api-staging",
+    "databaseName": "kerem-portfolio-db-staging",
+    "databaseId": "0efef7a7-cc93-4dc2-8cb7-db28379fe01f",
+    "r2Bucket": "kerem-portfolio-media-staging"
+  },
+  "total": 52,
+  "passed": 52,
+  "failed": 0,
+  "failures": [],
+  "groups": {
+    "Group 1: Target Staging Configuration & Environment Guardrails": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Staging Worker name matches approved configuration",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Staging D1 database ID matches approved database",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Staging R2 bucket matches approved bucket",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Service token resolved successfully",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Remote staging Worker health check OK",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "Group 2: Multipart Media Upload & D1 Asset Registration": {
+      "total": 7,
+      "passed": 7,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Synthetic MP4 buffer created with valid ftyp box",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Valid WebP poster buffer loaded",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "POST /api/v1/admin/videos/upload returns HTTP 201 for MP4",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Upload response has ok: true and valid asset metadata",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Video storage key uses structured path (videos/<slug>/video-*)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "POST /api/v1/admin/videos/upload returns HTTP 201 for WebP poster",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Poster storage key uses structured path (videos/<slug>/poster-*)",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "Group 3: Draft Media Isolation & Admin Preview Authorization": {
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Anonymous visitor accessing draft video media receives HTTP 404",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Anonymous 404 response enforces no-store, no-cache",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Anonymous visitor accessing draft poster media receives HTTP 404",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Authenticated admin preview accessing draft video returns HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Admin preview enforces private, no-store cache policy",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Authenticated admin preview accessing draft poster returns HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "Group 4: Video Publication & Public Catalog Visibility": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "PUT /api/v1/admin/videos/[id] updates and publishes video (HTTP 200)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Updated video returned with status 'published'",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Public video catalog count is now exactly 22 (21 canonical + 1 test)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Test video appears in public video catalog",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Public test video title matches Turkish translation",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "Group 5: Byte-Range Streaming & Media Header Integrity": {
+      "total": 13,
+      "passed": 13,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Public visitor accessing published MP4 receives HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Public video response advertises Accept-Ranges: bytes",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Content-Type matches video/mp4",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Range: bytes=0-100 request returns HTTP 206 Partial Content",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Range response advertises Accept-Ranges: bytes",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Content-Range header correct (bytes 0-100/2080)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Content-Length header matches range length (101)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Range response body length exactly equals 101 bytes",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Range response payload exactly matches slice of original MP4",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Range: bytes=100-200 request returns HTTP 206 Partial Content",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Middle slice Content-Range is bytes 100-200/<size>",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Middle slice payload matches original buffer",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Out of bounds Range handled gracefully (status 416 or bounded)",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "Group 6: Immediate Invalidation on Unpublish": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "PATCH /api/v1/admin/videos/[id] to 'draft' returns HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Public video catalog count immediately returns to 21",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Unpublished test video is immediately absent from public catalog",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Public media URL immediately returns HTTP 404 after unpublish (zero leak)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Admin preview remains fully functional (HTTP 200) for unpublished video",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "Group 7: Video Reorder API Verification": {
+      "total": 2,
+      "passed": 2,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "POST /api/v1/admin/videos/reorder returns HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Reorder response reports updatedCount >= 1",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "Group 8: Surgical Cleanup & Post-Rollout Resource Integrity": {
+      "total": 9,
+      "passed": 9,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "DELETE /api/v1/admin/videos/[id] returns HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Surgically deleted test video object from staging R2",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Surgically deleted test poster object from staging R2",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Remote D1 has exactly 21 canonical videos post-cleanup",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "All 21 canonical videos remain in published status",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Zero orphan draft videos remaining",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "All 31 projects preserved (30 published + 1 draft)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "All 72 project_media records preserved intact",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Ephemeral test audit logs purged from staging D1",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    }
+  },
+  "surgicalCleanupVerified": true,
+  "postCleanupState": {
+    "canonicalVideos": 21,
+    "canonicalVideosPublished": 21,
+    "draftVideos": 0,
+    "totalProjects": 31,
+    "projectMedia": 72
+  }
+}

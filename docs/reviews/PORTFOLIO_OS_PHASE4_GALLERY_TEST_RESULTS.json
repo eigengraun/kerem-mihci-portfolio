@@ -1,0 +1,428 @@
+{
+  "suite": "Portfolio OS Phase 4 Personal Gallery CMS Verification",
+  "timestamp": "2026-10-20T20:51:36.861Z",
+  "commit": "10879dd84f6e1f050d35aa7cb94fadf23acd0a93",
+  "total": 75,
+  "passed": 75,
+  "failed": 0,
+  "failures": [],
+  "groups": {
+    "A: D1 Personal Gallery Schema & Relational Integrity": {
+      "total": 22,
+      "passed": 22,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Migration file 0003_personal_gallery_schema.sql exists",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Migration contains portfolio_gallery_items",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Migration contains portfolio_gallery_translations",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Migration contains portfolio_gallery_assets",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Migration contains portfolio_gallery_revisions",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Migration contains status sort index",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Migration explicitly enforces foreign keys",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "portfolio_gallery_items table exists in local D1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "portfolio_gallery_translations table exists in local D1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "portfolio_gallery_assets table exists in local D1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "portfolio_gallery_revisions table exists in local D1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "idx_portfolio_gallery_status_sort exists",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "idx_portfolio_gallery_translations_lookup exists",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "idx_portfolio_gallery_assets_lookup exists",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "idx_portfolio_gallery_assets_storage_key exists",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "idx_portfolio_gallery_revisions_lookup exists",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Existing projects preserved intact",
+          "status": "PASS",
+          "detail": "Count: 30"
+        },
+        {
+          "name": "Existing project media records preserved intact",
+          "status": "PASS",
+          "detail": "Count: 70"
+        },
+        {
+          "name": "Existing canonical videos preserved intact",
+          "status": "PASS",
+          "detail": "Count: 21"
+        },
+        {
+          "name": "Foreign key cascade on delete removes translations",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Foreign key cascade on delete removes assets",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Foreign key cascade on delete removes revisions",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "B: Real Admin Gallery CRUD via HTTP Endpoints": {
+      "total": 18,
+      "passed": 18,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Admin authenticated successfully as staging-admin@local.test",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "CSRF token returned by auth endpoint",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "POST /api/admin/gallery creates photograph",
+          "status": "PASS",
+          "detail": "HTTP 201"
+        },
+        {
+          "name": "Creation response reports ok: true",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Created photograph has matching ID",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Created photograph stores Turkish alt",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Created photograph stores English alt",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "GET /api/admin/gallery succeeds",
+          "status": "PASS",
+          "detail": "HTTP 200"
+        },
+        {
+          "name": "Created photograph appears in admin gallery list",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "GET /api/admin/gallery/:id returns created photograph",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "GET /api/admin/gallery/:id has matching ID",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Initial creation records point-in-time revision",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "PUT /api/admin/gallery/:id updates photograph",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Updated photograph persists updated location",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Update records new revision (rev 2)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "POST /api/admin/gallery/:id/revisions rolls back to revision 1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Rollback restored revision 1 location",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Audit log entry created for gallery item mutations",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "C: Image Media Upload, Signature & MIME Enforcement": {
+      "total": 8,
+      "passed": 8,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Valid JPEG upload accepted with 201",
+          "status": "PASS",
+          "detail": "HTTP 201"
+        },
+        {
+          "name": "JPEG upload returns publicUrl",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "JPEG asset record has image/jpeg MIME type",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Valid PNG upload accepted with 201",
+          "status": "PASS",
+          "detail": "HTTP 201"
+        },
+        {
+          "name": "Valid WebP upload accepted with 201",
+          "status": "PASS",
+          "detail": "HTTP 201"
+        },
+        {
+          "name": "Disallowed MIME type video/mp4 rejected with 400",
+          "status": "PASS",
+          "detail": "HTTP 400"
+        },
+        {
+          "name": "Invalid magic byte signature rejected with 400",
+          "status": "PASS",
+          "detail": "HTTP 400"
+        },
+        {
+          "name": "Oversized file > 10 MB rejected",
+          "status": "PASS",
+          "detail": "HTTP 400"
+        }
+      ]
+    },
+    "D: Safe Draft Isolation & Publishing Lifecycle": {
+      "total": 9,
+      "passed": 9,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "GET /api/v1/public/gallery succeeds",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Draft photograph is completely absent from public gallery list (Safe Draft Isolation)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Draft media asset returns 404 to unauthenticated public visitors",
+          "status": "PASS",
+          "detail": "HTTP 404"
+        },
+        {
+          "name": "Publishing without bilingual alt text rejected with 400",
+          "status": "PASS",
+          "detail": "HTTP 400"
+        },
+        {
+          "name": "Valid publishing succeeds with 200",
+          "status": "PASS",
+          "detail": "HTTP 200"
+        },
+        {
+          "name": "Published photograph immediately visible on public gallery",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Published media asset returns 200 OK to public visitors",
+          "status": "PASS",
+          "detail": "HTTP 200"
+        },
+        {
+          "name": "Unpublished photograph instantly disappears from public gallery",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Unpublished media asset immediately returns 404 to public visitors",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "E: Deterministic Ordering & Stream Sequence Persistence": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "All 3 test photographs returned on public gallery",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Initial order strictly reflects sortOrder ASC (P1 -> P2 -> P3)",
+          "status": "PASS",
+          "detail": "Actual: order-p1-1792529497102 -> order-p2-1792529497102 -> order-p3-1792529497102"
+        },
+        {
+          "name": "POST /api/admin/gallery/reorder succeeds with 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Updated stream order persisted and served deterministically (P3 -> P1 -> P2)",
+          "status": "PASS",
+          "detail": "Actual: order-p3-1792529497102 -> order-p1-1792529497102 -> order-p2-1792529497102"
+        },
+        {
+          "name": "New photograph defaults to appending at the bottom",
+          "status": "PASS",
+          "detail": "sortOrder: 101"
+        }
+      ]
+    },
+    "F: Public Frontend Hydration, Aspect Ratio & Non-Regression": {
+      "total": 13,
+      "passed": 13,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Public Turkish desktop /tr renders with 200 OK",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Response is valid HTML document",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Public English desktop /en renders with 200 OK",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "GalleryApp renders single vertical stream (flex-col gap-4)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "GalleryApp preserves natural aspect ratio (object-contain)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "GalleryApp contains zero forced square cropping",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "sessionStore exposes hydrateGallery",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "hydrateGallery supports isCmsMode flag",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "AdminDashboardClient contains admin-gallery-section",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "AdminDashboardClient contains admin-gallery-editor-section",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "AdminDashboardClient contains gallery-reorder-toggle-btn",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Non-regression: 30 canonical projects preserved",
+          "status": "PASS",
+          "detail": "Count: 30"
+        },
+        {
+          "name": "Non-regression: 21 canonical videos preserved",
+          "status": "PASS",
+          "detail": "Count: 21"
+        }
+      ]
+    }
+  }
+}

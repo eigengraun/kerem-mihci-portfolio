@@ -34,9 +34,14 @@ import {
   type CmsVideoAssetRecord,
   type CmsVideoRevisionRecord,
   type UpsertVideoInput,
+  type CmsGalleryItem,
+  type CmsGalleryAssetRecord,
+  type CmsGalleryRevisionRecord,
+  type UpsertGalleryItemInput,
   normalizeSlug,
   validateMediaFileSignature,
-  validateVideoAssetSignature
+  validateVideoAssetSignature,
+  validateGalleryImageSignature
 } from "./types";
 
 interface SqliteStatement {
@@ -365,6 +370,56 @@ CREATE INDEX IF NOT EXISTS idx_portfolio_video_translations_lookup ON portfolio_
 CREATE INDEX IF NOT EXISTS idx_portfolio_video_assets_lookup ON portfolio_video_assets(video_id, asset_type);
 CREATE INDEX IF NOT EXISTS idx_portfolio_video_assets_storage_key ON portfolio_video_assets(storage_key);
 CREATE INDEX IF NOT EXISTS idx_portfolio_video_revisions_lookup ON portfolio_video_revisions(video_id, revision_number DESC);
+
+-- Personal Gallery Schema (Additive)
+CREATE TABLE IF NOT EXISTS portfolio_gallery_items (
+  id TEXT PRIMARY KEY,
+  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'published', 'archived')),
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  year TEXT,
+  location TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  published_at TEXT,
+  archived_at TEXT
+);
+CREATE TABLE IF NOT EXISTS portfolio_gallery_translations (
+  id TEXT PRIMARY KEY,
+  item_id TEXT NOT NULL REFERENCES portfolio_gallery_items(id) ON DELETE CASCADE,
+  locale TEXT NOT NULL CHECK (locale IN ('tr', 'en')),
+  alt_text TEXT NOT NULL DEFAULT '',
+  caption TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL,
+  UNIQUE(item_id, locale)
+);
+CREATE TABLE IF NOT EXISTS portfolio_gallery_assets (
+  id TEXT PRIMARY KEY,
+  item_id TEXT NOT NULL REFERENCES portfolio_gallery_items(id) ON DELETE CASCADE,
+  storage_mode TEXT NOT NULL DEFAULT 'local_static' CHECK (storage_mode IN ('local_static', 'r2', 'external')),
+  storage_key TEXT NOT NULL,
+  public_url TEXT NOT NULL,
+  mime_type TEXT NOT NULL DEFAULT 'image/webp' CHECK (mime_type IN ('image/jpeg', 'image/png', 'image/webp')),
+  byte_size INTEGER NOT NULL DEFAULT 0,
+  width INTEGER,
+  height INTEGER,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE(item_id)
+);
+CREATE TABLE IF NOT EXISTS portfolio_gallery_revisions (
+  id TEXT PRIMARY KEY,
+  item_id TEXT NOT NULL REFERENCES portfolio_gallery_items(id) ON DELETE CASCADE,
+  revision_number INTEGER NOT NULL,
+  action TEXT NOT NULL,
+  snapshot_json TEXT NOT NULL,
+  actor_email TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_portfolio_gallery_status_sort ON portfolio_gallery_items(status, sort_order ASC, id ASC);
+CREATE INDEX IF NOT EXISTS idx_portfolio_gallery_translations_lookup ON portfolio_gallery_translations(item_id, locale);
+CREATE INDEX IF NOT EXISTS idx_portfolio_gallery_assets_lookup ON portfolio_gallery_assets(item_id);
+CREATE INDEX IF NOT EXISTS idx_portfolio_gallery_assets_storage_key ON portfolio_gallery_assets(storage_key);
+CREATE INDEX IF NOT EXISTS idx_portfolio_gallery_revisions_lookup ON portfolio_gallery_revisions(item_id, revision_number DESC);
 `;
 
 let cachedDb: SqliteDatabase | null = null;
@@ -1767,7 +1822,26 @@ export function isMediaKeyPubliclyAccessibleInLocalD1(storageKey: string): boole
       )
       .get(storageKey) as { id: string; video_status: string } | undefined;
 
-    return Boolean(videoRow && videoRow.video_status === "published");
+    if (videoRow && videoRow.video_status === "published") {
+      return true;
+    }
+  } catch {
+    // continue
+  }
+
+  // Check gallery assets
+  try {
+    const galleryRow = db
+      .prepare(
+        `SELECT pga.id, pgi.status as item_status
+         FROM portfolio_gallery_assets pga
+         INNER JOIN portfolio_gallery_items pgi ON pga.item_id = pgi.id
+         WHERE pga.storage_key = ?
+         LIMIT 1`
+      )
+      .get(storageKey) as { id: string; item_status: string } | undefined;
+
+    return Boolean(galleryRow && galleryRow.item_status === "published");
   } catch {
     return false;
   }
@@ -1870,7 +1944,11 @@ export function getD1HealthAndStats() {
         archivedVideos: 0,
         portraitVideos: 0,
         landscapeVideos: 0,
-        aiAssistedVideos: 0
+        aiAssistedVideos: 0,
+        totalGalleryItems: 0,
+        publishedGalleryItems: 0,
+        draftGalleryItems: 0,
+        archivedGalleryItems: 0
       },
       workspaceBreakdown: []
     };
@@ -1929,6 +2007,33 @@ export function getD1HealthAndStats() {
     // portfolio_videos table not yet created
   }
 
+  const galleryCounts = {
+    totalGalleryItems: 0,
+    publishedGalleryItems: 0,
+    draftGalleryItems: 0,
+    archivedGalleryItems: 0
+  };
+
+  try {
+    const galleryStatusRows = db
+      .prepare(
+        `SELECT status, COUNT(*) as count
+         FROM portfolio_gallery_items
+         GROUP BY status`
+      )
+      .all() as { status: string; count: number }[];
+
+    for (const r of galleryStatusRows) {
+      const c = Number(r.count || 0);
+      galleryCounts.totalGalleryItems += c;
+      if (r.status === "published") galleryCounts.publishedGalleryItems += c;
+      if (r.status === "draft") galleryCounts.draftGalleryItems += c;
+      if (r.status === "archived") galleryCounts.archivedGalleryItems += c;
+    }
+  } catch {
+    // portfolio_gallery_items table not yet created
+  }
+
   return {
     ok: true,
     mode: remoteConfigured ? "cloudflare-worker-local" : "local-d1-sqlite",
@@ -1948,7 +2053,8 @@ export function getD1HealthAndStats() {
       featuredPublished: Number(featuredRow?.count || 0),
       mediaItems: Number(mediaRow?.count || 0),
       translations: Number(translationRow?.count || 0),
-      ...videoCounts
+      ...videoCounts,
+      ...galleryCounts
     },
     workspaceBreakdown: workspaceRows.map((r) => ({
       workspace: String(r.workspace),
@@ -3360,4 +3466,596 @@ export function uploadVideoAssetToStorageAndD1(params: {
     throw err;
   }
 }
+
+// ============================================================
+// Personal Gallery Functions (Additive Phase 4)
+// ============================================================
+
+export function mapRowsToCmsGalleryItems(
+  itemRows: Record<string, unknown>[],
+  translationRows: Record<string, unknown>[],
+  assetRows: Record<string, unknown>[]
+): CmsGalleryItem[] {
+  const translationsByItemId = new Map<string, { tr?: Record<string, unknown>; en?: Record<string, unknown> }>();
+  for (const tr of translationRows) {
+    const itemId = String(tr.item_id);
+    const entry = translationsByItemId.get(itemId) || {};
+    if (tr.locale === "tr") entry.tr = tr;
+    if (tr.locale === "en") entry.en = tr;
+    translationsByItemId.set(itemId, entry);
+  }
+
+  const assetsByItemId = new Map<string, CmsGalleryAssetRecord>();
+  for (const ar of assetRows) {
+    const itemId = String(ar.item_id);
+    assetsByItemId.set(itemId, {
+      id: String(ar.id),
+      itemId,
+      storageMode: (ar.storage_mode as "local_static" | "r2" | "external") || "local_static",
+      storageKey: String(ar.storage_key || ""),
+      publicUrl: String(ar.public_url || ""),
+      mimeType: String(ar.mime_type || "image/webp"),
+      byteSize: Number(ar.byte_size || 0),
+      width: ar.width !== null && ar.width !== undefined ? Number(ar.width) : null,
+      height: ar.height !== null && ar.height !== undefined ? Number(ar.height) : null,
+      createdAt: String(ar.created_at || ""),
+      updatedAt: String(ar.updated_at || "")
+    });
+  }
+
+  return itemRows.map((r) => {
+    const itemId = String(r.id);
+    const trs = translationsByItemId.get(itemId) || {};
+    const asset = assetsByItemId.get(itemId) || null;
+
+    const altTR = trs.tr ? String(trs.tr.alt_text || "") : "";
+    const altEN = trs.en ? String(trs.en.alt_text || "") : "";
+    const captionTR = trs.tr && trs.tr.caption ? String(trs.tr.caption) : undefined;
+    const captionEN = trs.en && trs.en.caption ? String(trs.en.caption) : undefined;
+
+    const hasCaption = Boolean(captionTR || captionEN);
+
+    const item: CmsGalleryItem = {
+      id: itemId,
+      cmsStatus: (r.status as CmsPublishStatus) || "draft",
+      sortOrder: Number(r.sort_order ?? 0),
+      src: asset?.publicUrl || "",
+      alt: {
+        tr: altTR,
+        en: altEN
+      },
+      ...(hasCaption ? { caption: { tr: captionTR || "", en: captionEN || "" } } : {}),
+      ...(r.year ? { year: String(r.year) } : {}),
+      ...(r.location ? { location: String(r.location) } : {}),
+      createdAt: String(r.created_at || ""),
+      updatedAt: String(r.updated_at || ""),
+      publishedAt: r.published_at ? String(r.published_at) : null,
+      archivedAt: r.archived_at ? String(r.archived_at) : null,
+      asset
+    };
+
+    return item;
+  });
+}
+
+export function listAllGalleryItemsForAdminFromD1(): CmsGalleryItem[] {
+  assertLocalSimulationAllowed("listAllGalleryItemsForAdminFromD1");
+  const db = getD1Database();
+  const itemRows = db
+    .prepare(`SELECT * FROM portfolio_gallery_items ORDER BY sort_order ASC, id ASC`)
+    .all();
+  if (itemRows.length === 0) return [];
+
+  const itemIds = itemRows.map((r) => String(r.id));
+  const placeholders = itemIds.map(() => "?").join(",");
+
+  const translationRows = db
+    .prepare(`SELECT * FROM portfolio_gallery_translations WHERE item_id IN (${placeholders})`)
+    .all(...itemIds);
+  const assetRows = db
+    .prepare(`SELECT * FROM portfolio_gallery_assets WHERE item_id IN (${placeholders})`)
+    .all(...itemIds);
+
+  return mapRowsToCmsGalleryItems(itemRows, translationRows, assetRows);
+}
+
+export function listPublishedGalleryItemsFromD1(): CmsGalleryItem[] {
+  assertLocalSimulationAllowed("listPublishedGalleryItemsFromD1");
+  const db = getD1Database();
+  const itemRows = db
+    .prepare(
+      `SELECT * FROM portfolio_gallery_items WHERE status = 'published' ORDER BY sort_order ASC, id ASC`
+    )
+    .all();
+  if (itemRows.length === 0) return [];
+
+  const itemIds = itemRows.map((r) => String(r.id));
+  const placeholders = itemIds.map(() => "?").join(",");
+
+  const translationRows = db
+    .prepare(`SELECT * FROM portfolio_gallery_translations WHERE item_id IN (${placeholders})`)
+    .all(...itemIds);
+  const assetRows = db
+    .prepare(`SELECT * FROM portfolio_gallery_assets WHERE item_id IN (${placeholders})`)
+    .all(...itemIds);
+
+  return mapRowsToCmsGalleryItems(itemRows, translationRows, assetRows);
+}
+
+export function getGalleryItemByIdFromD1(id: string): CmsGalleryItem | null {
+  assertLocalSimulationAllowed("getGalleryItemByIdFromD1");
+  const db = getD1Database();
+  const row = db.prepare(`SELECT * FROM portfolio_gallery_items WHERE id = ? LIMIT 1`).get(id);
+  if (!row) return null;
+
+  const translationRows = db
+    .prepare(`SELECT * FROM portfolio_gallery_translations WHERE item_id = ?`)
+    .all(id);
+  const assetRows = db
+    .prepare(`SELECT * FROM portfolio_gallery_assets WHERE item_id = ?`)
+    .all(id);
+
+  const mapped = mapRowsToCmsGalleryItems([row], translationRows, assetRows);
+  return mapped[0] || null;
+}
+
+export function upsertGalleryItemInD1(
+  input: UpsertGalleryItemInput & { status?: string },
+  actorEmail: string,
+  actionLabel = "update"
+): CmsGalleryItem {
+  assertLocalSimulationAllowed("upsertGalleryItemInD1");
+  const db = getD1Database();
+
+  const existingById = input.id
+    ? db.prepare(`SELECT * FROM portfolio_gallery_items WHERE id = ?`).get(input.id)
+    : undefined;
+
+  if (actionLabel === "create") {
+    if (existingById) {
+      const err = new Error(`Gallery item with ID "${input.id}" already exists.`) as Error & { statusCode: number; code: string };
+      err.statusCode = 409;
+      err.code = "CONFLICT";
+      throw err;
+    }
+  } else {
+    if (!existingById) {
+      const err = new Error("Gallery item not found.") as Error & { statusCode: number; code: string };
+      err.statusCode = 404;
+      err.code = "NOT_FOUND";
+      throw err;
+    }
+  }
+
+  const itemId = existingById ? String(existingById.id) : (input.id || `gal-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`);
+  const now = new Date().toISOString();
+
+  const prevStatus = existingById ? (String(existingById.status) as CmsPublishStatus) : null;
+  const rawRequestedStatus = input.cmsStatus || (input.status as CmsPublishStatus | undefined);
+  const nextStatus: CmsPublishStatus =
+    rawRequestedStatus && ["draft", "published", "archived"].includes(rawRequestedStatus)
+      ? rawRequestedStatus
+      : prevStatus || "draft";
+
+  if (nextStatus === "published") {
+    if (!input.altTR?.trim() || !input.altEN?.trim()) {
+      throw new Error("Both Turkish and English alt text are required before publishing.");
+    }
+    // Must have a valid image source (either from asset or input.src)
+    const existingAsset = db.prepare(`SELECT id, public_url FROM portfolio_gallery_assets WHERE item_id = ?`).get(itemId);
+    if (!input.src?.trim() && !existingAsset && !input.asset?.publicUrl) {
+      throw new Error("A valid image is required before publishing.");
+    }
+  }
+
+  // Calculate default sort order if appending
+  let finalSortOrder = typeof input.sortOrder === "number" ? input.sortOrder : (existingById ? Number(existingById.sort_order ?? 0) : 0);
+  if (actionLabel === "create" && typeof input.sortOrder !== "number") {
+    const maxOrderRow = db.prepare(`SELECT MAX(sort_order) as max_order FROM portfolio_gallery_items`).get() as { max_order: number | null } | undefined;
+    finalSortOrder = typeof maxOrderRow?.max_order === "number" ? maxOrderRow.max_order + 1 : 0;
+  }
+
+  let publishedAt: string | null = existingById ? (existingById.published_at as string | null) : null;
+  let archivedAt: string | null = existingById ? (existingById.archived_at as string | null) : null;
+
+  if (nextStatus === "published" && prevStatus !== "published") {
+    publishedAt = now;
+    archivedAt = null;
+  } else if (nextStatus === "archived") {
+    archivedAt = now;
+  } else if (nextStatus === "draft") {
+    archivedAt = null;
+  }
+
+  // Atomically persist item and translations
+  db.prepare(
+    `INSERT INTO portfolio_gallery_items (
+      id, status, sort_order, year, location, created_at, updated_at, published_at, archived_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      status = excluded.status,
+      sort_order = excluded.sort_order,
+      year = excluded.year,
+      location = excluded.location,
+      updated_at = excluded.updated_at,
+      published_at = excluded.published_at,
+      archived_at = excluded.archived_at`
+  ).run(
+    itemId,
+    nextStatus,
+    finalSortOrder,
+    input.year || null,
+    input.location || null,
+    existingById ? String(existingById.created_at) : now,
+    now,
+    publishedAt,
+    archivedAt
+  );
+
+  // Translations
+  db.prepare(
+    `INSERT INTO portfolio_gallery_translations (id, item_id, locale, alt_text, caption, updated_at)
+     VALUES (?, ?, 'tr', ?, ?, ?)
+     ON CONFLICT(item_id, locale) DO UPDATE SET
+       alt_text = excluded.alt_text,
+       caption = excluded.caption,
+       updated_at = excluded.updated_at`
+  ).run(
+    `gtr-${itemId}-tr`,
+    itemId,
+    input.altTR || "",
+    input.captionTR || "",
+    now
+  );
+
+  db.prepare(
+    `INSERT INTO portfolio_gallery_translations (id, item_id, locale, alt_text, caption, updated_at)
+     VALUES (?, ?, 'en', ?, ?, ?)
+     ON CONFLICT(item_id, locale) DO UPDATE SET
+       alt_text = excluded.alt_text,
+       caption = excluded.caption,
+       updated_at = excluded.updated_at`
+  ).run(
+    `gtr-${itemId}-en`,
+    itemId,
+    input.altEN || "",
+    input.captionEN || "",
+    now
+  );
+
+  // If asset provided in input, upsert it
+  if (input.asset && input.asset.storageKey) {
+    db.prepare(
+      `INSERT INTO portfolio_gallery_assets (
+        id, item_id, storage_mode, storage_key, public_url, mime_type, byte_size, width, height, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(item_id) DO UPDATE SET
+        storage_mode = excluded.storage_mode,
+        storage_key = excluded.storage_key,
+        public_url = excluded.public_url,
+        mime_type = excluded.mime_type,
+        byte_size = excluded.byte_size,
+        width = excluded.width,
+        height = excluded.height,
+        updated_at = excluded.updated_at`
+    ).run(
+      input.asset.id || `gast-${itemId}`,
+      itemId,
+      input.asset.storageMode || "r2",
+      input.asset.storageKey,
+      input.asset.publicUrl || `/api/media/${input.asset.storageKey}`,
+      input.asset.mimeType || "image/webp",
+      input.asset.byteSize || 0,
+      input.asset.width ?? null,
+      input.asset.height ?? null,
+      now,
+      now
+    );
+  }
+
+  // Fetch updated item to record snapshot and revision
+  const updatedItem = getGalleryItemByIdFromD1(itemId);
+  if (!updatedItem) {
+    throw new Error(`Failed to retrieve gallery item "${itemId}" after upsert.`);
+  }
+
+  // Revisions tracking
+  const lastRevRow = db
+    .prepare(`SELECT MAX(revision_number) as max_rev FROM portfolio_gallery_revisions WHERE item_id = ?`)
+    .get(itemId) as { max_rev: number | null } | undefined;
+  const nextRevNumber = (lastRevRow?.max_rev ?? 0) + 1;
+
+  db.prepare(
+    `INSERT INTO portfolio_gallery_revisions (id, item_id, revision_number, action, snapshot_json, actor_email, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    `grev-${itemId}-${nextRevNumber}`,
+    itemId,
+    nextRevNumber,
+    actionLabel,
+    JSON.stringify(updatedItem),
+    actorEmail,
+    now
+  );
+
+  // Audit log
+  db.prepare(
+    `INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+     VALUES (?, ?, ?, 'gallery_item', ?, ?, ?)`
+  ).run(
+    `log-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`,
+    actorEmail,
+    actionLabel,
+    itemId,
+    JSON.stringify({ status: nextStatus, sortOrder: finalSortOrder }),
+    now
+  );
+
+  return updatedItem;
+}
+
+export function deleteGalleryItemFromD1(id: string, actorEmail: string): { deletedId: string } {
+  assertLocalSimulationAllowed("deleteGalleryItemFromD1");
+  const db = getD1Database();
+  const existing = db.prepare(`SELECT id, status FROM portfolio_gallery_items WHERE id = ?`).get(id);
+  if (!existing) {
+    const err = new Error(`Gallery item "${id}" not found.`) as Error & { statusCode: number; code: string };
+    err.statusCode = 404;
+    err.code = "NOT_FOUND";
+    throw err;
+  }
+
+  const now = new Date().toISOString();
+  db.prepare(`DELETE FROM portfolio_gallery_items WHERE id = ?`).run(id);
+
+  db.prepare(
+    `INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+     VALUES (?, ?, 'delete', 'gallery_item', ?, ?, ?)`
+  ).run(
+    `log-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`,
+    actorEmail,
+    id,
+    JSON.stringify({ deletedId: id }),
+    now
+  );
+
+  return { deletedId: id };
+}
+
+export function updateGalleryOrderingInD1(
+  items: Array<{ id: string; sortOrder: number }>,
+  actorEmail: string
+): { updated: number } {
+  assertLocalSimulationAllowed("updateGalleryOrderingInD1");
+  const db = getD1Database();
+  const now = new Date().toISOString();
+
+  let updatedCount = 0;
+  for (const item of items) {
+    const res = db
+      .prepare(`UPDATE portfolio_gallery_items SET sort_order = ?, updated_at = ? WHERE id = ?`)
+      .run(item.sortOrder, now, item.id);
+    if (res.changes > 0) {
+      updatedCount += 1;
+    }
+  }
+
+  db.prepare(
+    `INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+     VALUES (?, ?, 'reorder', 'gallery_item', null, ?, ?)`
+  ).run(
+    `log-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`,
+    actorEmail,
+    JSON.stringify({ count: updatedCount }),
+    now
+  );
+
+  return { updated: updatedCount };
+}
+
+export function listGalleryRevisionsFromD1(itemId: string): CmsGalleryRevisionRecord[] {
+  assertLocalSimulationAllowed("listGalleryRevisionsFromD1");
+  const db = getD1Database();
+  const rows = db
+    .prepare(
+      `SELECT * FROM portfolio_gallery_revisions WHERE item_id = ? ORDER BY revision_number DESC`
+    )
+    .all(itemId);
+
+  return rows.map((r) => ({
+    id: String(r.id),
+    itemId: String(r.item_id),
+    revisionNumber: Number(r.revision_number),
+    action: String(r.action),
+    snapshotJson: String(r.snapshot_json),
+    actorEmail: String(r.actor_email),
+    createdAt: String(r.created_at)
+  }));
+}
+
+export function rollbackGalleryRevisionInD1(
+  itemId: string,
+  revisionNumber: number,
+  actorEmail: string
+): CmsGalleryItem {
+  assertLocalSimulationAllowed("rollbackGalleryRevisionInD1");
+  const db = getD1Database();
+  const revRow = db
+    .prepare(
+      `SELECT * FROM portfolio_gallery_revisions WHERE item_id = ? AND revision_number = ? LIMIT 1`
+    )
+    .get(itemId, revisionNumber) as Record<string, unknown> | undefined;
+
+  if (!revRow) {
+    const err = new Error(`Revision ${revisionNumber} for gallery item "${itemId}" not found.`) as Error & { statusCode: number; code: string };
+    err.statusCode = 404;
+    err.code = "NOT_FOUND";
+    throw err;
+  }
+
+  const snapshot: CmsGalleryItem = JSON.parse(String(revRow.snapshot_json));
+  const restored = upsertGalleryItemInD1(
+    {
+      id: snapshot.id,
+      cmsStatus: snapshot.cmsStatus,
+      src: snapshot.src,
+      altTR: snapshot.alt?.tr || "",
+      altEN: snapshot.alt?.en || "",
+      captionTR: snapshot.caption?.tr,
+      captionEN: snapshot.caption?.en,
+      year: snapshot.year,
+      location: snapshot.location,
+      sortOrder: snapshot.sortOrder,
+      asset: snapshot.asset ? snapshot.asset : undefined
+    },
+    actorEmail,
+    "rollback"
+  );
+
+  return restored;
+}
+
+export function uploadGalleryAssetToStorageAndD1(params: {
+  buffer: Buffer;
+  filename: string;
+  mimeType: string;
+  itemId?: string | null;
+  actorEmail: string;
+  width?: number | null;
+  height?: number | null;
+}): CmsGalleryAssetRecord {
+  assertLocalSimulationAllowed("uploadGalleryAssetToStorageAndD1");
+
+  const {
+    buffer,
+    filename,
+    mimeType,
+    itemId: initialItemId = null,
+    actorEmail,
+    width = null,
+    height = null
+  } = params;
+
+  // Strict signature, format, and size validation
+  const sigCheck = validateGalleryImageSignature(buffer, mimeType, filename);
+  if (!sigCheck.valid) {
+    throw new Error(sigCheck.error || "Invalid gallery image asset.");
+  }
+
+  const cleanItemId = initialItemId ? normalizeSlug(initialItemId) || "new-item" : `gal-${Date.now()}`;
+  const ext =
+    path.extname(filename).toLowerCase() ||
+    (mimeType === "image/png" ? ".png" : mimeType === "image/jpeg" ? ".jpg" : ".webp");
+  const randomSuffix = crypto.randomUUID().slice(0, 8);
+  const storageKey = `gallery/${cleanItemId}/${Date.now()}-${randomSuffix}${ext}`;
+  const publicUrl = `/api/media/${storageKey}`;
+
+  // Write new file to local R2 simulation storage
+  const r2Root = path.resolve(getLocalR2DirPath());
+  const r2FilePath = path.resolve(r2Root, storageKey);
+  if (!r2FilePath.startsWith(r2Root + path.sep)) {
+    throw new Error("Invalid storage destination key.");
+  }
+
+  fs.mkdirSync(path.dirname(r2FilePath), { recursive: true });
+  fs.writeFileSync(r2FilePath, buffer);
+
+  const db = getD1Database();
+  const now = new Date().toISOString();
+
+  let targetItemId = initialItemId;
+
+  try {
+    // 1. Resolve or establish target gallery item identity
+    if (targetItemId) {
+      const existing = db
+        .prepare(`SELECT id FROM portfolio_gallery_items WHERE id = ?`)
+        .get(targetItemId);
+      if (!existing) {
+        db.prepare(
+          `INSERT INTO portfolio_gallery_items (id, status, sort_order, created_at, updated_at) VALUES (?, 'draft', 0, ?, ?)`
+        ).run(targetItemId, now, now);
+      }
+    } else {
+      targetItemId = cleanItemId;
+      db.prepare(
+        `INSERT INTO portfolio_gallery_items (id, status, sort_order, created_at, updated_at) VALUES (?, 'draft', 0, ?, ?)`
+      ).run(targetItemId, now, now);
+    }
+
+    // 2. Check if an asset already exists for replacement
+    const existingAsset = db
+      .prepare(`SELECT * FROM portfolio_gallery_assets WHERE item_id = ?`)
+      .get(targetItemId) as Record<string, unknown> | undefined;
+
+    // 3. Atomically upsert asset record
+    const assetId = existingAsset?.id ? String(existingAsset.id) : `gast-${targetItemId}`;
+    db.prepare(
+      `INSERT INTO portfolio_gallery_assets (
+        id, item_id, storage_mode, storage_key, public_url,
+        mime_type, byte_size, width, height, created_at, updated_at
+      ) VALUES (?, ?, 'r2', ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(item_id) DO UPDATE SET
+        storage_mode = 'r2',
+        storage_key = excluded.storage_key,
+        public_url = excluded.public_url,
+        mime_type = excluded.mime_type,
+        byte_size = excluded.byte_size,
+        width = excluded.width,
+        height = excluded.height,
+        updated_at = excluded.updated_at`
+    ).run(
+      assetId,
+      targetItemId,
+      storageKey,
+      publicUrl,
+      mimeType,
+      buffer.byteLength,
+      width,
+      height,
+      now,
+      now
+    );
+
+    // 4. Record audit log
+    db.prepare(
+      `INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+       VALUES (?, ?, 'upload_asset', 'gallery_item', ?, ?, ?)`
+    ).run(
+      `log-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`,
+      actorEmail,
+      targetItemId,
+      JSON.stringify({
+        assetId,
+        storageKey,
+        byteSize: buffer.byteLength
+      }),
+      now
+    );
+
+    return {
+      id: assetId,
+      itemId: targetItemId,
+      storageMode: "r2",
+      storageKey,
+      publicUrl,
+      mimeType,
+      byteSize: buffer.byteLength,
+      width,
+      height,
+      createdAt: existingAsset?.created_at ? String(existingAsset.created_at) : now,
+      updatedAt: now
+    };
+  } catch (err) {
+    if (fs.existsSync(r2FilePath)) {
+      try {
+        fs.unlinkSync(r2FilePath);
+      } catch {
+        // ignore
+      }
+    }
+    throw err;
+  }
+}
+
 

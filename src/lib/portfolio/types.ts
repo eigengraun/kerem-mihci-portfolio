@@ -17,12 +17,14 @@ import type {
   VideoOrientation,
   ProductionMethod
 } from "../../data/videos";
+import type { GalleryItem } from "../../data/gallery";
 
 export type {
   PortfolioVideo,
   VideoType,
   VideoOrientation,
-  ProductionMethod
+  ProductionMethod,
+  GalleryItem
 };
 
 export type CmsPublishStatus = "draft" | "published" | "archived";
@@ -146,6 +148,54 @@ export interface CmsVideoRecord extends PortfolioVideo {
   publishedAt?: string | null;
   archivedAt?: string | null;
   assets?: CmsVideoAssetRecord[];
+}
+
+export interface CmsGalleryAssetRecord {
+  id: string;
+  itemId: string;
+  storageMode: "local_static" | "r2" | "external";
+  storageKey: string;
+  publicUrl: string;
+  mimeType: string;
+  byteSize: number;
+  width?: number | null;
+  height?: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CmsGalleryRevisionRecord {
+  id: string;
+  itemId: string;
+  revisionNumber: number;
+  action: string;
+  snapshotJson: string;
+  actorEmail: string;
+  createdAt: string;
+}
+
+export interface CmsGalleryItem extends GalleryItem {
+  cmsStatus: CmsPublishStatus;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+  publishedAt?: string | null;
+  archivedAt?: string | null;
+  asset?: CmsGalleryAssetRecord | null;
+}
+
+export interface UpsertGalleryItemInput {
+  id?: string;
+  cmsStatus?: CmsPublishStatus;
+  src: string;
+  altTR: string;
+  altEN: string;
+  captionTR?: string;
+  captionEN?: string;
+  year?: string;
+  location?: string;
+  sortOrder?: number;
+  asset?: Partial<CmsGalleryAssetRecord>;
 }
 
 export interface UpsertVideoInput {
@@ -585,6 +635,33 @@ export function validateVideoAssetSignature(
         error: `Thumbnail image exceeds maximum allowed size of 2 MB (${bytes.byteLength} bytes).`
       };
     }
+  }
+
+  return validateMediaFileSignature(bytes, mimeType, filename);
+}
+
+export function validateGalleryImageSignature(
+  bytes: Uint8Array,
+  mimeType: string,
+  filename: string
+): { valid: boolean; error?: string } {
+  if (bytes.byteLength === 0) {
+    return { valid: false, error: "Uploaded file is empty." };
+  }
+
+  if (mimeType !== "image/jpeg" && mimeType !== "image/png" && mimeType !== "image/webp") {
+    return {
+      valid: false,
+      error: `Invalid gallery image MIME type "${mimeType}". Supported formats: image/jpeg, image/png, image/webp.`
+    };
+  }
+
+  const maxBytes = 10 * 1024 * 1024; // 10 MB
+  if (bytes.byteLength > maxBytes) {
+    return {
+      valid: false,
+      error: `Gallery image exceeds maximum allowed size of 10 MB (${bytes.byteLength} bytes).`
+    };
   }
 
   return validateMediaFileSignature(bytes, mimeType, filename);

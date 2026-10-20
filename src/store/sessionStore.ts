@@ -75,6 +75,7 @@ export interface SessionStoreState {
   setIsDraggingProject: (isDragging: boolean) => void;
   hydrateProjects: (projects: Project[]) => void;
   hydrateVideos: (videos: PortfolioVideo[], isCmsMode?: boolean) => void;
+  hydrateGallery: (gallery: GalleryItem[], isCmsMode?: boolean) => void;
   updateDesktopPosition: (workspaceId: string, projectId: string, pos: { x: number; y: number }) => void;
 }
 
@@ -121,6 +122,30 @@ export const useSessionStore = create<SessionStoreState>((set) => ({
       if (videos.length === 0) return state;
       return {
         sessionVideos: shuffleArray(videos, createMulberry32(state.sessionSeed + 1))
+      };
+    });
+  },
+  hydrateGallery: (gallery: GalleryItem[], isCmsMode = false) => {
+    if (!Array.isArray(gallery)) return;
+    set((state) => {
+      // In CMS mode, respect explicit deterministic sortOrder ASC, id ASC and allow clearing to empty array.
+      // Do NOT shuffle in CMS mode!
+      // In legacy mode, preserve seeded PRNG shuffle.
+      if (isCmsMode) {
+        const resolvedGallery = [...gallery].sort(
+          (a, b) => {
+            const aOrder = (a as unknown as { sortOrder?: number }).sortOrder ?? 0;
+            const bOrder = (b as unknown as { sortOrder?: number }).sortOrder ?? 0;
+            return aOrder - bOrder || a.id.localeCompare(b.id);
+          }
+        );
+        return {
+          sessionGallery: resolvedGallery
+        };
+      }
+      if (gallery.length === 0) return state;
+      return {
+        sessionGallery: shuffleArray(gallery, createMulberry32(state.sessionSeed + 2))
       };
     });
   },

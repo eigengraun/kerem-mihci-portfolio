@@ -594,6 +594,27 @@ async function getWorkerD1Health(db: D1Database, r2Available: boolean) {
     // portfolio_videos table not yet present before migration
   }
 
+  const galleryCounts = {
+    total: 0,
+    published: 0,
+    draft: 0,
+    archived: 0
+  };
+  try {
+    const galleryStatusRes = await db
+      .prepare(`SELECT status, COUNT(*) as count FROM portfolio_gallery_items GROUP BY status`)
+      .all<{ status: string; count: number }>();
+    for (const r of galleryStatusRes.results || []) {
+      const count = Number(r.count);
+      galleryCounts.total += count;
+      if (r.status === "published") galleryCounts.published += count;
+      else if (r.status === "draft") galleryCounts.draft += count;
+      else if (r.status === "archived") galleryCounts.archived += count;
+    }
+  } catch {
+    // portfolio_gallery_items table not yet present before migration
+  }
+
   return {
     ok: true,
     mode: "cloudflare-worker-d1-r2",
@@ -613,7 +634,11 @@ async function getWorkerD1Health(db: D1Database, r2Available: boolean) {
       archivedVideos: videoCounts.archived,
       portraitVideos: videoCounts.portrait,
       landscapeVideos: videoCounts.landscape,
-      aiAssistedVideos: videoCounts.aiAssisted
+      aiAssistedVideos: videoCounts.aiAssisted,
+      totalGalleryItems: galleryCounts.total,
+      publishedGalleryItems: galleryCounts.published,
+      draftGalleryItems: galleryCounts.draft,
+      archivedGalleryItems: galleryCounts.archived
     },
     workspaceBreakdown: (workspaceRes.results || []).map((r) => ({
       workspace: String(r.workspace),
@@ -1703,6 +1728,397 @@ async function rollbackVideoRevisionInWorkerD1(
   return upsertVideoInWorkerD1(db, snapshot, actorEmail, `rollback_rev_${revisionNumber}`);
 }
 
+// ============================================================
+// Personal Gallery Worker Helpers (Additive Phase 4)
+// ============================================================
+
+export function mapWorkerRowsToCmsGalleryItems(
+  itemRows: Record<string, unknown>[],
+  translationRows: Record<string, unknown>[],
+  assetRows: Record<string, unknown>[]
+) {
+  const translationsByItemId = new Map<string, { tr?: Record<string, unknown>; en?: Record<string, unknown> }>();
+  for (const tr of translationRows) {
+    const itemId = String(tr.item_id);
+    const entry = translationsByItemId.get(itemId) || {};
+    if (tr.locale === "tr") entry.tr = tr;
+    if (tr.locale === "en") entry.en = tr;
+    translationsByItemId.set(itemId, entry);
+  }
+
+  const assetsByItemId = new Map<string, Record<string, unknown>>();
+  for (const ar of assetRows) {
+    const itemId = String(ar.item_id);
+    assetsByItemId.set(itemId, {
+      id: String(ar.id),
+      itemId,
+      storageMode: (ar.storage_mode as string) || "local_static",
+      storageKey: String(ar.storage_key || ""),
+      publicUrl: String(ar.public_url || ""),
+      mimeType: String(ar.mime_type || "image/webp"),
+      byteSize: Number(ar.byte_size || 0),
+      width: ar.width !== null && ar.width !== undefined ? Number(ar.width) : null,
+      height: ar.height !== null && ar.height !== undefined ? Number(ar.height) : null,
+      createdAt: String(ar.created_at || ""),
+      updatedAt: String(ar.updated_at || "")
+    });
+  }
+
+  return itemRows.map((r) => {
+    const itemId = String(r.id);
+    const trs = translationsByItemId.get(itemId) || {};
+    const asset = assetsByItemId.get(itemId) || null;
+
+    const altTR = trs.tr ? String(trs.tr.alt_text || "") : "";
+    const altEN = trs.en ? String(trs.en.alt_text || "") : "";
+    const captionTR = trs.tr && trs.tr.caption ? String(trs.tr.caption) : undefined;
+    const captionEN = trs.en && trs.en.caption ? String(trs.en.caption) : undefined;
+
+    const hasCaption = Boolean(captionTR || captionEN);
+
+    return {
+      id: itemId,
+      cmsStatus: (r.status as string) || "draft",
+      sortOrder: Number(r.sort_order ?? 0),
+      src: asset ? String(asset.publicUrl) : "",
+      alt: {
+        tr: altTR,
+        en: altEN
+      },
+      ...(hasCaption ? { caption: { tr: captionTR || "", en: captionEN || "" } } : {}),
+      ...(r.year ? { year: String(r.year) } : {}),
+      ...(r.location ? { location: String(r.location) } : {}),
+      createdAt: String(r.created_at || ""),
+      updatedAt: String(r.updated_at || ""),
+      publishedAt: r.published_at ? String(r.published_at) : null,
+      archivedAt: r.archived_at ? String(r.archived_at) : null,
+      asset
+    };
+  });
+}
+
+export async function queryCmsGalleryFromWorkerD1(
+  db: D1Database,
+  whereClause = "",
+  params: unknown[] = []
+): Promise<Record<string, unknown>[]> {
+  const stmt = db
+    .prepare(`SELECT * FROM portfolio_gallery_items ${whereClause} ORDER BY sort_order ASC, id ASC`)
+    .bind(...params);
+  const { results: itemRows } = await stmt.all<Record<string, unknown>>();
+  if (!itemRows || itemRows.length === 0) return [];
+
+  const { results: translationRows } = await db
+    .prepare(`SELECT * FROM portfolio_gallery_translations`)
+    .all<Record<string, unknown>>();
+  const { results: assetRows } = await db
+    .prepare(`SELECT * FROM portfolio_gallery_assets`)
+    .all<Record<string, unknown>>();
+
+  return mapWorkerRowsToCmsGalleryItems(itemRows, translationRows || [], assetRows || []);
+}
+
+export async function listGalleryRevisionsInWorkerD1(db: D1Database, itemId: string) {
+  const { results } = await db
+    .prepare(`SELECT * FROM portfolio_gallery_revisions WHERE item_id = ? ORDER BY revision_number DESC LIMIT 50`)
+    .bind(itemId)
+    .all<Record<string, unknown>>();
+  return (results || []).map((r) => ({
+    id: String(r.id),
+    itemId: String(r.item_id),
+    revisionNumber: Number(r.revision_number),
+    action: String(r.action),
+    snapshotJson: String(r.snapshot_json),
+    actorEmail: String(r.actor_email),
+    createdAt: String(r.created_at)
+  }));
+}
+
+export async function upsertGalleryItemInWorkerD1(
+  db: D1Database,
+  input: Record<string, unknown>,
+  actorEmail: string,
+  actionLabel = "update"
+): Promise<{ status: number; item?: Record<string, unknown>; error?: string }> {
+  const inputId = input.id ? String(input.id) : "";
+  const existingById = inputId
+    ? await db.prepare(`SELECT * FROM portfolio_gallery_items WHERE id = ?`).bind(inputId).first<Record<string, unknown>>()
+    : null;
+
+  if (actionLabel === "create") {
+    if (existingById) {
+      return { status: 409, error: `Gallery item with ID "${inputId}" already exists.` };
+    }
+  } else {
+    if (!existingById) {
+      return { status: 404, error: "Gallery item not found." };
+    }
+  }
+
+  const itemId = existingById ? String(existingById.id) : inputId || `gal-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`;
+  const now = new Date().toISOString();
+
+  const prevStatus = existingById ? String(existingById.status) : null;
+  const rawRequestedStatus = String(input.cmsStatus || input.status || "");
+  const nextStatus = ["draft", "published", "archived"].includes(rawRequestedStatus)
+    ? rawRequestedStatus
+    : prevStatus || "draft";
+
+  const altObj = input.alt as { tr?: string; en?: string } | undefined;
+  const altTR = String(input.altTR || altObj?.tr || "").trim();
+  const altEN = String(input.altEN || altObj?.en || "").trim();
+  const capObj = input.caption as { tr?: string; en?: string } | undefined;
+  const captionTR = String(input.captionTR || capObj?.tr || "").trim();
+  const captionEN = String(input.captionEN || capObj?.en || "").trim();
+  const src = String(input.src || "").trim();
+
+  if (nextStatus === "published") {
+    if (!altTR || !altEN) {
+      return { status: 400, error: "Both Turkish and English alt text are required before publishing." };
+    }
+    const existingAsset = await db
+      .prepare(`SELECT id, public_url FROM portfolio_gallery_assets WHERE item_id = ?`)
+      .bind(itemId)
+      .first<{ id: string; public_url: string }>();
+    if (!src && !existingAsset && !input.asset) {
+      return { status: 400, error: "A valid image is required before publishing." };
+    }
+  }
+
+  const maxSortRow = await db
+    .prepare(`SELECT COALESCE(MAX(sort_order), 0) as maxSort FROM portfolio_gallery_items`)
+    .first<{ maxSort: number }>();
+  const sortOrder =
+    typeof input.sortOrder === "number"
+      ? input.sortOrder
+      : existingById
+      ? Number(existingById.sort_order || 0)
+      : Number(maxSortRow?.maxSort || 0) + 1;
+
+  let publishedAt: string | null = existingById ? (existingById.published_at as string | null) : null;
+  let archivedAt: string | null = existingById ? (existingById.archived_at as string | null) : null;
+
+  if (nextStatus === "published" && prevStatus !== "published") {
+    publishedAt = now;
+    archivedAt = null;
+  } else if (nextStatus === "archived") {
+    archivedAt = now;
+  } else if (nextStatus === "draft") {
+    archivedAt = null;
+  }
+
+  const statements: D1PreparedStatement[] = [
+    db
+      .prepare(
+        `INSERT INTO portfolio_gallery_items (
+          id, status, sort_order, year, location, created_at, updated_at, published_at, archived_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+          status = excluded.status,
+          sort_order = excluded.sort_order,
+          year = excluded.year,
+          location = excluded.location,
+          updated_at = excluded.updated_at,
+          published_at = excluded.published_at,
+          archived_at = excluded.archived_at`
+      )
+      .bind(
+        itemId,
+        nextStatus,
+        sortOrder,
+        input.year ? String(input.year) : null,
+        input.location ? String(input.location) : null,
+        existingById ? String(existingById.created_at) : now,
+        now,
+        publishedAt,
+        archivedAt
+      ),
+    db
+      .prepare(
+        `INSERT INTO portfolio_gallery_translations (id, item_id, locale, alt_text, caption, updated_at)
+         VALUES (?, ?, 'tr', ?, ?, ?)
+         ON CONFLICT(item_id, locale) DO UPDATE SET
+           alt_text = excluded.alt_text,
+           caption = excluded.caption,
+           updated_at = excluded.updated_at`
+      )
+      .bind(`gtr-${itemId}-tr`, itemId, altTR, captionTR, now),
+    db
+      .prepare(
+        `INSERT INTO portfolio_gallery_translations (id, item_id, locale, alt_text, caption, updated_at)
+         VALUES (?, ?, 'en', ?, ?, ?)
+         ON CONFLICT(item_id, locale) DO UPDATE SET
+           alt_text = excluded.alt_text,
+           caption = excluded.caption,
+           updated_at = excluded.updated_at`
+      )
+      .bind(`gtr-${itemId}-en`, itemId, altEN, captionEN, now)
+  ];
+
+  if (input.asset && typeof input.asset === "object") {
+    const assetObj = input.asset as Record<string, unknown>;
+    if (assetObj.storageKey) {
+      statements.push(
+        db
+          .prepare(
+            `INSERT INTO portfolio_gallery_assets (
+              id, item_id, storage_mode, storage_key, public_url, mime_type, byte_size, width, height, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(item_id) DO UPDATE SET
+              storage_mode = excluded.storage_mode,
+              storage_key = excluded.storage_key,
+              public_url = excluded.public_url,
+              mime_type = excluded.mime_type,
+              byte_size = excluded.byte_size,
+              width = excluded.width,
+              height = excluded.height,
+              updated_at = excluded.updated_at`
+          )
+          .bind(
+            String(assetObj.id || `gast-${itemId}`),
+            itemId,
+            String(assetObj.storageMode || "r2"),
+            String(assetObj.storageKey),
+            String(assetObj.publicUrl || `/api/media/${assetObj.storageKey}`),
+            String(assetObj.mimeType || "image/webp"),
+            Number(assetObj.byteSize || 0),
+            assetObj.width !== undefined && assetObj.width !== null ? Number(assetObj.width) : null,
+            assetObj.height !== undefined && assetObj.height !== null ? Number(assetObj.height) : null,
+            now,
+            now
+          )
+      );
+    }
+  }
+
+  // Audit log
+  statements.push(
+    db
+      .prepare(
+        `INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+         VALUES (?, ?, ?, 'gallery_item', ?, ?, ?)`
+      )
+      .bind(
+        `audit-${crypto.randomUUID()}`,
+        actorEmail,
+        actionLabel,
+        itemId,
+        JSON.stringify({ status: nextStatus, sortOrder }),
+        now
+      )
+  );
+
+  await db.batch(statements);
+
+  const hydrated = await queryCmsGalleryFromWorkerD1(db, "WHERE id = ?", [itemId]);
+  if (!hydrated[0]) {
+    return { status: 500, error: "Failed to load gallery item after D1 write." };
+  }
+
+  // Revisions tracking
+  const maxRevRow = await db
+    .prepare(`SELECT COALESCE(MAX(revision_number), 0) as maxRev FROM portfolio_gallery_revisions WHERE item_id = ?`)
+    .bind(itemId)
+    .first<{ maxRev: number }>();
+  const nextRev = Number(maxRevRow?.maxRev || 0) + 1;
+
+  await db
+    .prepare(
+      `INSERT INTO portfolio_gallery_revisions (id, item_id, revision_number, action, snapshot_json, actor_email, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    )
+    .bind(
+      `grev-${itemId}-${nextRev}`,
+      itemId,
+      nextRev,
+      actionLabel,
+      JSON.stringify(hydrated[0]),
+      actorEmail,
+      now
+    )
+    .run();
+
+  return { status: existingById ? 200 : 201, item: hydrated[0] };
+}
+
+export async function deleteGalleryItemInWorkerD1(
+  db: D1Database,
+  itemId: string,
+  actorEmail: string
+): Promise<{ status: number; deletedId?: string; error?: string }> {
+  const existing = await db
+    .prepare(`SELECT id FROM portfolio_gallery_items WHERE id = ?`)
+    .bind(itemId)
+    .first<{ id: string }>();
+
+  if (!existing) {
+    return { status: 404, error: "Gallery item not found." };
+  }
+
+  const now = new Date().toISOString();
+  await db.batch([
+    db.prepare(`DELETE FROM portfolio_gallery_items WHERE id = ?`).bind(itemId),
+    db.prepare(`DELETE FROM portfolio_gallery_translations WHERE item_id = ?`).bind(itemId),
+    db.prepare(`DELETE FROM portfolio_gallery_assets WHERE item_id = ?`).bind(itemId),
+    db
+      .prepare(
+        `INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+         VALUES (?, ?, 'delete', 'gallery_item', ?, ?, ?)`
+      )
+      .bind(`audit-${crypto.randomUUID()}`, actorEmail, itemId, JSON.stringify({ deletedId: itemId }), now)
+  ]);
+
+  return { status: 200, deletedId: itemId };
+}
+
+export async function updateGalleryOrderingInWorkerD1(
+  db: D1Database,
+  items: Array<{ id: string; sortOrder: number }>,
+  actorEmail: string
+): Promise<{ status: number; updated: number; error?: string }> {
+  const now = new Date().toISOString();
+  const statements: D1PreparedStatement[] = [];
+
+  for (const item of items) {
+    statements.push(
+      db
+        .prepare(`UPDATE portfolio_gallery_items SET sort_order = ?, updated_at = ? WHERE id = ?`)
+        .bind(item.sortOrder, now, item.id)
+    );
+  }
+
+  statements.push(
+    db
+      .prepare(
+        `INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+         VALUES (?, ?, 'reorder', 'gallery_item', null, ?, ?)`
+      )
+      .bind(`audit-${crypto.randomUUID()}`, actorEmail, JSON.stringify({ count: items.length }), now)
+  );
+
+  await db.batch(statements);
+  return { status: 200, updated: items.length };
+}
+
+export async function rollbackGalleryRevisionInWorkerD1(
+  db: D1Database,
+  itemId: string,
+  revisionNumber: number,
+  actorEmail: string
+): Promise<{ status: number; item?: Record<string, unknown>; error?: string }> {
+  const rev = await db
+    .prepare(`SELECT * FROM portfolio_gallery_revisions WHERE item_id = ? AND revision_number = ?`)
+    .bind(itemId, revisionNumber)
+    .first<Record<string, unknown>>();
+
+  if (!rev || !rev.snapshot_json) {
+    return { status: 404, error: "Revision not found." };
+  }
+
+  const snapshot = JSON.parse(String(rev.snapshot_json)) as Record<string, unknown>;
+  return upsertGalleryItemInWorkerD1(db, snapshot, actorEmail, `rollback_rev_${revisionNumber}`);
+}
+
 const worker = {
   async fetch(request: Request, env: Env): Promise<Response> {
     const origin = env.PUBLIC_SITE_ORIGIN || "https://keremmihci.com";
@@ -1837,6 +2253,33 @@ const worker = {
         }
       }
 
+      if (pathname === "/api/v1/public/gallery" && (request.method === "GET" || request.method === "HEAD")) {
+        try {
+          const gallery = await queryCmsGalleryFromWorkerD1(db, "WHERE status = ?", ["published"]);
+          return jsonResponse(
+            { ok: true, count: gallery.length, gallery },
+            200,
+            origin,
+            "no-store, no-cache, must-revalidate"
+          );
+        } catch (err: unknown) {
+          const errMsg = err instanceof Error ? err.message : String(err);
+          const isMissingSchema = errMsg.includes("no such table") || errMsg.includes("portfolio_gallery_items");
+          return jsonResponse(
+            {
+              ok: false,
+              code: isMissingSchema ? "SCHEMA_NOT_INITIALIZED" : "DATABASE_QUERY_ERROR",
+              error: isMissingSchema
+                ? "Gallery database schema not initialized (migration required)."
+                : "Database query failure while retrieving published gallery."
+            },
+            500,
+            origin,
+            "no-store, no-cache, must-revalidate"
+          );
+        }
+      }
+
       if (
         (pathname.startsWith("/api/v1/public/media/") || pathname.startsWith("/api/media/")) &&
         request.method === "GET"
@@ -1899,6 +2342,27 @@ const worker = {
             }
           } catch {
             // portfolio_video_assets might not exist yet before migration
+          }
+        }
+
+        if (!isAuthorized) {
+          try {
+            const galleryAsset = await db
+              .prepare(
+                `SELECT pga.id, pgi.status as item_status
+                 FROM portfolio_gallery_assets pga
+                 INNER JOIN portfolio_gallery_items pgi ON pga.item_id = pgi.id
+                 WHERE (pga.storage_key = ? OR pga.public_url = ?) AND pgi.status = 'published'
+                 LIMIT 1`
+              )
+              .bind(key, `/api/media/${key}`)
+              .first<{ id: string; item_status: string }>();
+
+            if (galleryAsset && galleryAsset.item_status === "published") {
+              isAuthorized = true;
+            }
+          } catch {
+            // portfolio_gallery_assets might not exist yet before migration
           }
         }
 
@@ -3010,6 +3474,271 @@ const worker = {
               publicUrl,
               mimeType,
               byteSize: bytes.byteLength,
+              createdAt: existingAsset?.created_at ? String(existingAsset.created_at) : now,
+              updatedAt: now
+            };
+
+            return jsonResponse({ ok: true, asset, publicUrl }, 201, origin);
+          } catch (dbErr) {
+            await bucket.delete(storageKey).catch(() => {});
+            throw dbErr;
+          }
+        }
+
+        // ============================================================
+        // ADMIN GALLERY ENDPOINTS (Additive Phase 4)
+        // ============================================================
+
+        if (pathname === "/api/v1/admin/gallery" && (request.method === "GET" || request.method === "HEAD")) {
+          const gallery = await queryCmsGalleryFromWorkerD1(db);
+          return jsonResponse({ ok: true, count: gallery.length, gallery }, 200, origin, "no-store");
+        }
+
+        if (pathname === "/api/v1/admin/gallery" && request.method === "POST") {
+          let body: Record<string, unknown>;
+          try {
+            body = (await request.json()) as Record<string, unknown>;
+          } catch {
+            return jsonResponse({ ok: false, error: "Invalid JSON body" }, 400, origin);
+          }
+          const res = await upsertGalleryItemInWorkerD1(db, body, actorEmail, "create");
+          return jsonResponse(
+            res.error ? { ok: false, error: res.error } : { ok: true, item: res.item },
+            res.status,
+            origin
+          );
+        }
+
+        if (pathname === "/api/v1/admin/gallery/reorder" && request.method === "POST") {
+          let body: { items?: Array<{ id: string; sortOrder: number }> };
+          try {
+            body = (await request.json()) as { items?: Array<{ id: string; sortOrder: number }> };
+          } catch {
+            return jsonResponse({ ok: false, error: "Invalid JSON body" }, 400, origin);
+          }
+          if (!body || !Array.isArray(body.items)) {
+            return jsonResponse({ ok: false, error: "Invalid items array" }, 400, origin);
+          }
+          const res = await updateGalleryOrderingInWorkerD1(db, body.items, actorEmail);
+          return jsonResponse({ ok: true, updated: res.updated }, 200, origin);
+        }
+
+        if (pathname.startsWith("/api/v1/admin/gallery/")) {
+          const rest = pathname.replace("/api/v1/admin/gallery/", "");
+          const parts = rest.split("/").map((p) => decodeURIComponent(p));
+          const itemId = parts[0];
+
+          if (parts.length === 1) {
+            if (request.method === "GET") {
+              const items = await queryCmsGalleryFromWorkerD1(db, "WHERE id = ?", [itemId]);
+              if (items.length === 0) {
+                return jsonResponse({ ok: false, error: "Gallery item not found" }, 404, origin);
+              }
+              return jsonResponse({ ok: true, item: items[0] }, 200, origin);
+            }
+
+            if (request.method === "PUT" || request.method === "PATCH") {
+              let body: Record<string, unknown>;
+              try {
+                body = (await request.json()) as Record<string, unknown>;
+              } catch {
+                return jsonResponse({ ok: false, error: "Invalid JSON body" }, 400, origin);
+              }
+              body.id = itemId;
+              const res = await upsertGalleryItemInWorkerD1(db, body, actorEmail, "update");
+              return jsonResponse(
+                res.error ? { ok: false, error: res.error } : { ok: true, item: res.item },
+                res.status,
+                origin
+              );
+            }
+
+            if (request.method === "DELETE") {
+              const res = await deleteGalleryItemInWorkerD1(db, itemId, actorEmail);
+              return jsonResponse(
+                res.error ? { ok: false, error: res.error } : { ok: true, deletedId: res.deletedId },
+                res.status,
+                origin
+              );
+            }
+          }
+
+          if (parts.length === 2 && parts[1] === "revisions" && request.method === "GET") {
+            const revisions = await listGalleryRevisionsInWorkerD1(db, itemId);
+            return jsonResponse({ ok: true, revisions }, 200, origin);
+          }
+
+          if (parts.length === 2 && parts[1] === "rollback" && request.method === "POST") {
+            let body: { revisionNumber?: number };
+            try {
+              body = (await request.json()) as { revisionNumber?: number };
+            } catch {
+              return jsonResponse({ ok: false, error: "Invalid JSON body" }, 400, origin);
+            }
+            if (!body || typeof body.revisionNumber !== "number") {
+              return jsonResponse({ ok: false, error: "Invalid revisionNumber" }, 400, origin);
+            }
+            const res = await rollbackGalleryRevisionInWorkerD1(db, itemId, body.revisionNumber, actorEmail);
+            return jsonResponse(
+              res.error ? { ok: false, error: res.error } : { ok: true, item: res.item },
+              res.status,
+              origin
+            );
+          }
+        }
+
+        if (pathname === "/api/v1/admin/gallery/upload" && request.method === "POST") {
+          let formData: FormData;
+          try {
+            formData = await request.formData();
+          } catch {
+            return jsonResponse({ ok: false, error: "Invalid multipart form data" }, 400, origin);
+          }
+          const file = formData.get("file");
+          if (!file || typeof file === "string") {
+            return jsonResponse({ ok: false, error: "Missing file in form data" }, 400, origin);
+          }
+          const blob = file as File;
+          const mimeType = blob.type || "image/webp";
+          const safeName = sanitizeFilename(blob.name || "gallery-photo");
+          const arrayBuffer = await blob.arrayBuffer();
+          const bytes = new Uint8Array(arrayBuffer);
+
+          if (mimeType !== "image/jpeg" && mimeType !== "image/png" && mimeType !== "image/webp") {
+            return jsonResponse(
+              { ok: false, error: `Invalid image MIME type "${mimeType}". Allowed: image/jpeg, image/png, image/webp.` },
+              400,
+              origin
+            );
+          }
+
+          const MAX_GALLERY_BYTES = 10 * 1024 * 1024; // 10 MB
+          if (bytes.byteLength > MAX_GALLERY_BYTES) {
+            return jsonResponse({ ok: false, error: "Image exceeds 10 MB limit." }, 413, origin);
+          }
+
+          // Magic byte validation
+          if (mimeType === "image/png") {
+            if (bytes.byteLength < 8 || bytes[0] !== 0x89 || bytes[1] !== 0x50 || bytes[2] !== 0x4e || bytes[3] !== 0x47) {
+              return jsonResponse({ ok: false, error: "Invalid PNG file signature." }, 400, origin);
+            }
+          } else if (mimeType === "image/jpeg") {
+            if (bytes.byteLength < 3 || bytes[0] !== 0xff || bytes[1] !== 0xd8 || bytes[2] !== 0xff) {
+              return jsonResponse({ ok: false, error: "Invalid JPEG file signature." }, 400, origin);
+            }
+          } else if (mimeType === "image/webp") {
+            if (
+              bytes.byteLength < 12 ||
+              bytes[0] !== 0x52 || bytes[1] !== 0x49 || bytes[2] !== 0x46 || bytes[3] !== 0x46 ||
+              bytes[8] !== 0x57 || bytes[9] !== 0x45 || bytes[10] !== 0x42 || bytes[11] !== 0x50
+            ) {
+              return jsonResponse({ ok: false, error: "Invalid WebP file signature." }, 400, origin);
+            }
+          }
+
+          const rawItemId = formData.get("itemId") ? String(formData.get("itemId")).trim() : "";
+          const cleanItemId = rawItemId ? normalizeSlug(rawItemId) || "new-item" : `gal-${Date.now()}`;
+          const ext =
+            mimeType === "image/png" ? ".png" : mimeType === "image/jpeg" ? ".jpg" : ".webp";
+          const storageKey = `gallery/${cleanItemId}/${Date.now()}-${safeName}${ext}`;
+
+          const existingObj = await bucket.head(storageKey);
+          if (existingObj) {
+            return jsonResponse({ ok: false, error: "Storage key collision detected; please retry upload." }, 409, origin);
+          }
+
+          await bucket.put(storageKey, arrayBuffer, {
+            httpMetadata: { contentType: mimeType }
+          });
+
+          const now = new Date().toISOString();
+          let targetItemId = rawItemId;
+
+          try {
+            if (targetItemId) {
+              const existing = await db
+                .prepare(`SELECT id FROM portfolio_gallery_items WHERE id = ?`)
+                .bind(targetItemId)
+                .first<{ id: string }>();
+              if (!existing) {
+                await db
+                  .prepare(`INSERT INTO portfolio_gallery_items (id, status, sort_order, created_at, updated_at) VALUES (?, 'draft', 0, ?, ?)`)
+                  .bind(targetItemId, now, now)
+                  .run();
+              }
+            } else {
+              targetItemId = cleanItemId;
+              await db
+                .prepare(`INSERT INTO portfolio_gallery_items (id, status, sort_order, created_at, updated_at) VALUES (?, 'draft', 0, ?, ?)`)
+                .bind(targetItemId, now, now)
+                .run();
+            }
+
+            const existingAsset = await db
+              .prepare(`SELECT * FROM portfolio_gallery_assets WHERE item_id = ?`)
+              .bind(targetItemId)
+              .first<{ id: string; storage_key: string; created_at: string }>();
+
+            const assetId = existingAsset?.id ? String(existingAsset.id) : `gast-${targetItemId}`;
+            const publicUrl = `/api/media/${storageKey}`;
+
+            const widthVal = formData.get("width") ? Number(formData.get("width")) : null;
+            const heightVal = formData.get("height") ? Number(formData.get("height")) : null;
+
+            await db.batch([
+              db
+                .prepare(
+                  `INSERT INTO portfolio_gallery_assets (
+                    id, item_id, storage_mode, storage_key, public_url,
+                    mime_type, byte_size, width, height, created_at, updated_at
+                  ) VALUES (?, ?, 'r2', ?, ?, ?, ?, ?, ?, ?, ?)
+                  ON CONFLICT(item_id) DO UPDATE SET
+                    storage_mode = 'r2',
+                    storage_key = excluded.storage_key,
+                    public_url = excluded.public_url,
+                    mime_type = excluded.mime_type,
+                    byte_size = excluded.byte_size,
+                    width = excluded.width,
+                    height = excluded.height,
+                    updated_at = excluded.updated_at`
+                )
+                .bind(
+                  assetId,
+                  targetItemId,
+                  storageKey,
+                  publicUrl,
+                  mimeType,
+                  bytes.byteLength,
+                  widthVal,
+                  heightVal,
+                  existingAsset?.created_at ? String(existingAsset.created_at) : now,
+                  now
+                ),
+              db.prepare(`UPDATE portfolio_gallery_items SET updated_at = ? WHERE id = ?`).bind(now, targetItemId),
+              db
+                .prepare(
+                  `INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+                   VALUES (?, ?, 'upload_asset', 'gallery_item', ?, ?, ?)`
+                )
+                .bind(
+                  `audit-${crypto.randomUUID()}`,
+                  actorEmail,
+                  targetItemId,
+                  JSON.stringify({ assetId, storageKey, byteSize: bytes.byteLength }),
+                  now
+                )
+            ]);
+
+            const asset = {
+              id: assetId,
+              itemId: targetItemId,
+              storageMode: "r2",
+              storageKey,
+              publicUrl,
+              mimeType,
+              byteSize: bytes.byteLength,
+              width: widthVal,
+              height: heightVal,
               createdAt: existingAsset?.created_at ? String(existingAsset.created_at) : now,
               updatedAt: now
             };

@@ -2,11 +2,13 @@ import fs from "node:fs";
 import path from "node:path";
 import { projectsData, type Project, type WorkspaceId } from "../../data/projects";
 import { videosData, type PortfolioVideo } from "../../data/videos";
+import { galleryItems, type GalleryItem } from "../../data/gallery";
 import {
   assertLocalSimulationAllowed,
   deleteMediaFromD1AndR2 as deleteMediaLocal,
   deleteProjectInD1 as deleteProjectLocal,
   deleteVideoFromD1 as deleteVideoLocal,
+  deleteGalleryItemFromD1 as deleteGalleryItemLocal,
   getCmsDataSource,
   getCmsStorageMode,
   getD1HealthAndStats as getLocalD1HealthAndStats,
@@ -14,31 +16,40 @@ import {
   getPublishedProjectBySlugFromD1,
   getVideoByIdFromD1 as getVideoByIdLocal,
   getVideoBySlugFromD1 as getVideoBySlugLocal,
+  getGalleryItemByIdFromD1 as getGalleryItemByIdLocal,
   listAllProjectsForAdminFromD1,
   listAllVideosForAdminFromD1 as listVideosLocal,
+  listAllGalleryItemsForAdminFromD1 as listGalleryLocal,
   listAuditLogsFromD1 as listAuditLogsLocal,
   listMediaFromD1 as listMediaLocal,
   listProjectRevisionsFromD1 as listRevisionsLocal,
   listPublishedProjectsFromD1,
   listPublishedVideosFromD1 as listPublishedVideosLocal,
+  listPublishedGalleryItemsFromD1 as listPublishedGalleryLocal,
   listPublishingEventsFromD1 as listPublishingEventsLocal,
   listVideoRevisionsFromD1 as listVideoRevisionsLocal,
+  listGalleryRevisionsFromD1 as listGalleryRevisionsLocal,
   reconcileProjectsListWithCanonical,
   reconcileVideosListWithCanonical,
   rollbackProjectRevisionInD1 as rollbackRevisionLocal,
   rollbackVideoRevisionInD1 as rollbackVideoRevisionLocal,
+  rollbackGalleryRevisionInD1 as rollbackGalleryRevisionLocal,
   seedCanonicalVideosInLocalD1 as seedCanonicalVideosLocal,
   updateFeaturedOrderingInD1 as updateFeaturedLocal,
   updateProjectStatusInD1 as updateStatusLocal,
   updateVideoOrderingInD1 as updateVideoOrderingLocal,
+  updateGalleryOrderingInD1 as updateGalleryOrderingLocal,
   uploadMediaToR2AndD1 as uploadMediaLocal,
   uploadVideoAssetToStorageAndD1 as uploadVideoAssetLocal,
+  uploadGalleryAssetToStorageAndD1 as uploadGalleryAssetLocal,
   upsertProjectInD1 as upsertProjectLocal,
-  upsertVideoInD1 as upsertVideoLocal
+  upsertVideoInD1 as upsertVideoLocal,
+  upsertGalleryItemInD1 as upsertGalleryItemLocal
 } from "./d1Engine";
 import {
   CmsStorageUnavailableError,
   validateMediaFileSignature,
+  validateGalleryImageSignature,
   type CmsAuditLogRecord,
   type CmsMediaRecord,
   type CmsProjectRecord,
@@ -48,8 +59,12 @@ import {
   type CmsVideoRecord,
   type CmsVideoAssetRecord,
   type CmsVideoRevisionRecord,
+  type CmsGalleryItem,
+  type CmsGalleryAssetRecord,
+  type CmsGalleryRevisionRecord,
   type UpsertProjectInput,
-  type UpsertVideoInput
+  type UpsertVideoInput,
+  type UpsertGalleryItemInput
 } from "./types";
 
 const WORKER_TIMEOUT_MS = 8000;
@@ -1418,5 +1433,240 @@ export async function reconcileCanonicalVideosWithD1() {
     };
   }
 }
+
+// ============================================================
+// Personal Gallery Functions (Additive Phase 4)
+// ============================================================
+
+export async function getPublishedGalleryWithMeta(): Promise<{
+  gallery: GalleryItem[];
+  degraded: boolean;
+  source: string;
+  reason?: string;
+}> {
+  const dataSource = getCmsDataSource();
+  if (dataSource === "legacy") {
+    return {
+      gallery: galleryItems,
+      degraded: false,
+      source: "legacy-static"
+    };
+  }
+
+  if (shouldUseWorkerApi()) {
+    try {
+      const res = await fetchWorkerJson<{ ok: boolean; gallery: GalleryItem[] }>(
+        "/api/v1/public/gallery",
+        { cache: "no-store" }
+      );
+      const items = Array.isArray(res.gallery) ? res.gallery : [];
+      return {
+        gallery: items,
+        degraded: false,
+        source: "cloudflare-worker-live"
+      };
+    } catch (error) {
+      const errReason = error instanceof Error ? error.message : String(error);
+      return {
+        gallery: [],
+        degraded: true,
+        source: "degraded-worker-outage",
+        reason: errReason
+      };
+    }
+  }
+
+  assertLocalSimulationAllowed("getPublishedGallery");
+  const d1Items = listPublishedGalleryLocal();
+  return {
+    gallery: d1Items,
+    degraded: false,
+    source: "local-d1-live"
+  };
+}
+
+export async function getPublishedGallery(): Promise<GalleryItem[]> {
+  const res = await getPublishedGalleryWithMeta();
+  return res.gallery;
+}
+
+export async function getAdminGalleryItems(): Promise<CmsGalleryItem[]> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("getAdminGalleryItems");
+    const res = await fetchWorkerJson<{ ok: boolean; gallery: CmsGalleryItem[] }>(
+      "/api/v1/admin/gallery",
+      { requireServiceAuth: true }
+    );
+    return res.gallery || [];
+  }
+
+  assertLocalSimulationAllowed("getAdminGalleryItems");
+  return listGalleryLocal();
+}
+
+export async function getAdminGalleryItemById(id: string): Promise<CmsGalleryItem | null> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("getAdminGalleryItemById");
+    const res = await fetchWorkerJson<{ ok: boolean; item: CmsGalleryItem | null }>(
+      `/api/v1/admin/gallery/${encodeURIComponent(id)}`,
+      { requireServiceAuth: true }
+    );
+    return res.item || null;
+  }
+
+  assertLocalSimulationAllowed("getAdminGalleryItemById");
+  return getGalleryItemByIdLocal(id);
+}
+
+export async function upsertGalleryItem(
+  input: UpsertGalleryItemInput,
+  actorEmail: string,
+  actionLabel = "update"
+): Promise<CmsGalleryItem> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("upsertGalleryItem");
+    const isCreate = actionLabel === "create" || !input.id;
+    const url = isCreate ? "/api/v1/admin/gallery" : `/api/v1/admin/gallery/${encodeURIComponent(input.id!)}`;
+    const method = isCreate ? "POST" : "PUT";
+    const res = await fetchWorkerJson<{ ok: boolean; item: CmsGalleryItem }>(url, {
+      method,
+      body: JSON.stringify(input),
+      requireServiceAuth: true,
+      headers: { "Content-Type": "application/json" }
+    });
+    return res.item;
+  }
+
+  assertLocalSimulationAllowed("upsertGalleryItem");
+  return upsertGalleryItemLocal(input, actorEmail, actionLabel);
+}
+
+export async function deleteGalleryItem(
+  id: string,
+  actorEmail: string
+): Promise<{ deletedId: string }> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("deleteGalleryItem");
+    const res = await fetchWorkerJson<{ ok: boolean; deletedId: string }>(
+      `/api/v1/admin/gallery/${encodeURIComponent(id)}`,
+      {
+        method: "DELETE",
+        requireServiceAuth: true
+      }
+    );
+    return { deletedId: res.deletedId || id };
+  }
+
+  assertLocalSimulationAllowed("deleteGalleryItem");
+  return deleteGalleryItemLocal(id, actorEmail);
+}
+
+export async function updateGalleryOrdering(
+  items: Array<{ id: string; sortOrder: number }>,
+  actorEmail: string
+): Promise<{ updated: number }> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("updateGalleryOrdering");
+    const res = await fetchWorkerJson<{ ok: boolean; updated: number }>(
+      "/api/v1/admin/gallery/reorder",
+      {
+        method: "POST",
+        body: JSON.stringify({ items }),
+        requireServiceAuth: true,
+        headers: { "Content-Type": "application/json" }
+      }
+    );
+    return { updated: res.updated || 0 };
+  }
+
+  assertLocalSimulationAllowed("updateGalleryOrdering");
+  return updateGalleryOrderingLocal(items, actorEmail);
+}
+
+export async function listGalleryRevisions(itemId: string): Promise<CmsGalleryRevisionRecord[]> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("listGalleryRevisions");
+    const res = await fetchWorkerJson<{ ok: boolean; revisions: CmsGalleryRevisionRecord[] }>(
+      `/api/v1/admin/gallery/${encodeURIComponent(itemId)}/revisions`,
+      { requireServiceAuth: true }
+    );
+    return res.revisions || [];
+  }
+
+  assertLocalSimulationAllowed("listGalleryRevisions");
+  return listGalleryRevisionsLocal(itemId);
+}
+
+export async function rollbackGalleryRevision(
+  itemId: string,
+  revisionNumber: number,
+  actorEmail: string
+): Promise<CmsGalleryItem> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("rollbackGalleryRevision");
+    const res = await fetchWorkerJson<{ ok: boolean; item: CmsGalleryItem }>(
+      `/api/v1/admin/gallery/${encodeURIComponent(itemId)}/rollback`,
+      {
+        method: "POST",
+        body: JSON.stringify({ revisionNumber }),
+        requireServiceAuth: true,
+        headers: { "Content-Type": "application/json" }
+      }
+    );
+    return res.item;
+  }
+
+  assertLocalSimulationAllowed("rollbackGalleryRevision");
+  return rollbackGalleryRevisionLocal(itemId, revisionNumber, actorEmail);
+}
+
+export async function uploadGalleryAsset(params: {
+  buffer: Buffer;
+  filename: string;
+  mimeType: string;
+  itemId?: string | null;
+  actorEmail: string;
+  width?: number | null;
+  height?: number | null;
+}): Promise<CmsGalleryAssetRecord> {
+  const sigCheck = validateGalleryImageSignature(params.buffer, params.mimeType, params.filename);
+  if (!sigCheck.valid) {
+    throw new Error(sigCheck.error || "Invalid gallery image signature");
+  }
+
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("uploadGalleryAsset");
+    const formData = new FormData();
+    const blob = new Blob([new Uint8Array(params.buffer)], { type: params.mimeType });
+    formData.append("file", blob, params.filename);
+    if (params.itemId) formData.append("itemId", params.itemId);
+    if (params.width) formData.append("width", String(params.width));
+    if (params.height) formData.append("height", String(params.height));
+
+    const workerUrl = `${process.env.CLOUDFLARE_CMS_API_URL!.replace(/\/+$/, "")}/api/v1/admin/gallery/upload`;
+    const response = await fetch(workerUrl, {
+      method: "POST",
+      headers: {
+        "CF-Access-Client-Id": process.env.CLOUDFLARE_API_SERVICE_TOKEN || "",
+        "CF-Access-Client-Secret": process.env.CLOUDFLARE_API_SERVICE_SECRET || ""
+      },
+      body: formData
+    });
+    if (!response.ok) {
+      throw new Error(`Worker gallery upload failed: HTTP ${response.status}`);
+    }
+    const data = (await response.json()) as { ok: boolean; asset: CmsGalleryAssetRecord };
+    return data.asset;
+  }
+
+  assertLocalSimulationAllowed("uploadGalleryAsset");
+  return uploadGalleryAssetLocal(params);
+}
+
+export const saveAdminGalleryItem = upsertGalleryItem;
+export const deleteAdminGalleryItem = deleteGalleryItem;
+export const updateGalleryOrderingInD1 = updateGalleryOrdering;
+export const listGalleryRevisionsFromD1 = listGalleryRevisions;
+export const rollbackGalleryRevisionInD1 = rollbackGalleryRevision;
 
 export { getCmsStorageMode, getCmsDataSource };

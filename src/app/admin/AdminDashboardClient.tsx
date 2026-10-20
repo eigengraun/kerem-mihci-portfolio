@@ -15,9 +15,12 @@ import {
   type CmsRevisionRecord,
   type CmsVideoRecord,
   type CmsVideoRevisionRecord,
+  type CmsGalleryItem,
+  type CmsGalleryRevisionRecord,
   type CompletenessCheck,
   type UpsertProjectInput,
   type UpsertVideoInput,
+  type UpsertGalleryItemInput,
   type VideoOrientation,
   type VideoType,
   type ProductionMethod,
@@ -29,6 +32,8 @@ type AdminTab =
   | "editor"
   | "videos"
   | "video-editor"
+  | "gallery"
+  | "gallery-editor"
   | "media"
   | "featured"
   | "system"
@@ -69,6 +74,10 @@ interface D1HealthSummary {
     portraitVideos?: number;
     landscapeVideos?: number;
     aiAssistedVideos?: number;
+    totalGalleryItems?: number;
+    publishedGalleryItems?: number;
+    draftGalleryItems?: number;
+    archivedGalleryItems?: number;
   };
   workspaceBreakdown: { workspace: string; status: string; count: number }[];
 }
@@ -184,6 +193,19 @@ const EMPTY_VIDEO_FORM: UpsertVideoInput = {
   tags: []
 };
 
+const EMPTY_GALLERY_FORM: UpsertGalleryItemInput = {
+  id: "",
+  cmsStatus: "draft",
+  src: "",
+  altTR: "",
+  altEN: "",
+  captionTR: "",
+  captionEN: "",
+  year: new Date().getFullYear().toString(),
+  location: "",
+  sortOrder: 0
+};
+
 export function AdminDashboardClient({
   initialSession,
   authConfig
@@ -227,6 +249,24 @@ export function AdminDashboardClient({
   const [videoSaving, setVideoSaving] = useState(false);
   const [videoDeleteConfirm, setVideoDeleteConfirm] = useState<CmsVideoRecord | null>(null);
   const [videoPreviewTarget, setVideoPreviewTarget] = useState<CmsVideoRecord | null>(null);
+
+  // Gallery state
+  const [gallery, setGallery] = useState<CmsGalleryItem[]>([]);
+  const [gallerySearchQuery, setGallerySearchQuery] = useState("");
+  const [galleryStatusFilter, setGalleryStatusFilter] = useState<string>("all");
+  const [galleryReorderMode, setGalleryReorderMode] = useState(false);
+  const [galleryReorderList, setGalleryReorderList] = useState<CmsGalleryItem[]>([]);
+  const [galleryReorderSaving, setGalleryReorderSaving] = useState(false);
+
+  // Gallery Editor state
+  const [galleryEditorMode, setGalleryEditorMode] = useState<"create" | "edit">("create");
+  const [galleryEditorLocaleTab, setGalleryEditorLocaleTab] = useState<"tr" | "en">("tr");
+  const [galleryFormState, setGalleryFormState] = useState<UpsertGalleryItemInput>(EMPTY_GALLERY_FORM);
+  const [galleryRevisions, setGalleryRevisions] = useState<CmsGalleryRevisionRecord[]>([]);
+  const [gallerySaveMessage, setGallerySaveMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const [gallerySaving, setGallerySaving] = useState(false);
+  const [galleryDeleteConfirm, setGalleryDeleteConfirm] = useState<CmsGalleryItem | null>(null);
+  const [galleryUploadProgress, setGalleryUploadProgress] = useState<string | null>(null);
 
   // Derived CMS statistics
   const workspaceCounts = useMemo(() => {
@@ -287,6 +327,47 @@ export function AdminDashboardClient({
     });
   }, [videos, videoStatusFilter, videoOrientationFilter, videoAiFilter, videoSearchQuery]);
 
+  const galleryStats = useMemo(() => {
+    const total = gallery.length;
+    let published = 0;
+    let draft = 0;
+    let archived = 0;
+
+    for (const item of gallery) {
+      if (item.cmsStatus === "published") published++;
+      else if (item.cmsStatus === "draft") draft++;
+      else if (item.cmsStatus === "archived") archived++;
+    }
+
+    return { total, published, draft, archived };
+  }, [gallery]);
+
+  const filteredGallery = useMemo(() => {
+    return gallery.filter((item) => {
+      if (galleryStatusFilter !== "all" && item.cmsStatus !== galleryStatusFilter) return false;
+      if (gallerySearchQuery.trim()) {
+        const q = gallerySearchQuery.toLowerCase();
+        const altTr = (item.alt?.tr || "").toLowerCase();
+        const altEn = (item.alt?.en || "").toLowerCase();
+        const capTr = (item.caption?.tr || "").toLowerCase();
+        const capEn = (item.caption?.en || "").toLowerCase();
+        const loc = (item.location || "").toLowerCase();
+        const yr = (item.year || "").toLowerCase();
+        const id = item.id.toLowerCase();
+        return (
+          altTr.includes(q) ||
+          altEn.includes(q) ||
+          capTr.includes(q) ||
+          capEn.includes(q) ||
+          loc.includes(q) ||
+          yr.includes(q) ||
+          id.includes(q)
+        );
+      }
+      return true;
+    });
+  }, [gallery, galleryStatusFilter, gallerySearchQuery]);
+
   // Editor state
   const [editorMode, setEditorMode] = useState<"create" | "edit">("create");
   const [editorLocaleTab, setEditorLocaleTab] = useState<"tr" | "en">("tr");
@@ -307,11 +388,12 @@ export function AdminDashboardClient({
     if (!session) return;
     setLoadingCore(true);
     try {
-      const [projRes, sysRes, mediaRes, vidRes] = await Promise.all([
+      const [projRes, sysRes, mediaRes, vidRes, galRes] = await Promise.all([
         fetch("/api/admin/projects", { cache: "no-store" }),
         fetch("/api/admin/system", { cache: "no-store" }),
         fetch("/api/admin/media", { cache: "no-store" }),
-        fetch("/api/admin/videos", { cache: "no-store" })
+        fetch("/api/admin/videos", { cache: "no-store" }),
+        fetch("/api/admin/gallery", { cache: "no-store" })
       ]);
 
       if (projRes.ok) {
@@ -343,6 +425,10 @@ export function AdminDashboardClient({
       if (vidRes.ok) {
         const vj = await vidRes.json();
         setVideos(vj.videos || []);
+      }
+      if (galRes.ok) {
+        const gj = await galRes.json();
+        setGallery(gj.gallery || []);
       }
     } catch (err) {
       console.error("Failed to load admin core data:", err);
@@ -1092,6 +1178,300 @@ export function AdminDashboardClient({
   };
 
   // ==========================================================
+  // GALLERY HANDLERS (Phase 4)
+  // ==========================================================
+  const handleCreateGallery = () => {
+    setGalleryFormState({
+      ...EMPTY_GALLERY_FORM,
+      sortOrder: gallery.length
+    });
+    setGalleryEditorMode("create");
+    setGalleryRevisions([]);
+    setGallerySaveMessage(null);
+    setActiveTab("gallery-editor");
+  };
+
+  const handleEditGallery = async (item: CmsGalleryItem) => {
+    setGalleryFormState({
+      id: item.id,
+      cmsStatus: item.cmsStatus,
+      src: item.src,
+      altTR: item.alt?.tr || "",
+      altEN: item.alt?.en || "",
+      captionTR: item.caption?.tr || "",
+      captionEN: item.caption?.en || "",
+      year: item.year || "",
+      location: item.location || "",
+      sortOrder: item.sortOrder ?? 0,
+      asset: item.asset || undefined
+    });
+    setGalleryEditorMode("edit");
+    setGallerySaveMessage(null);
+    setActiveTab("gallery-editor");
+
+    try {
+      const res = await fetch(`/api/admin/gallery/${encodeURIComponent(item.id)}/revisions`);
+      if (res.ok) {
+        const d = await res.json();
+        setGalleryRevisions(d.revisions || []);
+      }
+    } catch {}
+  };
+
+  const handleSaveGallery = async (overrideStatus?: CmsPublishStatus) => {
+    setGallerySaving(true);
+    setGallerySaveMessage(null);
+
+    const targetStatus = overrideStatus || galleryFormState.cmsStatus || "draft";
+
+    if (targetStatus === "published") {
+      if (!galleryFormState.altTR?.trim() || !galleryFormState.altEN?.trim()) {
+        setGallerySaveMessage({ type: "err", text: "Both Turkish and English alt text are required to publish." });
+        setGallerySaving(false);
+        return;
+      }
+      if (!galleryFormState.src?.trim()) {
+        setGallerySaveMessage({ type: "err", text: "An image source or upload is required to publish." });
+        setGallerySaving(false);
+        return;
+      }
+    }
+
+    try {
+      const payload: UpsertGalleryItemInput = {
+        ...galleryFormState,
+        cmsStatus: targetStatus
+      };
+
+      const isCreate = galleryEditorMode === "create" || !payload.id;
+      const url = isCreate ? "/api/admin/gallery" : `/api/admin/gallery/${encodeURIComponent(payload.id!)}`;
+      const method = isCreate ? "POST" : "PUT";
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          ...csrfHeaders
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setGallerySaveMessage({ type: "err", text: data.error || "Failed to save photograph." });
+      } else {
+        const savedItem = data.item as CmsGalleryItem;
+        setGalleryFormState((prev) => ({
+          ...prev,
+          id: savedItem.id,
+          cmsStatus: savedItem.cmsStatus,
+          src: savedItem.src,
+          sortOrder: savedItem.sortOrder
+        }));
+        setGalleryEditorMode("edit");
+        setGallerySaveMessage({
+          type: "ok",
+          text: `Photograph ${targetStatus === "published" ? "published successfully!" : "saved successfully."}`
+        });
+
+        await loadCoreData();
+
+        const revRes = await fetch(`/api/admin/gallery/${encodeURIComponent(savedItem.id)}/revisions`);
+        if (revRes.ok) {
+          const revData = await revRes.json();
+          setGalleryRevisions(revData.revisions || []);
+        }
+      }
+    } catch {
+      setGallerySaveMessage({ type: "err", text: "Network error while saving photograph." });
+    } finally {
+      setGallerySaving(false);
+    }
+  };
+
+  const handleQuickGalleryStatusChange = async (itemId: string, newStatus: CmsPublishStatus) => {
+    const item = gallery.find((g) => g.id === itemId);
+    if (!item) return;
+
+    if (newStatus === "published") {
+      if (!item.alt?.tr?.trim() || !item.alt?.en?.trim()) {
+        alert("Cannot publish: both Turkish and English alt text are required.");
+        return;
+      }
+      if (!item.src?.trim()) {
+        alert("Cannot publish: missing image source.");
+        return;
+      }
+    }
+
+    try {
+      const res = await fetch(`/api/admin/gallery/${encodeURIComponent(itemId)}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...csrfHeaders
+        },
+        body: JSON.stringify({
+          id: item.id,
+          cmsStatus: newStatus,
+          src: item.src,
+          altTR: item.alt.tr,
+          altEN: item.alt.en,
+          captionTR: item.caption?.tr,
+          captionEN: item.caption?.en,
+          year: item.year,
+          location: item.location,
+          sortOrder: item.sortOrder
+        })
+      });
+      if (res.ok) {
+        await loadCoreData();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || "Failed to change status.");
+      }
+    } catch {
+      alert("Failed to change status.");
+    }
+  };
+
+  const handleDeleteGallery = async (item: CmsGalleryItem) => {
+    try {
+      const res = await fetch(`/api/admin/gallery/${encodeURIComponent(item.id)}`, {
+        method: "DELETE",
+        headers: {
+          ...csrfHeaders
+        }
+      });
+      if (res.ok) {
+        setGalleryDeleteConfirm(null);
+        if (activeTab === "gallery-editor") {
+          setActiveTab("gallery");
+        }
+        await loadCoreData();
+        setGallerySaveMessage({ type: "ok", text: `Photograph "${item.id}" deleted successfully.` });
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "Failed to delete photograph.");
+      }
+    } catch {
+      alert("Network error while deleting photograph.");
+    }
+  };
+
+  const handleMoveGallery = async (item: CmsGalleryItem, direction: "up" | "down") => {
+    const currentList = galleryReorderList.length > 0 ? [...galleryReorderList] : [...gallery];
+    const currentIndex = currentList.findIndex((g) => g.id === item.id);
+    if (currentIndex < 0) return;
+    const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= currentList.length) return;
+
+    const temp = currentList[currentIndex];
+    currentList[currentIndex] = currentList[targetIndex];
+    currentList[targetIndex] = temp;
+
+    setGalleryReorderList(currentList);
+  };
+
+  const handleSaveGalleryReorder = async () => {
+    setGalleryReorderSaving(true);
+    try {
+      const itemsPayload = galleryReorderList.map((it, idx) => ({ id: it.id, sortOrder: idx }));
+      const res = await fetch("/api/admin/gallery/reorder", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...csrfHeaders
+        },
+        body: JSON.stringify({ items: itemsPayload })
+      });
+      if (res.ok) {
+        setGalleryReorderMode(false);
+        setGalleryReorderList([]);
+        await loadCoreData();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || "Failed to save stream order.");
+      }
+    } catch {
+      alert("Failed to save stream order.");
+    } finally {
+      setGalleryReorderSaving(false);
+    }
+  };
+
+  const handleUploadGalleryImage = async (file: File) => {
+    setGalleryUploadProgress("Uploading...");
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      if (galleryFormState.id) {
+        formData.append("itemId", galleryFormState.id);
+      }
+      const res = await fetch("/api/admin/gallery/upload", {
+        method: "POST",
+        headers: {
+          ...csrfHeaders
+        },
+        body: formData
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || "Failed to upload image.");
+      }
+      setGalleryFormState((prev) => ({
+        ...prev,
+        src: data.publicUrl,
+        asset: data.asset
+      }));
+      setGalleryUploadProgress(null);
+      await loadCoreData();
+    } catch (err) {
+      setGalleryUploadProgress(null);
+      alert(err instanceof Error ? err.message : "Upload failed.");
+    }
+  };
+
+  const handleRollbackGallery = async (revNumber: number) => {
+    if (!galleryFormState.id) return;
+    try {
+      const res = await fetch(`/api/admin/gallery/${encodeURIComponent(galleryFormState.id)}/revisions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...csrfHeaders
+        },
+        body: JSON.stringify({ revisionNumber: revNumber })
+      });
+      if (res.ok) {
+        const d = await res.json();
+        const restored: CmsGalleryItem = d.item;
+        setGalleryFormState({
+          id: restored.id,
+          cmsStatus: restored.cmsStatus,
+          src: restored.src,
+          altTR: restored.alt.tr,
+          altEN: restored.alt.en,
+          captionTR: restored.caption?.tr || "",
+          captionEN: restored.caption?.en || "",
+          year: restored.year || "",
+          location: restored.location || "",
+          sortOrder: restored.sortOrder,
+          asset: restored.asset || undefined
+        });
+        if (d.revisions) setGalleryRevisions(d.revisions);
+        setGallerySaveMessage({ type: "ok", text: `Rolled back to revision #${revNumber}` });
+        await loadCoreData();
+      } else {
+        const d = await res.json().catch(() => ({}));
+        setGallerySaveMessage({ type: "err", text: d.error || "Rollback failed." });
+      }
+    } catch {
+      setGallerySaveMessage({ type: "err", text: "Failed to rollback revision." });
+    }
+  };
+
+  // ==========================================================
   // UNAUTHENTICATED LOGIN GATE
   // ==========================================================
   if (!session) {
@@ -1254,6 +1634,30 @@ export function AdminDashboardClient({
               {
                 id: "video-editor" as AdminTab,
                 label: videoEditorMode === "edit" ? "Edit Video" : "+ Create Video",
+                icon: (
+                  <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                )
+              }
+            ]
+          : []),
+        {
+          id: "gallery",
+          label: "Personal Gallery",
+          badge: gallery.length,
+          icon: (
+            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          )
+        },
+        ...(activeTab === "gallery-editor"
+          ? [
+              {
+                id: "gallery-editor" as AdminTab,
+                label: galleryEditorMode === "edit" ? "Edit Photo" : "+ Add Photo",
                 icon: (
                   <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -1472,6 +1876,14 @@ export function AdminDashboardClient({
               </button>
               <button
                 type="button"
+                data-testid="new-photo-quick-btn"
+                onClick={handleCreateGallery}
+                className="px-4 py-2 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/40 text-xs font-semibold text-purple-300 transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <span>+</span> New Photo
+              </button>
+              <button
+                type="button"
                 onClick={() => {
                   void loadCoreData();
                 }}
@@ -1558,6 +1970,37 @@ export function AdminDashboardClient({
                   className="px-3.5 py-1.5 rounded-lg bg-[#181B22] hover:bg-[#1E222A] border border-[#252A33] text-xs font-semibold text-indigo-300 hover:text-indigo-200 transition-colors cursor-pointer"
                 >
                   Manage Videos & Reels →
+                </button>
+              </div>
+            </div>
+
+            {/* Personal Gallery CMS Summary Card */}
+            <div className="p-5 rounded-xl bg-[#121418] border border-[#252A33] shadow-sm flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-purple-600/20 border border-purple-500/40 flex items-center justify-center text-purple-400 shrink-0">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-[#F5F7FA]">Personal Gallery Engine</h3>
+                  <p className="text-xs text-[#A0A8B5] mt-0.5">
+                    {gallery.length} photographs cataloged • {galleryStats.published} published • {galleryStats.draft} drafts • Single vertical stream
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-1 rounded text-xs font-mono bg-emerald-500/10 text-emerald-300 border border-emerald-500/20" data-testid="stat-gallery-published">
+                  {galleryStats.published} Published Live
+                </span>
+                <button
+                  type="button"
+                  data-testid="overview-manage-gallery-btn"
+                  onClick={() => setActiveTab("gallery")}
+                  className="px-3.5 py-1.5 rounded-lg bg-[#181B22] hover:bg-[#1E222A] border border-[#252A33] text-xs font-semibold text-purple-300 hover:text-purple-200 transition-colors cursor-pointer"
+                >
+                  Manage Personal Gallery →
                 </button>
               </div>
             </div>
@@ -3391,6 +3834,739 @@ export function AdminDashboardClient({
         )}
 
         {/* ======================================================
+            PERSONAL GALLERY TAB (Phase 4)
+           ====================================================== */}
+        {activeTab === "gallery" && (
+          <div className="space-y-4" data-testid="admin-gallery-section">
+            {/* Header & Primary Controls */}
+            <div className="p-5 rounded-xl bg-[#121418] border border-[#252A33] flex flex-wrap items-center justify-between gap-4 shadow-sm">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-purple-400" />
+                  <h3 className="text-sm font-semibold text-[#F5F7FA]">Personal Photography Stream</h3>
+                </div>
+                <p className="text-xs text-[#A0A8B5] mt-1">
+                  {gallery.length} photographs cataloged • {galleryStats.published} published live • {galleryStats.draft} drafts • Rendered in a single deterministic vertical column
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  data-testid="gallery-reorder-toggle-btn"
+                  onClick={() => {
+                    if (galleryReorderMode) {
+                      setGalleryReorderMode(false);
+                      setGalleryReorderList([]);
+                    } else {
+                      setGalleryReorderList(
+                        [...gallery].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.id.localeCompare(b.id))
+                      );
+                      setGalleryReorderMode(true);
+                    }
+                  }}
+                  className={`px-3.5 py-2 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                    galleryReorderMode
+                      ? "bg-purple-600 text-white border-purple-500 shadow-sm shadow-purple-600/30"
+                      : "bg-[#181B22] hover:bg-[#1E222A] text-purple-300 border-[#252A33]"
+                  }`}
+                >
+                  {galleryReorderMode ? "✓ Done Reordering" : "↕ Reorder Stream"}
+                </button>
+
+                <button
+                  type="button"
+                  data-testid="gallery-add-photo-btn"
+                  onClick={handleCreateGallery}
+                  className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-xs font-semibold text-white shadow-sm shadow-purple-600/30 transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <span>+</span> Add Photograph
+                </button>
+              </div>
+            </div>
+
+            {/* Reorder Mode Workspace */}
+            {galleryReorderMode ? (
+              <div className="p-5 rounded-xl bg-[#121418] border border-purple-500/40 shadow-sm space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-[#252A33]">
+                  <div>
+                    <h4 className="text-xs font-semibold text-purple-300 uppercase tracking-wider font-mono">
+                      Stream Sequence Arrangement
+                    </h4>
+                    <p className="text-xs text-[#A0A8B5] mt-0.5">
+                      Top photograph renders first on the public portfolio. Use Up / Down buttons to adjust sort sequence.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setGalleryReorderMode(false);
+                        setGalleryReorderList([]);
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-[#181B22] hover:bg-[#1E222A] border border-[#252A33] text-xs font-semibold text-[#A0A8B5] hover:text-[#F5F7FA] transition-colors cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      data-testid="gallery-save-order-btn"
+                      disabled={galleryReorderSaving}
+                      onClick={handleSaveGalleryReorder}
+                      className="px-4 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-xs font-semibold text-white shadow-sm shadow-purple-600/30 transition-all cursor-pointer"
+                    >
+                      {galleryReorderSaving ? "Saving..." : "Save Stream Order"}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  {galleryReorderList.map((item, idx) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between p-3 rounded-lg bg-[#181B22] border border-[#252A33] hover:border-purple-500/40 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="w-6 text-center text-xs font-mono font-bold text-purple-400">
+                          #{idx + 1}
+                        </span>
+                        <div className="w-12 h-12 rounded bg-black/40 border border-[#252A33] overflow-hidden flex items-center justify-center shrink-0">
+                          {item.src ? (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img src={item.src} alt="" className="max-w-full max-h-full object-contain" />
+                          ) : (
+                            <span className="text-[10px] text-[#64748B]">No src</span>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-[#F5F7FA]">
+                            {item.alt?.en || item.alt?.tr || "(No alt text)"}
+                          </p>
+                          <p className="text-[11px] text-[#A0A8B5] font-mono mt-0.5">
+                            ID: {item.id} • Status: {item.cmsStatus} • {[item.location, item.year].filter(Boolean).join(" · ")}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          data-testid={`gallery-move-up-${item.id}`}
+                          disabled={idx === 0}
+                          onClick={() => handleMoveGallery(item, "up")}
+                          className="px-2.5 py-1 rounded bg-[#121418] hover:bg-[#1E222A] disabled:opacity-30 disabled:cursor-not-allowed border border-[#252A33] text-xs font-mono text-[#F5F7FA] cursor-pointer"
+                        >
+                          ▲
+                        </button>
+                        <button
+                          type="button"
+                          data-testid={`gallery-move-down-${item.id}`}
+                          disabled={idx === galleryReorderList.length - 1}
+                          onClick={() => handleMoveGallery(item, "down")}
+                          className="px-2.5 py-1 rounded bg-[#121418] hover:bg-[#1E222A] disabled:opacity-30 disabled:cursor-not-allowed border border-[#252A33] text-xs font-mono text-[#F5F7FA] cursor-pointer"
+                        >
+                          ▼
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Search & Filter Controls */}
+                <div className="p-3.5 rounded-xl bg-[#121418] border border-[#252A33] flex flex-wrap items-center justify-between gap-3 shadow-sm">
+                  <div className="flex items-center gap-2 flex-1 min-w-[240px]">
+                    <div className="relative flex-1">
+                      <input
+                        type="text"
+                        data-testid="gallery-search-input"
+                        placeholder="Search by alt text, caption, location, year, or ID..."
+                        value={gallerySearchQuery}
+                        onChange={(e) => setGallerySearchQuery(e.target.value)}
+                        className="w-full bg-[#181B22] border border-[#252A33] rounded-lg px-3 py-1.5 text-xs text-[#F5F7FA] placeholder-[#64748B] focus:border-purple-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <select
+                      data-testid="gallery-status-filter"
+                      value={galleryStatusFilter}
+                      onChange={(e) => setGalleryStatusFilter(e.target.value)}
+                      className="bg-[#181B22] border border-[#252A33] rounded-lg px-3 py-1.5 text-xs text-[#F5F7FA] focus:border-purple-500 focus:outline-none cursor-pointer"
+                    >
+                      <option value="all">All Statuses ({gallery.length})</option>
+                      <option value="published">Published ({galleryStats.published})</option>
+                      <option value="draft">Drafts ({galleryStats.draft})</option>
+                      <option value="archived">Archived ({galleryStats.archived})</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Stream / Grid of Photographs */}
+                {filteredGallery.length === 0 ? (
+                  <div className="p-12 rounded-xl bg-[#121418] border border-[#252A33] text-center space-y-3">
+                    <div className="w-12 h-12 rounded-full bg-purple-600/10 border border-purple-500/30 flex items-center justify-center text-purple-400 mx-auto text-xl">
+                      📷
+                    </div>
+                    <h3 className="text-sm font-semibold text-[#F5F7FA]">No Photographs Found</h3>
+                    <p className="text-xs text-[#A0A8B5] max-w-sm mx-auto">
+                      {gallery.length === 0
+                        ? "The personal gallery is currently empty. Add your first photograph to populate the vertical stream."
+                        : "No photographs match the active filter criteria."}
+                    </p>
+                    {gallery.length === 0 && (
+                      <button
+                        type="button"
+                        onClick={handleCreateGallery}
+                        className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-xs font-semibold text-white shadow-sm shadow-purple-600/30 transition-all cursor-pointer"
+                      >
+                        + Add First Photograph
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filteredGallery.map((item) => {
+                      const isPublished = item.cmsStatus === "published";
+                      const isDraft = item.cmsStatus === "draft";
+
+                      return (
+                        <div
+                          key={item.id}
+                          data-testid={`gallery-item-card-${item.id}`}
+                          className="rounded-xl bg-[#121418] border border-[#252A33] overflow-hidden shadow-sm flex flex-col justify-between hover:border-[#323846] transition-colors"
+                        >
+                          <div>
+                            {/* Photo Preview Container */}
+                            <div className="relative w-full aspect-[4/3] bg-black/40 border-b border-[#252A33] flex items-center justify-center overflow-hidden p-2">
+                              {item.src ? (
+                                /* eslint-disable-next-line @next/next/no-img-element */
+                                <img
+                                  src={item.src}
+                                  alt={item.alt?.en || item.alt?.tr || ""}
+                                  className="max-w-full max-h-full object-contain"
+                                  loading="lazy"
+                                />
+                              ) : (
+                                <span className="text-xs font-mono text-[#64748B]">Missing image</span>
+                              )}
+
+                              <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5">
+                                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-black/70 text-purple-300 border border-purple-500/30 backdrop-blur-xs">
+                                  #{item.sortOrder}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Card Details */}
+                            <div className="p-4 space-y-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <span
+                                  className={`px-2 py-0.5 rounded text-[10px] font-mono uppercase tracking-wider ${
+                                    isPublished
+                                      ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
+                                      : isDraft
+                                      ? "bg-amber-500/15 text-amber-300 border border-amber-500/30"
+                                      : "bg-neutral-800 text-neutral-400 border border-neutral-700"
+                                  }`}
+                                >
+                                  {item.cmsStatus}
+                                </span>
+
+                                <span className="text-[10px] font-mono text-[#64748B] truncate max-w-[120px]">
+                                  {item.id}
+                                </span>
+                              </div>
+
+                              <div>
+                                <h4 className="text-xs font-semibold text-[#F5F7FA] line-clamp-1">
+                                  {item.alt?.en || item.alt?.tr || "(No English Alt)"}
+                                </h4>
+                                <p className="text-[11px] text-[#A0A8B5] line-clamp-1 mt-0.5">
+                                  TR: {item.alt?.tr || "—"}
+                                </p>
+                              </div>
+
+                              {(item.caption?.en || item.caption?.tr) && (
+                                <p className="text-[10px] text-[#64748B] italic line-clamp-1">
+                                  {item.caption?.en || item.caption?.tr}
+                                </p>
+                              )}
+
+                              {(item.location || item.year) && (
+                                <div className="pt-1 flex items-center gap-1.5 text-[10px] font-mono text-purple-300">
+                                  <span>📍</span>
+                                  <span>{[item.location, item.year].filter(Boolean).join(" · ")}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Action Footer */}
+                          <div className="p-3 bg-[#181B22] border-t border-[#252A33] flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                data-testid={`gallery-edit-btn-${item.id}`}
+                                onClick={() => handleEditGallery(item)}
+                                className="px-2.5 py-1 rounded bg-[#121418] hover:bg-[#1E222A] border border-[#252A33] text-xs font-semibold text-purple-300 hover:text-purple-200 transition-colors cursor-pointer"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                data-testid={`gallery-toggle-status-btn-${item.id}`}
+                                onClick={() =>
+                                  handleQuickGalleryStatusChange(
+                                    item.id,
+                                    isPublished ? "draft" : "published"
+                                  )
+                                }
+                                className={`px-2 py-1 rounded text-xs font-semibold border transition-colors cursor-pointer ${
+                                  isPublished
+                                    ? "bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30"
+                                    : "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
+                                }`}
+                              >
+                                {isPublished ? "Unpublish" : "Publish"}
+                              </button>
+                            </div>
+
+                            <button
+                              type="button"
+                              data-testid={`gallery-delete-btn-${item.id}`}
+                              onClick={() => setGalleryDeleteConfirm(item)}
+                              className="px-2 py-1 rounded hover:bg-red-500/10 text-xs text-red-400 hover:text-red-300 transition-colors cursor-pointer"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ======================================================
+            GALLERY EDITOR TAB (Phase 4)
+           ====================================================== */}
+        {activeTab === "gallery-editor" && (
+          <div className="space-y-4" data-testid="admin-gallery-editor-section">
+            {/* Top Bar with Navigation & Actions */}
+            <div className="p-4 rounded-xl bg-[#121418] border border-[#252A33] flex flex-wrap items-center justify-between gap-3 shadow-sm">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("gallery")}
+                  className="px-3 py-1.5 rounded-lg bg-[#181B22] hover:bg-[#1E222A] border border-[#252A33] text-xs font-semibold text-[#A0A8B5] hover:text-[#F5F7FA] transition-colors cursor-pointer"
+                >
+                  ← Back to Gallery
+                </button>
+                <div>
+                  <h3 className="text-sm font-semibold text-[#F5F7FA]">
+                    {galleryEditorMode === "edit"
+                      ? `Edit Photograph: ${galleryFormState.id}`
+                      : "Add New Photograph"}
+                  </h3>
+                  <p className="text-xs text-[#A0A8B5] mt-0.5">
+                    Configure bilingual metadata, natural aspect ratio media asset, and publishing status.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <select
+                  data-testid="gallery-status-select"
+                  value={galleryFormState.cmsStatus || "draft"}
+                  onChange={(e) =>
+                    setGalleryFormState((prev) => ({
+                      ...prev,
+                      cmsStatus: e.target.value as CmsPublishStatus
+                    }))
+                  }
+                  className="bg-[#181B22] border border-[#252A33] rounded-lg px-3 py-1.5 text-xs text-[#F5F7FA] focus:border-purple-500 focus:outline-none cursor-pointer"
+                >
+                  <option value="draft">Draft (Unpublished)</option>
+                  <option value="published">Published (Live Stream)</option>
+                  <option value="archived">Archived</option>
+                </select>
+
+                <button
+                  type="button"
+                  data-testid="gallery-save-draft-btn"
+                  disabled={gallerySaving}
+                  onClick={() => handleSaveGallery("draft")}
+                  className="px-3.5 py-1.5 rounded-lg bg-[#181B22] hover:bg-[#1E222A] border border-[#252A33] text-xs font-semibold text-[#F5F7FA] transition-colors cursor-pointer"
+                >
+                  Save Draft
+                </button>
+
+                <button
+                  type="button"
+                  data-testid="gallery-publish-btn"
+                  disabled={gallerySaving}
+                  onClick={() => handleSaveGallery("published")}
+                  className="px-4 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-xs font-semibold text-white shadow-sm shadow-purple-600/30 transition-all cursor-pointer"
+                >
+                  {gallerySaving ? "Saving..." : "Publish Photograph"}
+                </button>
+              </div>
+            </div>
+
+            {/* Notification Alert */}
+            {gallerySaveMessage && (
+              <div
+                className={`p-3.5 rounded-xl border text-xs font-mono flex items-center justify-between ${
+                  gallerySaveMessage.type === "ok"
+                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                    : "bg-red-500/10 border-red-500/30 text-red-300"
+                }`}
+              >
+                <span>{gallerySaveMessage.text}</span>
+                <button
+                  type="button"
+                  onClick={() => setGallerySaveMessage(null)}
+                  className="text-xs hover:opacity-75 cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
+            {/* 2-Column Responsive Editor Form */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+              {/* Left Column: Image Upload & Preview (5 cols) */}
+              <div className="lg:col-span-5 space-y-4">
+                <div className="p-5 rounded-xl bg-[#121418] border border-[#252A33] shadow-sm space-y-4">
+                  <h4 className="text-xs font-semibold text-purple-300 uppercase tracking-wider font-mono">
+                    Photograph Media Asset
+                  </h4>
+
+                  {/* Dropzone */}
+                  <label
+                    data-testid="gallery-dropzone"
+                    className="flex flex-col items-center justify-center p-6 rounded-xl border-2 border-dashed border-[#252A33] hover:border-purple-500/60 bg-[#181B22]/50 hover:bg-[#181B22] transition-colors cursor-pointer text-center group"
+                  >
+                    <svg
+                      className="w-8 h-8 text-[#64748B] group-hover:text-purple-400 transition-colors mb-2"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
+                    <span className="text-xs font-semibold text-[#F5F7FA] group-hover:text-purple-300 transition-colors">
+                      {galleryUploadProgress || "Upload Photograph File"}
+                    </span>
+                    <span className="text-[11px] text-[#A0A8B5] mt-1">
+                      Drag & drop or browse • JPEG, PNG, WebP up to 10 MB
+                    </span>
+                    <input
+                      type="file"
+                      data-testid="gallery-file-input"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) void handleUploadGalleryImage(f);
+                      }}
+                    />
+                  </label>
+
+                  {/* Image Aspect Preview Frame */}
+                  <div className="space-y-1.5">
+                    <span className="text-[11px] font-mono text-[#A0A8B5] block">
+                      Natural Aspect Ratio Preview (Single Stream Render)
+                    </span>
+                    <div className="relative w-full min-h-[220px] max-h-[460px] bg-black/50 border border-[#252A33] rounded-lg overflow-hidden flex items-center justify-center p-2">
+                      {galleryFormState.src ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={galleryFormState.src}
+                          alt="Preview"
+                          className="w-full h-auto max-h-[440px] object-contain rounded"
+                        />
+                      ) : (
+                        <div className="text-center p-6 text-xs text-[#64748B] font-mono">
+                          No photograph selected yet.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Manual URL Input */}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-mono text-[#A0A8B5] block">
+                      Image Source Path / Public URL
+                    </label>
+                    <input
+                      type="text"
+                      data-testid="gallery-src-input"
+                      placeholder="/assets/gallery/photo.webp or /api/media/gallery/..."
+                      value={galleryFormState.src || ""}
+                      onChange={(e) =>
+                        setGalleryFormState((prev) => ({ ...prev, src: e.target.value }))
+                      }
+                      className="w-full bg-[#181B22] border border-[#252A33] rounded-lg px-3 py-2 text-xs font-mono text-[#F5F7FA] placeholder-[#64748B] focus:border-purple-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Bilingual Metadata & Properties (7 cols) */}
+              <div className="lg:col-span-7 space-y-4">
+                <div className="p-5 rounded-xl bg-[#121418] border border-[#252A33] shadow-sm space-y-4">
+                  <div className="flex items-center justify-between border-b border-[#252A33] pb-3">
+                    <h4 className="text-xs font-semibold text-purple-300 uppercase tracking-wider font-mono">
+                      Bilingual Metadata & Captions
+                    </h4>
+
+                    {/* Locale Switcher */}
+                    <div className="flex items-center gap-1 bg-[#181B22] p-1 rounded-lg border border-[#252A33]">
+                      <button
+                        type="button"
+                        onClick={() => setGalleryEditorLocaleTab("tr")}
+                        className={`px-3 py-1 rounded text-xs font-mono font-semibold transition-colors cursor-pointer ${
+                          galleryEditorLocaleTab === "tr"
+                            ? "bg-purple-600 text-white"
+                            : "text-[#A0A8B5] hover:text-[#F5F7FA]"
+                        }`}
+                      >
+                        Türkçe (TR)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setGalleryEditorLocaleTab("en")}
+                        className={`px-3 py-1 rounded text-xs font-mono font-semibold transition-colors cursor-pointer ${
+                          galleryEditorLocaleTab === "en"
+                            ? "bg-purple-600 text-white"
+                            : "text-[#A0A8B5] hover:text-[#F5F7FA]"
+                        }`}
+                      >
+                        English (EN)
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Active Locale Form Fields */}
+                  {galleryEditorLocaleTab === "tr" ? (
+                    <div className="space-y-4">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-[#F5F7FA] flex items-center justify-between">
+                          <span>Alt Metni (Görsel Tanımı) *</span>
+                          <span className="text-[10px] font-mono text-purple-400">Yayın için Zorunlu</span>
+                        </label>
+                        <input
+                          type="text"
+                          data-testid="gallery-alt-tr-input"
+                          placeholder="Örn: Karaköy sahilinde gün batımı ve vapur silueti"
+                          value={galleryFormState.altTR || ""}
+                          onChange={(e) =>
+                            setGalleryFormState((prev) => ({ ...prev, altTR: e.target.value }))
+                          }
+                          className="w-full bg-[#181B22] border border-[#252A33] rounded-lg px-3.5 py-2 text-xs text-[#F5F7FA] placeholder-[#64748B] focus:border-purple-500 focus:outline-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-[#F5F7FA] flex items-center justify-between">
+                          <span>Açıklama / Altyazı (İsteğe Bağlı)</span>
+                          <span className="text-[10px] font-mono text-[#A0A8B5]">Opsiyonel</span>
+                        </label>
+                        <textarea
+                          rows={3}
+                          data-testid="gallery-caption-tr-input"
+                          placeholder="Fotoğrafın hikayesi veya bağlamı..."
+                          value={galleryFormState.captionTR || ""}
+                          onChange={(e) =>
+                            setGalleryFormState((prev) => ({ ...prev, captionTR: e.target.value }))
+                          }
+                          className="w-full bg-[#181B22] border border-[#252A33] rounded-lg p-3 text-xs text-[#F5F7FA] placeholder-[#64748B] focus:border-purple-500 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-[#F5F7FA] flex items-center justify-between">
+                          <span>Alt Text (Image Description) *</span>
+                          <span className="text-[10px] font-mono text-purple-400">Required to Publish</span>
+                        </label>
+                        <input
+                          type="text"
+                          data-testid="gallery-alt-en-input"
+                          placeholder="e.g. Sunset silhouette of a ferry off the Karaköy coastline"
+                          value={galleryFormState.altEN || ""}
+                          onChange={(e) =>
+                            setGalleryFormState((prev) => ({ ...prev, altEN: e.target.value }))
+                          }
+                          className="w-full bg-[#181B22] border border-[#252A33] rounded-lg px-3.5 py-2 text-xs text-[#F5F7FA] placeholder-[#64748B] focus:border-purple-500 focus:outline-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-[#F5F7FA] flex items-center justify-between">
+                          <span>Caption / Narrative (Optional)</span>
+                          <span className="text-[10px] font-mono text-[#A0A8B5]">Optional</span>
+                        </label>
+                        <textarea
+                          rows={3}
+                          data-testid="gallery-caption-en-input"
+                          placeholder="Context, equipment, or story behind this photograph..."
+                          value={galleryFormState.captionEN || ""}
+                          onChange={(e) =>
+                            setGalleryFormState((prev) => ({ ...prev, captionEN: e.target.value }))
+                          }
+                          className="w-full bg-[#181B22] border border-[#252A33] rounded-lg p-3 text-xs text-[#F5F7FA] placeholder-[#64748B] focus:border-purple-500 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* General Contextual Properties */}
+                  <div className="pt-3 border-t border-[#252A33] grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-[#F5F7FA] block">Year</label>
+                      <input
+                        type="text"
+                        data-testid="gallery-year-input"
+                        placeholder="e.g. 2026"
+                        value={galleryFormState.year || ""}
+                        onChange={(e) =>
+                          setGalleryFormState((prev) => ({ ...prev, year: e.target.value }))
+                        }
+                        className="w-full bg-[#181B22] border border-[#252A33] rounded-lg px-3 py-2 text-xs text-[#F5F7FA] placeholder-[#64748B] focus:border-purple-500 focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-[#F5F7FA] block">Location</label>
+                      <input
+                        type="text"
+                        data-testid="gallery-location-input"
+                        placeholder="e.g. Istanbul, Turkey"
+                        value={galleryFormState.location || ""}
+                        onChange={(e) =>
+                          setGalleryFormState((prev) => ({ ...prev, location: e.target.value }))
+                        }
+                        className="w-full bg-[#181B22] border border-[#252A33] rounded-lg px-3 py-2 text-xs text-[#F5F7FA] placeholder-[#64748B] focus:border-purple-500 focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-[#F5F7FA] block">Sort Order</label>
+                      <input
+                        type="number"
+                        data-testid="gallery-sort-order-input"
+                        value={galleryFormState.sortOrder ?? 0}
+                        onChange={(e) =>
+                          setGalleryFormState((prev) => ({
+                            ...prev,
+                            sortOrder: parseInt(e.target.value, 10) || 0
+                          }))
+                        }
+                        className="w-full bg-[#181B22] border border-[#252A33] rounded-lg px-3 py-2 text-xs font-mono text-[#F5F7FA] focus:border-purple-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Revision History Section */}
+                {galleryRevisions.length > 0 && (
+                  <div className="p-5 rounded-xl bg-[#121418] border border-[#252A33] shadow-sm space-y-3">
+                    <h4 className="text-xs font-semibold text-[#A0A8B5] uppercase tracking-wider font-mono">
+                      Revision History ({galleryRevisions.length})
+                    </h4>
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                      {galleryRevisions.map((rev) => (
+                        <div
+                          key={rev.id}
+                          className="flex items-center justify-between p-2.5 rounded-lg bg-[#181B22] border border-[#252A33] text-xs font-mono"
+                        >
+                          <div>
+                            <span className="text-purple-400 font-bold">Rev #{rev.revisionNumber}</span>
+                            <span className="text-[#A0A8B5] ml-2">({rev.action})</span>
+                            <span className="text-[#64748B] ml-2 block sm:inline">
+                              by {rev.actorEmail} • {new Date(rev.createdAt).toLocaleString()}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            data-testid={`gallery-restore-rev-${rev.revisionNumber}`}
+                            onClick={() => handleRollbackGallery(rev.revisionNumber)}
+                            className="px-2.5 py-1 rounded bg-[#121418] hover:bg-[#1E222A] border border-[#252A33] text-[11px] text-purple-300 hover:text-purple-200 transition-colors cursor-pointer"
+                          >
+                            Restore
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Bottom Action Bar */}
+            <div className="p-4 rounded-xl bg-[#121418] border border-[#252A33] flex items-center justify-between gap-3 shadow-sm">
+              <button
+                type="button"
+                onClick={() => setActiveTab("gallery")}
+                className="px-4 py-2 rounded-lg bg-[#181B22] hover:bg-[#1E222A] border border-[#252A33] text-xs font-semibold text-[#A0A8B5] hover:text-[#F5F7FA] transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+
+              <div className="flex items-center gap-2.5">
+                {galleryEditorMode === "edit" && (
+                  <button
+                    type="button"
+                    data-testid="gallery-delete-from-editor-btn"
+                    onClick={() => {
+                      const item = gallery.find((g) => g.id === galleryFormState.id);
+                      if (item) setGalleryDeleteConfirm(item);
+                    }}
+                    className="px-4 py-2 rounded-lg hover:bg-red-500/10 text-xs font-semibold text-red-400 hover:text-red-300 transition-colors cursor-pointer mr-2"
+                  >
+                    Delete Photograph
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  data-testid="gallery-bottom-save-draft-btn"
+                  disabled={gallerySaving}
+                  onClick={() => handleSaveGallery("draft")}
+                  className="px-4 py-2 rounded-lg bg-[#181B22] hover:bg-[#1E222A] border border-[#252A33] text-xs font-semibold text-[#F5F7FA] transition-colors cursor-pointer"
+                >
+                  Save Draft
+                </button>
+
+                <button
+                  type="button"
+                  data-testid="gallery-bottom-publish-btn"
+                  disabled={gallerySaving}
+                  onClick={() => handleSaveGallery("published")}
+                  className="px-5 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-xs font-semibold text-white shadow-sm shadow-purple-600/30 transition-all cursor-pointer"
+                >
+                  {gallerySaving ? "Saving..." : "Publish Photograph"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ======================================================
             4. MEDIA LIBRARY (R2) TAB
            ====================================================== */}
         {activeTab === "media" && (
@@ -3768,6 +4944,53 @@ export function AdminDashboardClient({
                 type="button"
                 data-testid="confirm-delete-video-btn"
                 onClick={() => handleDeleteVideo(videoDeleteConfirm)}
+                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-xs font-semibold text-white shadow-sm shadow-red-600/30 transition-all cursor-pointer"
+              >
+                Permanently Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Gallery Safe Delete Modal */}
+      {galleryDeleteConfirm && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-2xl bg-[#121418] border border-red-500/30 p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 text-red-400">
+              <div className="w-10 h-10 rounded-full bg-red-500/15 border border-red-500/30 flex items-center justify-center shrink-0">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-[#F5F7FA]">Confirm Deletion</h3>
+                <p className="text-xs text-[#A0A8B5]">This action cannot be undone.</p>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-lg bg-[#181B22] border border-[#252A33] text-xs font-mono space-y-1">
+              <p className="text-[#F5F7FA] font-semibold">{galleryDeleteConfirm.alt?.en || galleryDeleteConfirm.alt?.tr || "(No alt text)"}</p>
+              <p className="text-[#64748B]">ID: {galleryDeleteConfirm.id}</p>
+              <p className="text-[#64748B]">Status: {galleryDeleteConfirm.cmsStatus} • Order: #{galleryDeleteConfirm.sortOrder}</p>
+            </div>
+
+            <p className="text-xs text-[#A0A8B5]">
+              Are you sure you want to permanently delete this photograph, its translations, and asset references from D1?
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setGalleryDeleteConfirm(null)}
+                className="px-4 py-2 rounded-lg bg-[#181B22] hover:bg-[#1E222A] border border-[#252A33] text-xs font-semibold text-[#A0A8B5] hover:text-[#F5F7FA] transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                data-testid="confirm-delete-gallery-btn"
+                onClick={() => handleDeleteGallery(galleryDeleteConfirm)}
                 className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-xs font-semibold text-white shadow-sm shadow-red-600/30 transition-all cursor-pointer"
               >
                 Permanently Delete

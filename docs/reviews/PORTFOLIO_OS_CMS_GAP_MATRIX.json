@@ -1,0 +1,406 @@
+[
+  {
+    "id": "GAP-01",
+    "featureArea": "Admin Shell & Layout",
+    "title": "Complete Vertical Scroll Failure Across All Screens and Viewports",
+    "classification": "CONFIRMED_BUG",
+    "severity": "CRITICAL",
+    "evidenceSource": "scroll-diagnostic-results.json & Playwright automated measurement",
+    "filePaths": [
+      "src/app/layout.tsx",
+      "src/app/globals.css",
+      "src/app/admin/layout.tsx",
+      "src/app/admin/AdminDashboardClient.tsx"
+    ],
+    "reproductionSteps": [
+      "Navigate to http://127.0.0.1:3099/admin on a display with 1440x900 or 1920x1080 resolution.",
+      "Authenticate with admin credentials and open the Projects, Media Library, or Overview tabs.",
+      "Attempt to scroll downward using mouse wheel, trackpad, touch swipe, or PageDown / End keys.",
+      "Observe that scrollTop remains strictly 0 and all content beyond viewport height (e.g. 1800+ px) is completely unreachable."
+    ],
+    "actualBehavior": "mainScrollH equals mainClientH (e.g. 2605px / 2605px). main does not overflow itself because parent adminRoot and layoutRoot have unconstrained min-h-screen. The entire layout overflows <body>, which has overflow: hidden and height: 100dvh, freezing all vertical movement.",
+    "expectedBehavior": "The admin root container should be constrained to viewport height (h-[100dvh] overflow-hidden), and the <main> element (or scrollable workspace) should have flex-1 h-full overflow-y-auto so that downward scrolling is natural, responsive, and reaches all content.",
+    "rootCause": "Global overflow: hidden on html, body in globals.css and layout.tsx combined with min-h-screen on AdminLayout and AdminDashboardClient without a bounded container height or route-scoped overflow configuration.",
+    "recommendedFix": "In src/app/admin/layout.tsx and AdminDashboardClient.tsx, establish a strict route-scoped container constraint: h-[100dvh] max-h-[100dvh] overflow-hidden on the outer shell, flex-1 min-h-0 overflow-y-auto on <main>, and ensure mobile layout allows unified scrolling.",
+    "dataImpact": "Zero data loss; severe usability blocker preventing access to action buttons, bottom tables, and form inputs.",
+    "securityImpact": "None",
+    "estimatedComplexity": "Low (CSS / flexbox bounding correction)",
+    "implementationPhase": "Phase 1",
+    "acceptanceCriteria": "On all 7 admin tabs across 1920x1080, 1440x900, 1280x800, 820x1180, 390x844, and 375x812, scrollTop increases on downward wheel/touch/key scroll, and bottom elements are verified reachable via automated Playwright assertions."
+  },
+  {
+    "id": "GAP-02",
+    "featureArea": "Staging Data & Featured Management",
+    "title": "Interrupted Staging Test Draft Artifact Leaking into Featured Manager",
+    "classification": "DATA_INTEGRITY_RISK",
+    "severity": "HIGH",
+    "evidenceSource": "Remote staging Worker API query /api/v1/admin/projects",
+    "filePaths": [
+      "src/app/admin/AdminDashboardClient.tsx",
+      "cloudflare/portfolio-api/src/index.ts",
+      "scripts/verify-remote-staging-e2e.mjs"
+    ],
+    "reproductionSteps": [
+      "Inspect staging D1 projects table via Worker API.",
+      "Observe draft project 'staging-e2e-29cbd44d' with featured=1.",
+      "Open Featured Manager tab in Admin UI.",
+      "Notice that 'Staging E2E Test Projesi' is displayed with button '★ Featured on Desktop'."
+    ],
+    "actualBehavior": "Featured Manager filters projects only by workspace (p.workspace === featuredWorkspace) without checking cmsStatus === 'published'. An uncleaned test draft from an interrupted E2E test appears as featured.",
+    "expectedBehavior": "Featured Manager should strictly filter for published projects (p.cmsStatus === 'published') or visibly distinguish drafts and prevent unpublished drafts from claiming featured desktop slots.",
+    "rootCause": "Missing status filter in AdminDashboardClient.tsx lines 1752-1755, and an interrupted run of verify-remote-staging-e2e.mjs that exited prior to its cleanup step.",
+    "recommendedFix": "Update Featured Manager tab to filter p.cmsStatus === 'published', and add an explicit test cleanup routine or test prefix filter to staging management.",
+    "dataImpact": "Staging D1 has 31 projects (30 canonical + 1 test draft). Featured count shows 11 instead of 10.",
+    "securityImpact": "Low",
+    "estimatedComplexity": "Low",
+    "implementationPhase": "Phase 1",
+    "acceptanceCriteria": "Featured Manager only renders published projects; test drafts never appear in the desktop featured list; clean inventory documented."
+  },
+  {
+    "id": "GAP-03",
+    "featureArea": "Admin System Diagnostics",
+    "title": "Misleading 'Canonical Reconciliation: Pending / MISMATCH' Status",
+    "classification": "UX_DEFICIENCY",
+    "severity": "MEDIUM",
+    "evidenceSource": "Admin Overview card and System tab inspection",
+    "filePaths": [
+      "src/app/admin/AdminDashboardClient.tsx",
+      "src/lib/portfolio/d1Engine.ts",
+      "src/lib/portfolio/repository.ts"
+    ],
+    "reproductionSteps": [
+      "Navigate to Admin Overview tab and observe Cloudflare D1 & R2 card.",
+      "Read 'Canonical Reconciliation: Pending'.",
+      "Navigate to System tab and read 'Canonical 30-Project Reconciliation: MISMATCH'."
+    ],
+    "actualBehavior": "Because D1 contains 31 projects (the 30 canonical plus 1 draft), nonCanonicalSlugs is not empty, causing reconciled to evaluate to false. Overview displays 'Pending' (fallback for !reconciled) while System displays 'MISMATCH'.",
+    "expectedBehavior": "Reconciliation logic should differentiate between missing canonical projects (which is an error) vs active drafts created by the administrator (which is normal CMS operation). Overview should say '30/30 Canonical Verified (+ 1 Draft)'.",
+    "rootCause": "Strict check reconciled = missingSlugs.length === 0 && nonCanonicalSlugs.length === 0 in d1Engine.ts line 1862 treats any draft as a reconciliation failure, and Admin UI conflates false with 'Pending'.",
+    "recommendedFix": "Refine reconciliation result structure to report canonicalParity: true/false (all 30 canonical projects match) alongside customDraftCount and customProjectCount.",
+    "dataImpact": "None; purely diagnostic and informational.",
+    "securityImpact": "None",
+    "estimatedComplexity": "Low",
+    "implementationPhase": "Phase 1",
+    "acceptanceCriteria": "Overview and System screens accurately reflect 30/30 canonical integrity without displaying a false 'MISMATCH' or 'Pending' when drafts exist."
+  },
+  {
+    "id": "GAP-04",
+    "featureArea": "Featured Projects Manager",
+    "title": "Absence of Manual Desktop Sort Ordering and Drag-and-Drop Placement",
+    "classification": "CONFIRMED_MISSING_FEATURE",
+    "severity": "HIGH",
+    "evidenceSource": "src/app/admin/AdminDashboardClient.tsx lines 1745-1785",
+    "filePaths": [
+      "src/app/admin/AdminDashboardClient.tsx",
+      "src/lib/portfolio/repository.ts",
+      "cloudflare/portfolio-api/src/index.ts"
+    ],
+    "reproductionSteps": [
+      "Open Featured Manager in Admin Dashboard.",
+      "Observe that items can only be toggled on or off with 'Set Featured' / '★ Featured on Desktop'.",
+      "Attempt to change the order of featured desktop icons."
+    ],
+    "actualBehavior": "No sort order inputs, up/down arrows, or drag-and-drop handles exist. The featuredOrder attribute in D1 cannot be modified from the UI.",
+    "expectedBehavior": "Administrator should be able to drag-and-drop or use up/down controls / numeric inputs to explicitly specify desktop icon sort order per workspace.",
+    "rootCause": "Featured Manager was implemented as a simple boolean toggle without ordering UI or endpoint binding for updateFeaturedOrderingInD1.",
+    "recommendedFix": "Implement a drag-and-drop / Move Up / Move Down list in Featured Manager that updates featured_order in D1 via PUT /api/admin/projects/featured-order.",
+    "dataImpact": "Prevents curator from controlling the visual hierarchy of desktop icons on https://keremmihci.com.",
+    "securityImpact": "None",
+    "estimatedComplexity": "Medium",
+    "implementationPhase": "Phase 2",
+    "acceptanceCriteria": "Administrator can reorder featured projects; new order persists to D1 and reflects in desktop icon ordering on the public portfolio."
+  },
+  {
+    "id": "GAP-05",
+    "featureArea": "Video & Reels Management",
+    "title": "Completely Missing 'Videos & Reels' Content Management System",
+    "classification": "CONFIRMED_MISSING_FEATURE",
+    "severity": "CRITICAL",
+    "evidenceSource": "Inspection of src/data/videos.ts and lack of video management in AdminDashboardClient.tsx",
+    "filePaths": [
+      "src/data/videos.ts",
+      "src/components/applications/VideoApp.tsx",
+      "src/app/admin/AdminDashboardClient.tsx",
+      "cloudflare/portfolio-api/migrations/0001_initial_schema.sql"
+    ],
+    "reproductionSteps": [
+      "Search the admin navigation and interface for video or reel management controls.",
+      "Observe that no video management exists anywhere in the CMS dashboard.",
+      "Check src/data/videos.ts and observe that all 21 videos (19 portrait reels, 2 landscape videos) are hardcoded in TypeScript."
+    ],
+    "actualBehavior": "All video catalog data, TR/EN titles, descriptions, client metadata, posters, and video paths can only be added or modified by editing TypeScript source code and rebuilding the application.",
+    "expectedBehavior": "A dedicated 'Videos & Reels' CMS module that allows uploading vertical 9:16 reels and landscape 16:9 videos, editing bilingual metadata, uploading posters, setting sort order, and publishing without code deployment.",
+    "rootCause": "CMS was initial-phased around project case studies only; standalone video architecture was never migrated into Cloudflare D1/R2.",
+    "recommendedFix": "Create D1 videos and video_translations tables, add Worker API routes, provide R2 video/poster upload pipeline, and build a dedicated 'Videos & Reels' admin interface.",
+    "dataImpact": "High; requires non-destructive migration of all 21 existing videos from videos.ts into D1 with zero data loss.",
+    "securityImpact": "Requires strict video file upload size/MIME validation and streaming support.",
+    "estimatedComplexity": "High",
+    "implementationPhase": "Phase 3",
+    "acceptanceCriteria": "All 21 existing videos editable in CMS; new reels/videos can be uploaded and published dynamically; video files stream correctly via HTTP 206 Range."
+  },
+  {
+    "id": "GAP-06",
+    "featureArea": "Video Playback & Ordering",
+    "title": "Session Store Shuffles Video Feed, Overriding Curator Sort Order",
+    "classification": "CONFIRMED_BUG",
+    "severity": "HIGH",
+    "evidenceSource": "src/store/sessionStore.ts line 62",
+    "filePaths": [
+      "src/store/sessionStore.ts",
+      "src/components/applications/VideoApp.tsx"
+    ],
+    "reproductionSteps": [
+      "Open public Portfolio OS and launch VideoApp (Reels).",
+      "Refresh the page or open in a new session.",
+      "Observe that video order changes randomly on every session initialization."
+    ],
+    "actualBehavior": "const initialVideos = shuffleArray(videosData, createMulberry32(sessionSeed + 1)) shuffles all videos, discarding any intended editorial or chronological order.",
+    "expectedBehavior": "When the administrator assigns an explicit sort_order, the public Reels feed and Video Library should respect that order deterministically.",
+    "rootCause": "Hardcoded shuffleArray call on module initialization in sessionStore.ts.",
+    "recommendedFix": "Update sessionStore.ts to respect explicit sort_order from CMS data, only applying fallback pseudo-randomization if no manual order is specified.",
+    "dataImpact": "None on database; directly degrades public editorial presentation.",
+    "securityImpact": "None",
+    "estimatedComplexity": "Low",
+    "implementationPhase": "Phase 3",
+    "acceptanceCriteria": "Curated video order assigned in CMS is strictly preserved across user sessions."
+  },
+  {
+    "id": "GAP-07",
+    "featureArea": "Personal Gallery Management",
+    "title": "Completely Missing 'Personal Gallery' Content Management System",
+    "classification": "CONFIRMED_MISSING_FEATURE",
+    "severity": "CRITICAL",
+    "evidenceSource": "Inspection of src/data/gallery.ts (empty array) and AdminDashboardClient.tsx",
+    "filePaths": [
+      "src/data/gallery.ts",
+      "src/components/applications/GalleryApp.tsx",
+      "src/app/admin/AdminDashboardClient.tsx",
+      "cloudflare/portfolio-api/migrations/0001_initial_schema.sql"
+    ],
+    "reproductionSteps": [
+      "Inspect public GalleryApp.tsx (Photos app on Portfolio OS desktop).",
+      "Observe that it shows an empty state because galleryItems in gallery.ts is empty ([]).",
+      "Search admin dashboard for personal gallery management controls.",
+      "Observe that no module exists to publish photos to the personal gallery."
+    ],
+    "actualBehavior": "Personal Gallery cannot be populated or managed through the CMS. It is completely disconnected from the existing project_media table.",
+    "expectedBehavior": "A dedicated 'Personal Gallery' CMS module allowing photo uploads, selection from R2 library, caption/year/location editing, single-column feed preview, and manual top-to-bottom reordering.",
+    "rootCause": "Personal gallery was never integrated into D1/R2; project_media table is strictly bound to project case studies.",
+    "recommendedFix": "Create D1 personal_gallery table with sort_order, captions, and R2 bindings; build a specialized vertical feed curator in the admin dashboard.",
+    "dataImpact": "High content capability addition; public GalleryApp moves from empty placeholder to live photostream.",
+    "securityImpact": "Standard authenticated media upload validation.",
+    "estimatedComplexity": "Medium",
+    "implementationPhase": "Phase 4",
+    "acceptanceCriteria": "Administrator can upload photos, arrange their vertical feed sequence, and publish to the public GalleryApp with immediate live availability."
+  },
+  {
+    "id": "GAP-08",
+    "featureArea": "Personal Gallery Feed",
+    "title": "Session Store Randomly Shuffles Gallery Feed on Session Initialization",
+    "classification": "CONFIRMED_BUG",
+    "severity": "MEDIUM",
+    "evidenceSource": "src/store/sessionStore.ts line 63",
+    "filePaths": [
+      "src/store/sessionStore.ts",
+      "src/components/applications/GalleryApp.tsx"
+    ],
+    "reproductionSteps": [
+      "Inspect src/store/sessionStore.ts line 63.",
+      "Observe initialGallery = shuffleArray(galleryItems, createMulberry32(sessionSeed + 2))."
+    ],
+    "actualBehavior": "Any gallery images added to sessionGallery are shuffled using a random session seed.",
+    "expectedBehavior": "Personal gallery must display as a deliberate, sequential, single-column top-to-bottom feed as requested by the user, respecting manual curator sort order.",
+    "rootCause": "Legacy shuffleArray call in sessionStore.ts.",
+    "recommendedFix": "Sort gallery items by sort_order ascending without shuffling.",
+    "dataImpact": "None",
+    "securityImpact": "None",
+    "estimatedComplexity": "Low",
+    "implementationPhase": "Phase 4",
+    "acceptanceCriteria": "Public GalleryApp displays images in exact manual sort order configured in the CMS."
+  },
+  {
+    "id": "GAP-09",
+    "featureArea": "Profile & Notes CMS",
+    "title": "Static Profile Content (Biography, Experience, Education, Skills, Notes) Uneditable via CMS",
+    "classification": "CONFIRMED_MISSING_FEATURE",
+    "severity": "HIGH",
+    "evidenceSource": "src/data/profile.ts and NotesApp.tsx",
+    "filePaths": [
+      "src/data/profile.ts",
+      "src/components/applications/NotesApp.tsx",
+      "src/components/applications/notes/NotesAboutTab.tsx",
+      "src/components/applications/notes/NotesExperienceTab.tsx",
+      "src/components/applications/notes/NotesEducationTab.tsx",
+      "src/components/applications/notes/NotesSkillsTab.tsx",
+      "src/components/applications/notes/NotesOverviewTab.tsx",
+      "src/app/admin/AdminDashboardClient.tsx"
+    ],
+    "reproductionSteps": [
+      "Attempt to update biography, career history, education, skills, or personal notes in the administration dashboard.",
+      "Observe that no editing interfaces exist for any of these sections."
+    ],
+    "actualBehavior": "All six sections of the NotesApp are hardcoded in src/data/profile.ts and cannot be updated without code modification and production build.",
+    "expectedBehavior": "Dedicated 'Profile & CV' and 'Notes' modules in the admin dashboard allowing full bilingual CRUD for biography, stats, career history, education, skill badges, and written notes.",
+    "rootCause": "Profile data model was never migrated to D1.",
+    "recommendedFix": "Create D1 tables for profile, profile_translations, experience_items, education_items, skills, and notes; build structured CMS management forms with live preview.",
+    "dataImpact": "Requires non-destructive migration of all profileData records from profile.ts into D1.",
+    "securityImpact": "Content sanitization (HTML/script injection prevention in notes text).",
+    "estimatedComplexity": "High",
+    "implementationPhase": "Phase 5",
+    "acceptanceCriteria": "All 6 tabs of NotesApp dynamically load from D1; administrator can update profile and notes without rebuild."
+  },
+  {
+    "id": "GAP-10",
+    "featureArea": "CV Management",
+    "title": "CV PDFs Unavailable and Cannot Be Uploaded or Managed via CMS",
+    "classification": "CONFIRMED_MISSING_FEATURE",
+    "severity": "HIGH",
+    "evidenceSource": "src/data/profile.ts lines 300-304 & empty public/cv/ directory",
+    "filePaths": [
+      "src/data/profile.ts",
+      "src/components/applications/notes/NotesCvTab.tsx",
+      "src/components/applications/CvApp.tsx",
+      "src/app/admin/AdminDashboardClient.tsx"
+    ],
+    "reproductionSteps": [
+      "Inspect public/cv/ directory. Observe that it contains zero files.",
+      "Inspect profile.ts: cv.trAvailable = false and cv.enAvailable = false.",
+      "Search admin dashboard for CV upload controls. Observe none exist."
+    ],
+    "actualBehavior": "Public CV downloads are marked unavailable because no PDF files exist on disk, and there is no administrative tool to upload or replace CVs.",
+    "expectedBehavior": "Administrator can upload Turkish and English CV PDF documents, inspect current versions, toggle public availability, preview files, and replace them without code edits.",
+    "rootCause": "Lack of document upload pipeline in Worker/CMS and missing PDF assets.",
+    "recommendedFix": "Add secure PDF document upload endpoint to Worker (with application/pdf magic-byte signature check and size limits), store in R2 at documents/cv/..., and provide a dedicated CV management card in Profile CMS.",
+    "dataImpact": "Eliminates broken/unavailable CV links on the public site.",
+    "securityImpact": "Strict PDF MIME and magic byte verification required to prevent arbitrary document upload.",
+    "estimatedComplexity": "Medium",
+    "implementationPhase": "Phase 5",
+    "acceptanceCriteria": "Administrator can upload and replace TR and EN CV PDFs; public CvApp and NotesCvTab reflect active download links."
+  },
+  {
+    "id": "GAP-11",
+    "featureArea": "Project Editor UX",
+    "title": "Missing Unsaved Changes Protection (Dirty State Tracking)",
+    "classification": "UX_DEFICIENCY",
+    "severity": "HIGH",
+    "evidenceSource": "src/app/admin/AdminDashboardClient.tsx formState handling",
+    "filePaths": [
+      "src/app/admin/AdminDashboardClient.tsx"
+    ],
+    "reproductionSteps": [
+      "Open Project Editor and make extensive edits to title, descriptions, or deliverables.",
+      "Accidentally click another sidebar tab (e.g. Media Library or Overview) or refresh/close the browser tab.",
+      "Return to Editor. Observe that all modifications are permanently discarded with zero warning."
+    ],
+    "actualBehavior": "Component switches activeTab immediately without checking if formState is dirty, causing immediate data loss of uncommitted work.",
+    "expectedBehavior": "Persistent dirty state indicator ('Unsaved Changes'); confirmation dialog before tab navigation or page unload ('You have unsaved changes. Discard?').",
+    "rootCause": "No isDirty state comparison between formState and initial project data, and no window.addEventListener('beforeunload') guard.",
+    "recommendedFix": "Implement useMemo isDirty check, add beforeunload listener, and add an in-app confirmation modal when switching tabs with unsaved edits.",
+    "dataImpact": "High administrative risk of lost editorial work.",
+    "securityImpact": "None",
+    "estimatedComplexity": "Low",
+    "implementationPhase": "Phase 1",
+    "acceptanceCriteria": "Administrator is alerted before leaving an edited form with unsaved changes; beforeunload blocks accidental tab closure."
+  },
+  {
+    "id": "GAP-12",
+    "featureArea": "Project Editor Media",
+    "title": "Raw String URL Inputs Without Visual Thumbnail Previews in Editor",
+    "classification": "UX_DEFICIENCY",
+    "severity": "MEDIUM",
+    "evidenceSource": "src/app/admin/AdminDashboardClient.tsx lines 1500-1560",
+    "filePaths": [
+      "src/app/admin/AdminDashboardClient.tsx"
+    ],
+    "reproductionSteps": [
+      "Open Project Editor.",
+      "Scroll to Cover, Thumbnail, and Gallery Media sections.",
+      "Observe that media items are displayed as plain text inputs containing storage paths (e.g. /projects/slug/cover/...) with no visual image preview."
+    ],
+    "actualBehavior": "Administrator must inspect raw text URLs without visual confirmation of which image is assigned as cover, thumbnail, or gallery items.",
+    "expectedBehavior": "Rich media preview cards showing image thumbnails, dimensions, replace button, and visual drag-and-drop ordering.",
+    "rootCause": "Minimalist text input implementation in AdminDashboardClient.tsx.",
+    "recommendedFix": "Upgrade Project Media section to visual cards displaying image previews with quick-replace, remove, and alt-text popovers.",
+    "dataImpact": "None",
+    "securityImpact": "None",
+    "estimatedComplexity": "Medium",
+    "implementationPhase": "Phase 2",
+    "acceptanceCriteria": "Every assigned project media item renders a crisp thumbnail preview with clear management controls."
+  },
+  {
+    "id": "GAP-13",
+    "featureArea": "Media Library UX",
+    "title": "Media Library Lacks Asset Deletion, Search, Filtering, and One-Click URL Copy",
+    "classification": "CONFIRMED_MISSING_FEATURE",
+    "severity": "MEDIUM",
+    "evidenceSource": "src/app/admin/AdminDashboardClient.tsx lines 1690-1720",
+    "filePaths": [
+      "src/app/admin/AdminDashboardClient.tsx",
+      "cloudflare/portfolio-api/src/index.ts"
+    ],
+    "reproductionSteps": [
+      "Navigate to Media Library tab.",
+      "Attempt to search for an asset by filename or filter by type (image vs video).",
+      "Attempt to copy the public URL of an asset with one click.",
+      "Attempt to delete an unused or test media file from R2."
+    ],
+    "actualBehavior": "Grid renders only the first 60 assets statically without search input, filter pills, copy URL button, or deletion action.",
+    "expectedBehavior": "Search bar, filter by project/type, one-click 'Copy URL' toast, asset inspector modal with file size/dimensions, and safe delete button with orphan checking.",
+    "rootCause": "Media Library was implemented as a simple gallery grid without interactive asset management actions.",
+    "recommendedFix": "Add search/filter controls, clipboard API integration, asset inspector drawer, and safe delete flow via DELETE /api/admin/media.",
+    "dataImpact": "Low; enables cleanup of orphan media in R2.",
+    "securityImpact": "Deletion must ensure no published project references the deleted media key.",
+    "estimatedComplexity": "Medium",
+    "implementationPhase": "Phase 2",
+    "acceptanceCriteria": "Administrator can search assets, copy URLs to clipboard, view metadata, and safely delete orphan R2 files."
+  },
+  {
+    "id": "GAP-14",
+    "featureArea": "Admin Architecture & Code Quality",
+    "title": "Monolithic 1,900+ Line Single-File Client Component (AdminDashboardClient.tsx)",
+    "classification": "UX_DEFICIENCY",
+    "severity": "MEDIUM",
+    "evidenceSource": "src/app/admin/AdminDashboardClient.tsx",
+    "filePaths": [
+      "src/app/admin/AdminDashboardClient.tsx"
+    ],
+    "reproductionSteps": [
+      "Inspect src/app/admin/AdminDashboardClient.tsx.",
+      "Observe 1,909 lines of code containing login, overview, project list, editor, media, featured, system, and settings in a single component."
+    ],
+    "actualBehavior": "All state (projects, media, system, formState, filters, login) lives in one monolithic component, causing unnecessary re-renders across tabs and high maintenance complexity.",
+    "expectedBehavior": "Modular tab architecture with dedicated subcomponents (OverviewTab, ProjectsTab, ProjectEditorTab, MediaTab, FeaturedTab, SystemTab, SettingsTab) and shared context or custom hooks.",
+    "rootCause": "Rapid prototype consolidation during initial CMS hardening.",
+    "recommendedFix": "Refactor AdminDashboardClient into clean modular subcomponents under src/components/admin/ during Phase 2 design system modernization.",
+    "dataImpact": "None",
+    "securityImpact": "None",
+    "estimatedComplexity": "Medium",
+    "implementationPhase": "Phase 2",
+    "acceptanceCriteria": "AdminDashboardClient decomposed into modular subcomponents; test coverage and type check remain 100% green."
+  },
+  {
+    "id": "GAP-15",
+    "featureArea": "Video Upload Pipeline",
+    "title": "Large Video Upload Request Size Constraints Through Next.js Proxy",
+    "classification": "NEEDS_RUNTIME_VERIFICATION",
+    "severity": "HIGH",
+    "evidenceSource": "Next.js API route body parser limits & Cloudflare Worker 100MB body limit",
+    "filePaths": [
+      "src/app/api/admin/media/route.ts",
+      "cloudflare/portfolio-api/src/index.ts"
+    ],
+    "reproductionSteps": [
+      "Attempt to upload a high-bitrate video file (e.g. 150MB - 500MB) through /api/admin/media.",
+      "Observe failure due to proxy payload limits or gateway timeouts."
+    ],
+    "actualBehavior": "Current media upload passes file buffers through Next.js server route to Cloudflare Worker. Cloudflare Worker standard body limits (100MB) and Next.js body parser limits will reject large video uploads.",
+    "expectedBehavior": "Optimized video upload flow: either presigned direct R2 upload URLs or validated client-side multipart chunking for large video files, with progress bar.",
+    "rootCause": "Upload architecture was designed for small WebP images (<10MB), not high-definition video files.",
+    "recommendedFix": "Implement direct authenticated R2 presigned PUT URLs or direct Worker multipart upload for video assets exceeding 50MB, with client-side upload progress indication.",
+    "dataImpact": "Prevents failed or corrupted video uploads.",
+    "securityImpact": "Presigned URLs must have short TTL (e.g. 15 minutes) and validate authorized session.",
+    "estimatedComplexity": "Medium",
+    "implementationPhase": "Phase 3",
+    "acceptanceCriteria": "Videos up to 250MB upload reliably with real-time percentage progress bar and R2 storage confirmation."
+  }
+]

@@ -1,0 +1,4256 @@
+{
+  "1920x1080": {
+    "overview": {
+      "diag": {
+        "windowInnerHeight": 1080,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 1080,
+          "scrollHeight": 1080,
+          "offsetHeight": 1080,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "1080px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 1080,
+          "scrollHeight": 1219,
+          "offsetHeight": 1080,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "1080px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 1219,
+          "scrollHeight": 1219,
+          "offsetHeight": 1219,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "1218.94px",
+          "maxHeight": "none",
+          "minHeight": "1080px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 1219,
+          "scrollHeight": 1219,
+          "offsetHeight": 1219,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1218.94px",
+          "maxHeight": "none",
+          "minHeight": "1080px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 1219,
+          "scrollHeight": 1219,
+          "offsetHeight": 1219,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1218.94px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": true,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    },
+    "projects": {
+      "diag": {
+        "windowInnerHeight": 1080,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 1080,
+          "scrollHeight": 1080,
+          "offsetHeight": 1080,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "1080px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 1080,
+          "scrollHeight": 2605,
+          "offsetHeight": 1080,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "1080px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 2605,
+          "scrollHeight": 2605,
+          "offsetHeight": 2605,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "2604.66px",
+          "maxHeight": "none",
+          "minHeight": "1080px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 2605,
+          "scrollHeight": 2605,
+          "offsetHeight": 2605,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "2604.66px",
+          "maxHeight": "none",
+          "minHeight": "1080px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 2605,
+          "scrollHeight": 2605,
+          "offsetHeight": 2605,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "2604.66px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": true,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    },
+    "editor": {
+      "diag": {
+        "windowInnerHeight": 1080,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 1080,
+          "scrollHeight": 1080,
+          "offsetHeight": 1080,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "1080px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 1080,
+          "scrollHeight": 1080,
+          "offsetHeight": 1080,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "1080px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 1080,
+          "scrollHeight": 1080,
+          "offsetHeight": 1080,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "1080px",
+          "maxHeight": "none",
+          "minHeight": "1080px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 1080,
+          "scrollHeight": 1080,
+          "offsetHeight": 1080,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1080px",
+          "maxHeight": "none",
+          "minHeight": "1080px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 1080,
+          "scrollHeight": 1080,
+          "offsetHeight": 1080,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1080px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": false,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    },
+    "media": {
+      "diag": {
+        "windowInnerHeight": 1080,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 1080,
+          "scrollHeight": 1080,
+          "offsetHeight": 1080,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "1080px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 1080,
+          "scrollHeight": 2711,
+          "offsetHeight": 1080,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "1080px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 2711,
+          "scrollHeight": 2711,
+          "offsetHeight": 2711,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "2711px",
+          "maxHeight": "none",
+          "minHeight": "1080px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 2711,
+          "scrollHeight": 2711,
+          "offsetHeight": 2711,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "2711px",
+          "maxHeight": "none",
+          "minHeight": "1080px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 2711,
+          "scrollHeight": 2711,
+          "offsetHeight": 2711,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "2711px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": true,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    },
+    "featured": {
+      "diag": {
+        "windowInnerHeight": 1080,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 1080,
+          "scrollHeight": 1080,
+          "offsetHeight": 1080,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "1080px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 1080,
+          "scrollHeight": 1080,
+          "offsetHeight": 1080,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "1080px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 1080,
+          "scrollHeight": 1080,
+          "offsetHeight": 1080,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "1080px",
+          "maxHeight": "none",
+          "minHeight": "1080px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 1080,
+          "scrollHeight": 1080,
+          "offsetHeight": 1080,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1080px",
+          "maxHeight": "none",
+          "minHeight": "1080px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 1080,
+          "scrollHeight": 1080,
+          "offsetHeight": 1080,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1080px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": false,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    },
+    "system": {
+      "diag": {
+        "windowInnerHeight": 1080,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 1080,
+          "scrollHeight": 1080,
+          "offsetHeight": 1080,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "1080px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 1080,
+          "scrollHeight": 1080,
+          "offsetHeight": 1080,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "1080px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 1080,
+          "scrollHeight": 1080,
+          "offsetHeight": 1080,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "1080px",
+          "maxHeight": "none",
+          "minHeight": "1080px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 1080,
+          "scrollHeight": 1080,
+          "offsetHeight": 1080,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1080px",
+          "maxHeight": "none",
+          "minHeight": "1080px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 1080,
+          "scrollHeight": 1080,
+          "offsetHeight": 1080,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1080px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": false,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    },
+    "settings": {
+      "diag": {
+        "windowInnerHeight": 1080,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 1080,
+          "scrollHeight": 1080,
+          "offsetHeight": 1080,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "1080px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 1080,
+          "scrollHeight": 1080,
+          "offsetHeight": 1080,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "1080px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 1080,
+          "scrollHeight": 1080,
+          "offsetHeight": 1080,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "1080px",
+          "maxHeight": "none",
+          "minHeight": "1080px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 1080,
+          "scrollHeight": 1080,
+          "offsetHeight": 1080,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1080px",
+          "maxHeight": "none",
+          "minHeight": "1080px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 1080,
+          "scrollHeight": 1080,
+          "offsetHeight": 1080,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1080px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": false,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    }
+  },
+  "1440x900": {
+    "overview": {
+      "diag": {
+        "windowInnerHeight": 900,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 900,
+          "scrollHeight": 900,
+          "offsetHeight": 900,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "900px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 900,
+          "scrollHeight": 1219,
+          "offsetHeight": 900,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "900px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 1219,
+          "scrollHeight": 1219,
+          "offsetHeight": 1219,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "1218.94px",
+          "maxHeight": "none",
+          "minHeight": "900px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 1219,
+          "scrollHeight": 1219,
+          "offsetHeight": 1219,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1218.94px",
+          "maxHeight": "none",
+          "minHeight": "900px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 1219,
+          "scrollHeight": 1219,
+          "offsetHeight": 1219,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1218.94px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": true,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    },
+    "projects": {
+      "diag": {
+        "windowInnerHeight": 900,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 900,
+          "scrollHeight": 900,
+          "offsetHeight": 900,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "900px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 900,
+          "scrollHeight": 2707,
+          "offsetHeight": 900,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "900px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 2707,
+          "scrollHeight": 2707,
+          "offsetHeight": 2707,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "2707.25px",
+          "maxHeight": "none",
+          "minHeight": "900px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 2707,
+          "scrollHeight": 2707,
+          "offsetHeight": 2707,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "2707.25px",
+          "maxHeight": "none",
+          "minHeight": "900px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 2707,
+          "scrollHeight": 2707,
+          "offsetHeight": 2707,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "2707.25px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": true,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    },
+    "editor": {
+      "diag": {
+        "windowInnerHeight": 900,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 900,
+          "scrollHeight": 900,
+          "offsetHeight": 900,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "900px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 900,
+          "scrollHeight": 1075,
+          "offsetHeight": 900,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "900px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 1075,
+          "scrollHeight": 1075,
+          "offsetHeight": 1075,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "1075px",
+          "maxHeight": "none",
+          "minHeight": "900px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 1075,
+          "scrollHeight": 1075,
+          "offsetHeight": 1075,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1075px",
+          "maxHeight": "none",
+          "minHeight": "900px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 1075,
+          "scrollHeight": 1075,
+          "offsetHeight": 1075,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1075px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": true,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    },
+    "media": {
+      "diag": {
+        "windowInnerHeight": 900,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 900,
+          "scrollHeight": 900,
+          "offsetHeight": 900,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "900px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 900,
+          "scrollHeight": 2711,
+          "offsetHeight": 900,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "900px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 2711,
+          "scrollHeight": 2711,
+          "offsetHeight": 2711,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "2711px",
+          "maxHeight": "none",
+          "minHeight": "900px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 2711,
+          "scrollHeight": 2711,
+          "offsetHeight": 2711,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "2711px",
+          "maxHeight": "none",
+          "minHeight": "900px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 2711,
+          "scrollHeight": 2711,
+          "offsetHeight": 2711,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "2711px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": true,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    },
+    "featured": {
+      "diag": {
+        "windowInnerHeight": 900,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 900,
+          "scrollHeight": 900,
+          "offsetHeight": 900,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "900px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 900,
+          "scrollHeight": 983,
+          "offsetHeight": 900,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "900px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 983,
+          "scrollHeight": 983,
+          "offsetHeight": 983,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "983px",
+          "maxHeight": "none",
+          "minHeight": "900px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 983,
+          "scrollHeight": 983,
+          "offsetHeight": 983,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "983px",
+          "maxHeight": "none",
+          "minHeight": "900px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 983,
+          "scrollHeight": 983,
+          "offsetHeight": 983,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "983px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": true,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    },
+    "system": {
+      "diag": {
+        "windowInnerHeight": 900,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 900,
+          "scrollHeight": 900,
+          "offsetHeight": 900,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "900px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 900,
+          "scrollHeight": 900,
+          "offsetHeight": 900,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "900px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 900,
+          "scrollHeight": 900,
+          "offsetHeight": 900,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "900px",
+          "maxHeight": "none",
+          "minHeight": "900px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 900,
+          "scrollHeight": 900,
+          "offsetHeight": 900,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "900px",
+          "maxHeight": "none",
+          "minHeight": "900px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 900,
+          "scrollHeight": 900,
+          "offsetHeight": 900,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "900px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": false,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    },
+    "settings": {
+      "diag": {
+        "windowInnerHeight": 900,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 900,
+          "scrollHeight": 900,
+          "offsetHeight": 900,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "900px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 900,
+          "scrollHeight": 900,
+          "offsetHeight": 900,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "900px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 900,
+          "scrollHeight": 900,
+          "offsetHeight": 900,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "900px",
+          "maxHeight": "none",
+          "minHeight": "900px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 900,
+          "scrollHeight": 900,
+          "offsetHeight": 900,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "900px",
+          "maxHeight": "none",
+          "minHeight": "900px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 900,
+          "scrollHeight": 900,
+          "offsetHeight": 900,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "900px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": false,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    }
+  },
+  "1280x800": {
+    "overview": {
+      "diag": {
+        "windowInnerHeight": 800,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 800,
+          "scrollHeight": 800,
+          "offsetHeight": 800,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "800px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 800,
+          "scrollHeight": 1224,
+          "offsetHeight": 800,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "800px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 1224,
+          "scrollHeight": 1224,
+          "offsetHeight": 1224,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "1223.94px",
+          "maxHeight": "none",
+          "minHeight": "800px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 1224,
+          "scrollHeight": 1224,
+          "offsetHeight": 1224,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1223.94px",
+          "maxHeight": "none",
+          "minHeight": "800px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 1224,
+          "scrollHeight": 1224,
+          "offsetHeight": 1224,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1223.94px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": true,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    },
+    "projects": {
+      "diag": {
+        "windowInnerHeight": 800,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 800,
+          "scrollHeight": 800,
+          "offsetHeight": 800,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "800px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 800,
+          "scrollHeight": 3566,
+          "offsetHeight": 800,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "800px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 3566,
+          "scrollHeight": 3566,
+          "offsetHeight": 3566,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "3565.62px",
+          "maxHeight": "none",
+          "minHeight": "800px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 3566,
+          "scrollHeight": 3566,
+          "offsetHeight": 3566,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "3565.62px",
+          "maxHeight": "none",
+          "minHeight": "800px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 3566,
+          "scrollHeight": 3566,
+          "offsetHeight": 3566,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "3565.62px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": true,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    },
+    "editor": {
+      "diag": {
+        "windowInnerHeight": 800,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 800,
+          "scrollHeight": 800,
+          "offsetHeight": 800,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "800px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 800,
+          "scrollHeight": 1092,
+          "offsetHeight": 800,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "800px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 1092,
+          "scrollHeight": 1092,
+          "offsetHeight": 1092,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "1091.5px",
+          "maxHeight": "none",
+          "minHeight": "800px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 1092,
+          "scrollHeight": 1092,
+          "offsetHeight": 1092,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1091.5px",
+          "maxHeight": "none",
+          "minHeight": "800px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 1092,
+          "scrollHeight": 1092,
+          "offsetHeight": 1092,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1091.5px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": true,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    },
+    "media": {
+      "diag": {
+        "windowInnerHeight": 800,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 800,
+          "scrollHeight": 800,
+          "offsetHeight": 800,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "800px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 800,
+          "scrollHeight": 2711,
+          "offsetHeight": 800,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "800px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 2711,
+          "scrollHeight": 2711,
+          "offsetHeight": 2711,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "2711px",
+          "maxHeight": "none",
+          "minHeight": "800px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 2711,
+          "scrollHeight": 2711,
+          "offsetHeight": 2711,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "2711px",
+          "maxHeight": "none",
+          "minHeight": "800px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 2711,
+          "scrollHeight": 2711,
+          "offsetHeight": 2711,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "2711px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": true,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    },
+    "featured": {
+      "diag": {
+        "windowInnerHeight": 800,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 800,
+          "scrollHeight": 800,
+          "offsetHeight": 800,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "800px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 800,
+          "scrollHeight": 983,
+          "offsetHeight": 800,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "800px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 983,
+          "scrollHeight": 983,
+          "offsetHeight": 983,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "983px",
+          "maxHeight": "none",
+          "minHeight": "800px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 983,
+          "scrollHeight": 983,
+          "offsetHeight": 983,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "983px",
+          "maxHeight": "none",
+          "minHeight": "800px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 983,
+          "scrollHeight": 983,
+          "offsetHeight": 983,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "983px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": true,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    },
+    "system": {
+      "diag": {
+        "windowInnerHeight": 800,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 800,
+          "scrollHeight": 800,
+          "offsetHeight": 800,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "800px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 800,
+          "scrollHeight": 800,
+          "offsetHeight": 800,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "800px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 800,
+          "scrollHeight": 800,
+          "offsetHeight": 800,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "800px",
+          "maxHeight": "none",
+          "minHeight": "800px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 800,
+          "scrollHeight": 800,
+          "offsetHeight": 800,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "800px",
+          "maxHeight": "none",
+          "minHeight": "800px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 800,
+          "scrollHeight": 800,
+          "offsetHeight": 800,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "800px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": false,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    },
+    "settings": {
+      "diag": {
+        "windowInnerHeight": 800,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 800,
+          "scrollHeight": 800,
+          "offsetHeight": 800,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "800px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 800,
+          "scrollHeight": 800,
+          "offsetHeight": 800,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "800px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 800,
+          "scrollHeight": 800,
+          "offsetHeight": 800,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "800px",
+          "maxHeight": "none",
+          "minHeight": "800px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 800,
+          "scrollHeight": 800,
+          "offsetHeight": 800,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "800px",
+          "maxHeight": "none",
+          "minHeight": "800px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 800,
+          "scrollHeight": 800,
+          "offsetHeight": 800,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "800px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": false,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    }
+  },
+  "820x1180": {
+    "overview": {
+      "diag": {
+        "windowInnerHeight": 1180,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 1180,
+          "scrollHeight": 1180,
+          "offsetHeight": 1180,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "1180px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 1180,
+          "scrollHeight": 1629,
+          "offsetHeight": 1180,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "1180px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 1629,
+          "scrollHeight": 1629,
+          "offsetHeight": 1629,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "1629.27px",
+          "maxHeight": "none",
+          "minHeight": "1180px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 1629,
+          "scrollHeight": 1629,
+          "offsetHeight": 1629,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1629.27px",
+          "maxHeight": "none",
+          "minHeight": "1180px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 1481,
+          "scrollHeight": 1481,
+          "offsetHeight": 1481,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1480.94px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": true,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    },
+    "projects": {
+      "diag": {
+        "windowInnerHeight": 1180,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 1180,
+          "scrollHeight": 1180,
+          "offsetHeight": 1180,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "1180px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 1180,
+          "scrollHeight": 6394,
+          "offsetHeight": 1180,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "1180px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 6394,
+          "scrollHeight": 6394,
+          "offsetHeight": 6394,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "6394.36px",
+          "maxHeight": "none",
+          "minHeight": "1180px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 6394,
+          "scrollHeight": 6394,
+          "offsetHeight": 6394,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "6394.36px",
+          "maxHeight": "none",
+          "minHeight": "1180px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 6246,
+          "scrollHeight": 6246,
+          "offsetHeight": 6246,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "6246.03px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": true,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    },
+    "editor": {
+      "diag": {
+        "windowInnerHeight": 1180,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 1180,
+          "scrollHeight": 1180,
+          "offsetHeight": 1180,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "1180px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 1180,
+          "scrollHeight": 1240,
+          "offsetHeight": 1180,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "1180px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 1240,
+          "scrollHeight": 1240,
+          "offsetHeight": 1240,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "1239.83px",
+          "maxHeight": "none",
+          "minHeight": "1180px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 1240,
+          "scrollHeight": 1240,
+          "offsetHeight": 1240,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1239.83px",
+          "maxHeight": "none",
+          "minHeight": "1180px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 1092,
+          "scrollHeight": 1092,
+          "offsetHeight": 1092,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1091.5px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": false,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    },
+    "media": {
+      "diag": {
+        "windowInnerHeight": 1180,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 1180,
+          "scrollHeight": 1180,
+          "offsetHeight": 1180,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "1180px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 1180,
+          "scrollHeight": 3480,
+          "offsetHeight": 1180,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "1180px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 3480,
+          "scrollHeight": 3480,
+          "offsetHeight": 3480,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "3480.33px",
+          "maxHeight": "none",
+          "minHeight": "1180px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 3480,
+          "scrollHeight": 3480,
+          "offsetHeight": 3480,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "3480.33px",
+          "maxHeight": "none",
+          "minHeight": "1180px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 3332,
+          "scrollHeight": 3332,
+          "offsetHeight": 3332,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "3332px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": true,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    },
+    "featured": {
+      "diag": {
+        "windowInnerHeight": 1180,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 1180,
+          "scrollHeight": 1180,
+          "offsetHeight": 1180,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "1180px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 1180,
+          "scrollHeight": 1180,
+          "offsetHeight": 1180,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "1180px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 1180,
+          "scrollHeight": 1180,
+          "offsetHeight": 1180,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "1180px",
+          "maxHeight": "none",
+          "minHeight": "1180px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 1180,
+          "scrollHeight": 1180,
+          "offsetHeight": 1180,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1180px",
+          "maxHeight": "none",
+          "minHeight": "1180px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 1032,
+          "scrollHeight": 1032,
+          "offsetHeight": 1032,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1031.67px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": false,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    },
+    "system": {
+      "diag": {
+        "windowInnerHeight": 1180,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 1180,
+          "scrollHeight": 1180,
+          "offsetHeight": 1180,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "1180px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 1180,
+          "scrollHeight": 1180,
+          "offsetHeight": 1180,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "1180px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 1180,
+          "scrollHeight": 1180,
+          "offsetHeight": 1180,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "1180px",
+          "maxHeight": "none",
+          "minHeight": "1180px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 1180,
+          "scrollHeight": 1180,
+          "offsetHeight": 1180,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1180px",
+          "maxHeight": "none",
+          "minHeight": "1180px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 1032,
+          "scrollHeight": 1032,
+          "offsetHeight": 1032,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1031.67px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": false,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    },
+    "settings": {
+      "diag": {
+        "windowInnerHeight": 1180,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 1180,
+          "scrollHeight": 1180,
+          "offsetHeight": 1180,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "1180px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 1180,
+          "scrollHeight": 1180,
+          "offsetHeight": 1180,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "1180px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 1180,
+          "scrollHeight": 1180,
+          "offsetHeight": 1180,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "1180px",
+          "maxHeight": "none",
+          "minHeight": "1180px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 1180,
+          "scrollHeight": 1180,
+          "offsetHeight": 1180,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1180px",
+          "maxHeight": "none",
+          "minHeight": "1180px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 1032,
+          "scrollHeight": 1032,
+          "offsetHeight": 1032,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1031.67px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": false,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    }
+  },
+  "390x844": {
+    "overview": {
+      "diag": {
+        "windowInnerHeight": 844,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 844,
+          "scrollHeight": 844,
+          "offsetHeight": 844,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "844px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 844,
+          "scrollHeight": 2743,
+          "offsetHeight": 844,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "844px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 2743,
+          "scrollHeight": 2743,
+          "offsetHeight": 2743,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "2742.8px",
+          "maxHeight": "none",
+          "minHeight": "844px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 2743,
+          "scrollHeight": 2743,
+          "offsetHeight": 2743,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "2742.8px",
+          "maxHeight": "none",
+          "minHeight": "844px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 2594,
+          "scrollHeight": 2594,
+          "offsetHeight": 2594,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "2594.47px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": true,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    },
+    "projects": {
+      "diag": {
+        "windowInnerHeight": 844,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 844,
+          "scrollHeight": 844,
+          "offsetHeight": 844,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "844px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 844,
+          "scrollHeight": 6474,
+          "offsetHeight": 844,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "844px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 6474,
+          "scrollHeight": 6474,
+          "offsetHeight": 6474,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "6474.36px",
+          "maxHeight": "none",
+          "minHeight": "844px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 6474,
+          "scrollHeight": 6474,
+          "offsetHeight": 6474,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "6474.36px",
+          "maxHeight": "none",
+          "minHeight": "844px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 6326,
+          "scrollHeight": 6326,
+          "offsetHeight": 6326,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "6326.03px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": true,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    },
+    "editor": {
+      "diag": {
+        "windowInnerHeight": 844,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 844,
+          "scrollHeight": 844,
+          "offsetHeight": 844,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "844px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 844,
+          "scrollHeight": 1761,
+          "offsetHeight": 844,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "844px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 1761,
+          "scrollHeight": 1761,
+          "offsetHeight": 1761,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "1760.83px",
+          "maxHeight": "none",
+          "minHeight": "844px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 1761,
+          "scrollHeight": 1761,
+          "offsetHeight": 1761,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1760.83px",
+          "maxHeight": "none",
+          "minHeight": "844px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 1613,
+          "scrollHeight": 1613,
+          "offsetHeight": 1613,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1612.5px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": true,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    },
+    "media": {
+      "diag": {
+        "windowInnerHeight": 844,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 844,
+          "scrollHeight": 844,
+          "offsetHeight": 844,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "844px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 844,
+          "scrollHeight": 6683,
+          "offsetHeight": 844,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "844px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 6683,
+          "scrollHeight": 6683,
+          "offsetHeight": 6683,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "6683.33px",
+          "maxHeight": "none",
+          "minHeight": "844px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 6683,
+          "scrollHeight": 6683,
+          "offsetHeight": 6683,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "6683.33px",
+          "maxHeight": "none",
+          "minHeight": "844px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 6535,
+          "scrollHeight": 6535,
+          "offsetHeight": 6535,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "6535px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": true,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    },
+    "featured": {
+      "diag": {
+        "windowInnerHeight": 844,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 844,
+          "scrollHeight": 844,
+          "offsetHeight": 844,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "844px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 844,
+          "scrollHeight": 1673,
+          "offsetHeight": 844,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "844px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 1673,
+          "scrollHeight": 1673,
+          "offsetHeight": 1673,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "1673.33px",
+          "maxHeight": "none",
+          "minHeight": "844px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 1673,
+          "scrollHeight": 1673,
+          "offsetHeight": 1673,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1673.33px",
+          "maxHeight": "none",
+          "minHeight": "844px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 1525,
+          "scrollHeight": 1525,
+          "offsetHeight": 1525,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1525px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": true,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    },
+    "system": {
+      "diag": {
+        "windowInnerHeight": 844,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 844,
+          "scrollHeight": 844,
+          "offsetHeight": 844,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "844px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 844,
+          "scrollHeight": 1121,
+          "offsetHeight": 844,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "844px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 1121,
+          "scrollHeight": 1121,
+          "offsetHeight": 1121,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "1121.33px",
+          "maxHeight": "none",
+          "minHeight": "844px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 1121,
+          "scrollHeight": 1121,
+          "offsetHeight": 1121,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1121.33px",
+          "maxHeight": "none",
+          "minHeight": "844px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 973,
+          "scrollHeight": 973,
+          "offsetHeight": 973,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "973px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": true,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    },
+    "settings": {
+      "diag": {
+        "windowInnerHeight": 844,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 844,
+          "scrollHeight": 844,
+          "offsetHeight": 844,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "844px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 844,
+          "scrollHeight": 844,
+          "offsetHeight": 844,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "844px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 844,
+          "scrollHeight": 844,
+          "offsetHeight": 844,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "844px",
+          "maxHeight": "none",
+          "minHeight": "844px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 844,
+          "scrollHeight": 844,
+          "offsetHeight": 844,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "844px",
+          "maxHeight": "none",
+          "minHeight": "844px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 696,
+          "scrollHeight": 696,
+          "offsetHeight": 696,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "695.672px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": false,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    }
+  },
+  "375x812": {
+    "overview": {
+      "diag": {
+        "windowInnerHeight": 812,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 812,
+          "scrollHeight": 812,
+          "offsetHeight": 812,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "812px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 812,
+          "scrollHeight": 2743,
+          "offsetHeight": 812,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "812px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 2743,
+          "scrollHeight": 2743,
+          "offsetHeight": 2743,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "2742.8px",
+          "maxHeight": "none",
+          "minHeight": "812px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 2743,
+          "scrollHeight": 2743,
+          "offsetHeight": 2743,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "2742.8px",
+          "maxHeight": "none",
+          "minHeight": "812px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 2594,
+          "scrollHeight": 2594,
+          "offsetHeight": 2594,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "2594.47px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": true,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    },
+    "projects": {
+      "diag": {
+        "windowInnerHeight": 812,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 812,
+          "scrollHeight": 812,
+          "offsetHeight": 812,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "812px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 812,
+          "scrollHeight": 6521,
+          "offsetHeight": 812,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "812px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 6521,
+          "scrollHeight": 6521,
+          "offsetHeight": 6521,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "6521.36px",
+          "maxHeight": "none",
+          "minHeight": "812px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 6521,
+          "scrollHeight": 6521,
+          "offsetHeight": 6521,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "6521.36px",
+          "maxHeight": "none",
+          "minHeight": "812px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 6373,
+          "scrollHeight": 6373,
+          "offsetHeight": 6373,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "6373.03px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": true,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    },
+    "editor": {
+      "diag": {
+        "windowInnerHeight": 812,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 812,
+          "scrollHeight": 812,
+          "offsetHeight": 812,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "812px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 812,
+          "scrollHeight": 1761,
+          "offsetHeight": 812,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "812px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 1761,
+          "scrollHeight": 1761,
+          "offsetHeight": 1761,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "1760.83px",
+          "maxHeight": "none",
+          "minHeight": "812px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 1761,
+          "scrollHeight": 1761,
+          "offsetHeight": 1761,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1760.83px",
+          "maxHeight": "none",
+          "minHeight": "812px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 1613,
+          "scrollHeight": 1613,
+          "offsetHeight": 1613,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1612.5px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": true,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    },
+    "media": {
+      "diag": {
+        "windowInnerHeight": 812,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 812,
+          "scrollHeight": 812,
+          "offsetHeight": 812,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "812px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 812,
+          "scrollHeight": 6683,
+          "offsetHeight": 812,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "812px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 6683,
+          "scrollHeight": 6683,
+          "offsetHeight": 6683,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "6683.33px",
+          "maxHeight": "none",
+          "minHeight": "812px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 6683,
+          "scrollHeight": 6683,
+          "offsetHeight": 6683,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "6683.33px",
+          "maxHeight": "none",
+          "minHeight": "812px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 6535,
+          "scrollHeight": 6535,
+          "offsetHeight": 6535,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "6535px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": true,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    },
+    "featured": {
+      "diag": {
+        "windowInnerHeight": 812,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 812,
+          "scrollHeight": 812,
+          "offsetHeight": 812,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "812px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 812,
+          "scrollHeight": 1737,
+          "offsetHeight": 812,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "812px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 1737,
+          "scrollHeight": 1737,
+          "offsetHeight": 1737,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "1737.33px",
+          "maxHeight": "none",
+          "minHeight": "812px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 1737,
+          "scrollHeight": 1737,
+          "offsetHeight": 1737,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1737.33px",
+          "maxHeight": "none",
+          "minHeight": "812px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 1589,
+          "scrollHeight": 1589,
+          "offsetHeight": 1589,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1589px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": true,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    },
+    "system": {
+      "diag": {
+        "windowInnerHeight": 812,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 812,
+          "scrollHeight": 812,
+          "offsetHeight": 812,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "812px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 812,
+          "scrollHeight": 1121,
+          "offsetHeight": 812,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "812px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 1121,
+          "scrollHeight": 1121,
+          "offsetHeight": 1121,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "1121.33px",
+          "maxHeight": "none",
+          "minHeight": "812px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 1121,
+          "scrollHeight": 1121,
+          "offsetHeight": 1121,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "1121.33px",
+          "maxHeight": "none",
+          "minHeight": "812px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 973,
+          "scrollHeight": 973,
+          "offsetHeight": 973,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "973px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": true,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    },
+    "settings": {
+      "diag": {
+        "windowInnerHeight": 812,
+        "html": {
+          "name": "html",
+          "exists": true,
+          "tagName": "HTML",
+          "className": "__variable_65423c",
+          "clientHeight": 812,
+          "scrollHeight": 812,
+          "offsetHeight": 812,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "812px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "body": {
+          "name": "body",
+          "exists": true,
+          "tagName": "BODY",
+          "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
+          "clientHeight": 812,
+          "scrollHeight": 812,
+          "offsetHeight": 812,
+          "scrollTop": 0,
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "812px",
+          "maxHeight": "none",
+          "minHeight": "0px"
+        },
+        "layoutRoot": {
+          "name": "layoutRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "clientHeight": 812,
+          "scrollHeight": 812,
+          "offsetHeight": 812,
+          "scrollTop": 0,
+          "overflowY": "visible",
+          "overflowX": "visible",
+          "height": "812px",
+          "maxHeight": "none",
+          "minHeight": "812px"
+        },
+        "adminRoot": {
+          "name": "adminRoot",
+          "exists": true,
+          "tagName": "DIV",
+          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "clientHeight": 812,
+          "scrollHeight": 812,
+          "offsetHeight": 812,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "812px",
+          "maxHeight": "none",
+          "minHeight": "812px"
+        },
+        "main": {
+          "name": "main",
+          "exists": true,
+          "tagName": "MAIN",
+          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "clientHeight": 664,
+          "scrollHeight": 664,
+          "offsetHeight": 664,
+          "scrollTop": 0,
+          "overflowY": "auto",
+          "overflowX": "hidden",
+          "height": "663.672px",
+          "maxHeight": "none",
+          "minHeight": "auto"
+        }
+      },
+      "needsScroll": false,
+      "canScrollWheel": false,
+      "canScrollKey": false,
+      "initialScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterWheelScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      },
+      "afterKeyScroll": {
+        "windowScrollY": 0,
+        "bodyScrollTop": 0,
+        "htmlScrollTop": 0,
+        "mainScrollTop": 0
+      }
+    }
+  }
+}

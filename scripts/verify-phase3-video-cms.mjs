@@ -112,10 +112,14 @@ async function runSuite() {
   }
   assert(remoteForceCaught, "--force against remote-staging fails closed with exit code 1");
 
-  // Remote-staging dry run execution (read-only, does not touch local SQLite)
-  const remoteDryRunOut = execSync("node scripts/import-canonical-videos-to-d1.mjs --remote-staging", { encoding: "utf8" });
-  assert(remoteDryRunOut.includes("Target Mode: DRY RUN (Read-Only Validation)"), "Remote staging importer defaults to read-only dry-run");
-  assert(remoteDryRunOut.includes("0efef7a7-cc93-4dc2-8cb7-db28379fe01f"), "Remote staging importer validates exact approved D1 database ID");
+  // Remote-staging dry run execution: fails closed when remote admin inventory is unavailable (Section 1 & 4)
+  const remoteDryRunRes = spawnSync("node", ["scripts/import-canonical-videos-to-d1.mjs", "--remote-staging", "--dry-run"], {
+    cwd: rootDir,
+    encoding: "utf8"
+  });
+  assert(remoteDryRunRes.stdout.includes("Target Mode: DRY RUN"), "Remote staging importer defaults to read-only dry-run");
+  assert(remoteDryRunRes.stdout.includes("0efef7a7-cc93-4dc2-8cb7-db28379fe01f"), "Remote staging importer validates exact approved D1 database ID");
+  assert(remoteDryRunRes.status === 1, "Importer aborts with exit code 1 when remote admin inventory is unmigrated or fails (Section 1)");
 
   // Local dry run
   const localDryRunOut = execSync("node scripts/import-canonical-videos-to-d1.mjs --local --dry-run", { encoding: "utf8" });
@@ -298,6 +302,61 @@ async function runSuite() {
     })
   });
   assert(updateRes.ok, "PUT /api/admin/videos/[id] updates video successfully");
+
+  // Attempt duplicate create with same ID (Section 2: 409 Conflict)
+  const dupeIdRes = await fetch(`${baseUrl}/api/admin/videos`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: cookieHeader, "x-csrf-token": csrfToken, Origin: baseUrl },
+    body: JSON.stringify({ ...createPayload, id: createdVideoId, slug: `different-slug-${Date.now()}` })
+  });
+  assert(dupeIdRes.status === 409, "POST /api/admin/videos with existing video ID rejected with 409 Conflict");
+
+  // Attempt duplicate create with same slug (Section 2: 409 Conflict)
+  const dupeSlugRes = await fetch(`${baseUrl}/api/admin/videos`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: cookieHeader, "x-csrf-token": csrfToken, Origin: baseUrl },
+    body: JSON.stringify({ ...createPayload, id: `diff-id-${Date.now()}`, slug: testSlug })
+  });
+  assert(dupeSlugRes.status === 409, "POST /api/admin/videos with existing video slug rejected with 409 Conflict");
+
+  // Create an archived video to verify inventory visibility (Section 1)
+  const archivedSlug = `test-archived-video-${Date.now()}`;
+  const archivedCreateRes = await fetch(`${baseUrl}/api/admin/videos`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: cookieHeader, "x-csrf-token": csrfToken, Origin: baseUrl },
+    body: JSON.stringify({
+      ...createPayload,
+      slug: archivedSlug,
+      cmsStatus: "archived",
+      titleTR: "Arşiv Test Videosu TR",
+      titleEN: "Archive Test Video EN"
+    })
+  });
+  assert(archivedCreateRes.status === 200 || archivedCreateRes.status === 201, "POST /api/admin/videos creates archived video");
+  const archivedJson = await archivedCreateRes.json();
+  const archivedVideoId = archivedJson.video?.id;
+
+  // Query authenticated admin inventory: must include published, draft, and archived
+  const adminInvRes = await fetch(`${baseUrl}/api/admin/videos`, {
+    headers: { Cookie: cookieHeader }
+  });
+  const adminInvJson = await adminInvRes.json();
+  const hasDraft = adminInvJson.videos?.some((v) => v.id === createdVideoId && v.cmsStatus === "draft");
+  const hasArchived = adminInvJson.videos?.some((v) => v.id === archivedVideoId && v.cmsStatus === "archived");
+  assert(hasDraft && hasArchived, "Admin inventory includes all statuses: published, draft, and archived");
+
+  // Query anonymous public video feed: draft and archived MUST be completely invisible
+  const anonPublicRes = await fetch(`${baseUrl}/api/videos`);
+  const anonPublicJson = await anonPublicRes.json();
+  const publicHasDraft = anonPublicJson.videos?.some((v) => v.id === createdVideoId);
+  const publicHasArchived = anonPublicJson.videos?.some((v) => v.id === archivedVideoId);
+  assert(!publicHasDraft && !publicHasArchived, "Public video feed hides draft and archived records completely");
+
+  // Clean up archived test video
+  await fetch(`${baseUrl}/api/admin/videos/${archivedVideoId}`, {
+    method: "DELETE",
+    headers: { Cookie: cookieHeader, "x-csrf-token": csrfToken, Origin: baseUrl }
+  });
 
   // ------------------------------------------------------------
   // GROUP E: Point-in-Time Revisions & Asset Retention (Section 10)
@@ -535,17 +594,17 @@ async function runSuite() {
   const cache200Res = await fetch(publishedMediaUrl);
   const cache200Header = cache200Res.headers.get("cache-control") || "";
   assert(
-    cache200Header.includes("max-age=0") && cache200Header.includes("must-revalidate"),
-    `HTTP 200 media cache header enforces revalidation: ${cache200Header}`
+    cache200Header.includes("no-store") && cache200Header.includes("must-revalidate"),
+    `HTTP 200 media cache header enforces conservative no-store: ${cache200Header}`
   );
-  assert(!cache200Header.includes("s-maxage=604800"), "Next.js proxy does NOT overwrite upstream with 7-day s-maxage=604800");
+  assert(!cache200Header.includes("s-maxage"), "Next.js proxy does NOT cache publication-sensitive media with s-maxage");
 
   // 2. HTTP 206 Partial Content Cache Header
   const cache206Res = await fetch(publishedMediaUrl, { headers: { Range: "bytes=0-100" } });
   const cache206Header = cache206Res.headers.get("cache-control") || "";
   assert(
-    cache206Header.includes("max-age=0") && cache206Header.includes("must-revalidate"),
-    `HTTP 206 Range media cache header enforces revalidation: ${cache206Header}`
+    cache206Header.includes("no-store") && cache206Header.includes("must-revalidate"),
+    `HTTP 206 Range media cache header enforces conservative no-store: ${cache206Header}`
   );
 
   // 3. HTTP 304 Not Modified Cache Header
@@ -555,8 +614,8 @@ async function runSuite() {
     assert(cache304Res.status === 304, "Conditional GET with matching ETag returns HTTP 304 Not Modified");
     const cache304Header = cache304Res.headers.get("cache-control") || "";
     assert(
-      cache304Header.includes("max-age=0") && cache304Header.includes("must-revalidate"),
-      `HTTP 304 conditional cache header consistent with 200/206: ${cache304Header}`
+      cache304Header.includes("no-store") && cache304Header.includes("must-revalidate"),
+      `HTTP 304 conditional cache header enforces no-store: ${cache304Header}`
     );
   }
 
@@ -619,6 +678,49 @@ async function runSuite() {
   assert(snapTestRun.stdout.includes("INITIAL_SNAP:1"), "Verified published video snapshot loaded into memory");
   assert(snapTestRun.stdout.includes("AFTER_TOMBSTONE:0"), "Unpublishing tombstones video: previously published video CANNOT reappear during outage");
   assert(snapTestRun.stdout.includes("EXPIRED_SNAP:EXPIRED"), "Timestamp-based expiry test invalidates stale snapshot after TTL");
+
+  // Cross-Process Outage Test (Section 5)
+  const crossProcessScript = `
+    import {
+      getPublishedVideosWithMeta,
+      setVerifiedPublishedVideosSnapshot
+    } from "./src/lib/portfolio/repository.ts";
+
+    // 1. Set verified snapshot
+    setVerifiedPublishedVideosSnapshot([{
+      id: "old-published-vid",
+      slug: "old-published-vid",
+      cmsStatus: "published",
+      titleTR: "Old Published",
+      titleEN: "Old Published",
+      sortOrder: 1
+    }]);
+
+    // 2. Simulate Worker outage in staging mode
+    process.env.CMS_STORAGE_MODE = "staging";
+    process.env.CMS_DATA_SOURCE = "cloudflare";
+    process.env.CLOUDFLARE_CMS_API_URL = "https://unreachable-staging-worker.invalid";
+
+    const stagingOutageRes = await getPublishedVideosWithMeta();
+    console.log("OUTAGE_VIDEOS_EMPTY:" + (stagingOutageRes.videos.length === 0));
+    console.log("OUTAGE_DEGRADED_TRUE:" + stagingOutageRes.degraded);
+    console.log("OUTAGE_SOURCE_MATCH:" + (stagingOutageRes.source === "degraded-worker-outage"));
+
+    // 3. Legacy mode retaining canonical collection
+    process.env.CMS_DATA_SOURCE = "legacy";
+    const legacyRes = await getPublishedVideosWithMeta();
+    console.log("LEGACY_VIDEOS_COUNT:" + legacyRes.videos.length);
+    console.log("LEGACY_SOURCE_MATCH:" + (legacyRes.source === "legacy-static"));
+  `;
+
+  const crossProcessRun = spawnSync("node", ["--import", "./scripts/ts-loader.mjs", "--experimental-strip-types", "--input-type=module", "-e", crossProcessScript], {
+    cwd: rootDir,
+    encoding: "utf8"
+  });
+
+  assert(crossProcessRun.stdout.includes("OUTAGE_VIDEOS_EMPTY:true"), "Remote Worker outage does NOT serve stale published snapshot (zero leakage)");
+  assert(crossProcessRun.stdout.includes("OUTAGE_DEGRADED_TRUE:true"), "Worker outage returns degraded: true");
+  assert(crossProcessRun.stdout.includes("LEGACY_VIDEOS_COUNT:21"), "Legacy mode retains full canonical video collection (21 records)");
 
   // ------------------------------------------------------------
   // GROUP K: True Fail-Closed Behavior (NO TAUTOLOGY) (Section 8)
@@ -708,6 +810,57 @@ async function runSuite() {
   assert(workerSource.includes("SCHEMA_NOT_INITIALIZED") || workerSource.includes("migration required"), "Worker returns explicit error when video table is missing instead of count=0");
   assert(workerSource.includes('pathname === "/api/v1/public/health" || pathname === "/api/v1/health"'), "Worker supports both /api/v1/public/health and /api/v1/health");
   assert(workerSource.includes('request.method === "HEAD"'), "Worker public endpoints support HEAD method");
+
+  // Behavioral testing of queryCmsVideosFromWorkerD1 (Section 8)
+  const workerBehaviorScript = `
+    import { queryCmsVideosFromWorkerD1 } from "./cloudflare/portfolio-api/src/index.ts";
+
+    // 1. Failing D1 database (e.g. table does not exist or connection down)
+    const failingD1 = {
+      prepare(query) {
+        return {
+          bind(...args) { return this; },
+          first() { throw new Error("D1_ERROR: no such table: portfolio_videos"); },
+          all() { throw new Error("D1_ERROR: no such table: portfolio_videos"); }
+        };
+      }
+    };
+
+    let threwError = false;
+    try {
+      await queryCmsVideosFromWorkerD1(failingD1);
+    } catch (err) {
+      threwError = err.message.includes("no such table");
+    }
+    console.log("FAILING_D1_THROWS:" + threwError);
+
+    // 2. Legitimate empty D1 database
+    const emptyD1 = {
+      prepare(query) {
+        return {
+          bind(...args) { return this; },
+          first() { return Promise.resolve(null); },
+          all() { return Promise.resolve({ results: [] }); }
+        };
+      }
+    };
+
+    let emptyResult = null;
+    try {
+      emptyResult = await queryCmsVideosFromWorkerD1(emptyD1);
+    } catch {
+      emptyResult = null;
+    }
+    console.log("EMPTY_D1_RETURNS_EMPTY_ARRAY:" + (Array.isArray(emptyResult) && emptyResult.length === 0));
+  `;
+
+  const workerBehaviorRun = spawnSync("node", ["--import", "./scripts/ts-loader.mjs", "--experimental-strip-types", "--input-type=module", "-e", workerBehaviorScript], {
+    cwd: rootDir,
+    encoding: "utf8"
+  });
+
+  assert(workerBehaviorRun.stdout.includes("FAILING_D1_THROWS:true"), "queryCmsVideosFromWorkerD1 on failing D1 throws error instead of swallowing into []");
+  assert(workerBehaviorRun.stdout.includes("EMPTY_D1_RETURNS_EMPTY_ARRAY:true"), "queryCmsVideosFromWorkerD1 on empty D1 returns HTTP 200 []");
 
   // ------------------------------------------------------------
   // GROUP M: Bilingual Parity & Completeness

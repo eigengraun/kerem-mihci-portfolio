@@ -61,7 +61,7 @@ export async function GET(
       if (upstream.status === 304) {
         const upstreamCache =
           upstream.headers.get("cache-control") ||
-          "public, max-age=0, must-revalidate, s-maxage=3600";
+          "no-store, no-cache, must-revalidate";
         return new Response(null, {
           status: 304,
           headers: {
@@ -83,7 +83,7 @@ export async function GET(
         headers.set("Content-Type", contentType);
         const upstreamCache =
           upstream.headers.get("cache-control") ||
-          "public, max-age=0, must-revalidate, s-maxage=3600";
+          "no-store, no-cache, must-revalidate";
         headers.set("Cache-Control", upstreamCache);
         headers.set("Accept-Ranges", "bytes");
 
@@ -230,9 +230,7 @@ export async function GET(
       status: 304,
       headers: {
         ETag: localEtag,
-        "Cache-Control": isPublic
-          ? "public, max-age=0, must-revalidate, s-maxage=3600"
-          : "private, no-store, no-cache, must-revalidate"
+        "Cache-Control": "no-store, no-cache, must-revalidate"
       }
     });
   }
@@ -265,9 +263,7 @@ export async function GET(
         "Accept-Ranges": "bytes",
         "Content-Length": String(chunkLen),
         ETag: localEtag,
-        "Cache-Control": isPublic
-          ? "public, max-age=0, must-revalidate, s-maxage=3600"
-          : "private, no-store, no-cache, must-revalidate"
+        "Cache-Control": "no-store, no-cache, must-revalidate"
       });
       return new Response(webStream as BodyInit, {
         status: 206,
@@ -283,9 +279,7 @@ export async function GET(
     "Content-Length": String(stat.size),
     "Accept-Ranges": "bytes",
     ETag: localEtag,
-    "Cache-Control": isPublic
-      ? "public, max-age=0, must-revalidate, s-maxage=3600"
-      : "private, no-store, no-cache, must-revalidate"
+    "Cache-Control": "no-store, no-cache, must-revalidate"
   });
 
   return new Response(webStream as BodyInit, {

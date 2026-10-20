@@ -1287,10 +1287,10 @@ function mapWorkerRowsToCmsVideos(
   });
 }
 
-async function queryCmsVideosFromWorkerD1(
+export async function queryCmsVideosFromWorkerD1(
   db: D1Database,
-  whereClause: string,
-  params: unknown[]
+  whereClause = "",
+  params: unknown[] = []
 ): Promise<Record<string, unknown>[]> {
   const stmt = db
     .prepare(`SELECT * FROM portfolio_videos ${whereClause} ORDER BY sort_order ASC, created_at DESC`)
@@ -1308,7 +1308,7 @@ async function queryCmsVideosFromWorkerD1(
   return mapWorkerRowsToCmsVideos(videoRows, translationRows || [], assetRows || []);
 }
 
-async function listVideoRevisionsInWorkerD1(db: D1Database, videoId: string) {
+export async function listVideoRevisionsInWorkerD1(db: D1Database, videoId: string) {
   const { results } = await db
     .prepare(`SELECT * FROM portfolio_video_revisions WHERE video_id = ? ORDER BY revision_number DESC LIMIT 50`)
     .bind(videoId)
@@ -1324,7 +1324,7 @@ async function listVideoRevisionsInWorkerD1(db: D1Database, videoId: string) {
   }));
 }
 
-async function upsertVideoInWorkerD1(
+export async function upsertVideoInWorkerD1(
   db: D1Database,
   input: Record<string, unknown>,
   actorEmail: string,
@@ -1344,14 +1344,26 @@ async function upsertVideoInWorkerD1(
     .bind(cleanSlug)
     .first<Record<string, unknown>>();
 
-  if (existingBySlug && existingById && String(existingBySlug.id) !== String(existingById.id)) {
-    return { status: 409, error: `Slug "${cleanSlug}" is already in use by another video.` };
-  }
-  if (existingBySlug && !existingById && actionLabel === "create") {
-    return { status: 409, error: `Slug "${cleanSlug}" is already in use.` };
+  if (actionLabel === "create") {
+    if (existingById) {
+      return { status: 409, error: `Video with ID "${inputId}" already exists.` };
+    }
+    if (existingBySlug) {
+      return { status: 409, error: `Video with slug "${cleanSlug}" already exists.` };
+    }
+  } else {
+    if (existingBySlug && existingById && String(existingBySlug.id) !== String(existingById.id)) {
+      return { status: 409, error: `Slug "${cleanSlug}" is already in use by another video.` };
+    }
+    if (existingBySlug && !existingById) {
+      return { status: 409, error: `Slug "${cleanSlug}" is already in use.` };
+    }
+    if (!existingById && !existingBySlug) {
+      return { status: 404, error: "Video not found." };
+    }
   }
 
-  const existing = existingById || existingBySlug;
+  const existing = actionLabel === "create" ? null : (existingById || existingBySlug);
   const videoId = existing ? String(existing.id) : inputId || cleanSlug;
   const now = new Date().toISOString();
 
@@ -1442,62 +1454,94 @@ async function upsertVideoInWorkerD1(
     }
   }
 
-  statements.push(
-    db
-      .prepare(
-        `INSERT INTO portfolio_videos (
-          id, slug, status, orientation, video_type, production_method, ai_assisted,
-          client_name, year, duration, aspect_ratio, featured, sort_order,
-          autoplay_preview, external_url, project_slug, tools_json, tags_json,
-          created_at, updated_at, published_at, archived_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(id) DO UPDATE SET
-          slug = excluded.slug,
-          status = excluded.status,
-          orientation = excluded.orientation,
-          video_type = excluded.video_type,
-          production_method = excluded.production_method,
-          ai_assisted = excluded.ai_assisted,
-          client_name = excluded.client_name,
-          year = excluded.year,
-          duration = excluded.duration,
-          aspect_ratio = excluded.aspect_ratio,
-          featured = excluded.featured,
-          sort_order = excluded.sort_order,
-          autoplay_preview = excluded.autoplay_preview,
-          external_url = excluded.external_url,
-          project_slug = excluded.project_slug,
-          tools_json = excluded.tools_json,
-          tags_json = excluded.tags_json,
-          updated_at = excluded.updated_at,
-          published_at = excluded.published_at,
-          archived_at = excluded.archived_at`
-      )
-      .bind(
-        videoId,
-        cleanSlug,
-        nextStatus,
-        orientation,
-        videoType,
-        productionMethod,
-        aiAssisted,
-        clientName,
-        year,
-        duration,
-        aspectRatio,
-        featured,
-        sortOrder,
-        autoplayPreview,
-        externalUrl,
-        projectSlug,
-        toolsJson,
-        tagsJson,
-        createdAt,
-        now,
-        publishedAt,
-        archivedAt
-      )
-  );
+  if (actionLabel === "create") {
+    statements.push(
+      db
+        .prepare(
+          `INSERT INTO portfolio_videos (
+            id, slug, status, orientation, video_type, production_method, ai_assisted,
+            client_name, year, duration, aspect_ratio, featured, sort_order,
+            autoplay_preview, external_url, project_slug, tools_json, tags_json,
+            created_at, updated_at, published_at, archived_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        )
+        .bind(
+          videoId,
+          cleanSlug,
+          nextStatus,
+          orientation,
+          videoType,
+          productionMethod,
+          aiAssisted,
+          clientName,
+          year,
+          duration,
+          aspectRatio,
+          featured,
+          sortOrder,
+          autoplayPreview,
+          externalUrl,
+          projectSlug,
+          toolsJson,
+          tagsJson,
+          createdAt,
+          now,
+          publishedAt,
+          archivedAt
+        )
+    );
+  } else {
+    statements.push(
+      db
+        .prepare(
+          `UPDATE portfolio_videos SET
+            slug = ?,
+            status = ?,
+            orientation = ?,
+            video_type = ?,
+            production_method = ?,
+            ai_assisted = ?,
+            client_name = ?,
+            year = ?,
+            duration = ?,
+            aspect_ratio = ?,
+            featured = ?,
+            sort_order = ?,
+            autoplay_preview = ?,
+            external_url = ?,
+            project_slug = ?,
+            tools_json = ?,
+            tags_json = ?,
+            updated_at = ?,
+            published_at = ?,
+            archived_at = ?
+          WHERE id = ?`
+        )
+        .bind(
+          cleanSlug,
+          nextStatus,
+          orientation,
+          videoType,
+          productionMethod,
+          aiAssisted,
+          clientName,
+          year,
+          duration,
+          aspectRatio,
+          featured,
+          sortOrder,
+          autoplayPreview,
+          externalUrl,
+          projectSlug,
+          toolsJson,
+          tagsJson,
+          now,
+          publishedAt,
+          archivedAt,
+          videoId
+        )
+    );
+  }
 
   const servicesTRJson = JSON.stringify(input.servicesTR || input.services || []);
   const servicesENJson = JSON.stringify(input.servicesEN || input.services || []);
@@ -1887,7 +1931,7 @@ const worker = {
             status: 304,
             headers: {
               ETag: objectEtag,
-              "Cache-Control": "public, max-age=0, must-revalidate, s-maxage=3600",
+              "Cache-Control": "no-store, no-cache, must-revalidate",
               "Access-Control-Allow-Origin": origin
             }
           });
@@ -1895,7 +1939,7 @@ const worker = {
 
         const headers = new Headers();
         headers.set("Content-Type", obj.httpMetadata?.contentType || "application/octet-stream");
-        headers.set("Cache-Control", "public, max-age=0, must-revalidate, s-maxage=3600");
+        headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
         headers.set("Access-Control-Allow-Origin", origin);
         headers.set("Accept-Ranges", "bytes");
         if (objectEtag) {
@@ -2611,11 +2655,13 @@ const worker = {
             return jsonResponse({ ok: true, videos: updated, updatedCount: items.length }, 200, origin);
           }
 
+          const isExplicitUpdate = body.actionType === "update";
+          const actionLabel = isExplicitUpdate ? "update" : "create";
           const res = await upsertVideoInWorkerD1(
             db,
             body,
             actorEmail,
-            String(body.actionType || (body.id ? "update" : "create"))
+            actionLabel
           );
           if (res.error || !res.video) {
             return jsonResponse({ ok: false, error: res.error }, res.status, origin);
@@ -2847,7 +2893,6 @@ const worker = {
 
           const now = new Date().toISOString();
           let targetVideoId = rawVideoId;
-          let oldStorageKey: string | null = null;
 
           try {
             if (targetVideoId) {
@@ -2881,10 +2926,6 @@ const worker = {
               .prepare(`SELECT * FROM portfolio_video_assets WHERE video_id = ? AND asset_type = ?`)
               .bind(targetVideoId, assetType)
               .first<{ id: string; storage_key: string; created_at: string }>();
-
-            if (existingAsset?.storage_key) {
-              oldStorageKey = String(existingAsset.storage_key);
-            }
 
             const assetId = existingAsset?.id ? String(existingAsset.id) : `vast-${targetVideoId}-${assetType}`;
             const publicUrl = `/api/media/${storageKey}`;

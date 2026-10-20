@@ -962,7 +962,7 @@ export function recordVideoSnapshotMutation(params: {
     state.tombstonedVideoSlugs[params.tombstoneSlug] = now;
   }
 
-  if (params.publishedVideo && (params.publishedVideo as any).cmsStatus === "published") {
+  if (params.publishedVideo && (params.publishedVideo as { cmsStatus?: string }).cmsStatus === "published") {
     delete state.tombstonedVideoIds[params.publishedVideo.id];
     delete state.tombstonedVideoSlugs[params.publishedVideo.slug];
   }
@@ -979,7 +979,7 @@ export function recordVideoSnapshotMutation(params: {
       (v) => !state.tombstonedVideoIds[v.id] && !state.tombstonedVideoSlugs[v.slug]
     );
     if (params.publishedVideo) {
-      if ((params.publishedVideo as any).cmsStatus === "published") {
+      if ((params.publishedVideo as { cmsStatus?: string }).cmsStatus === "published") {
         const pVideo = params.publishedVideo as PortfolioVideo;
         const idx = updatedList.findIndex((v) => v.id === pVideo.id || v.slug === pVideo.slug);
         if (idx >= 0) {
@@ -1084,20 +1084,13 @@ export async function getPublishedVideosWithMeta(): Promise<{
       };
     } catch (error) {
       const errReason = error instanceof Error ? error.message : String(error);
-      const snapshot = getValidCoordinatedVideosSnapshot();
-      if (snapshot !== null && snapshot.length > 0) {
-        return {
-          videos: snapshot,
-          degraded: true,
-          source: "stale-verified-snapshot",
-          reason: errReason
-        };
-      }
+      // In remote CMS mode, when the remote Worker becomes unavailable, fail closed:
+      // Do not serve unverified stale in-memory snapshots that may have been unpublished on remote hosts/Worker.
       return {
         videos: [],
         degraded: true,
-        source: "degraded-cold-start-outage",
-        reason: "Cloudflare Worker is unreachable and no valid bounded video snapshot exists."
+        source: "degraded-worker-outage",
+        reason: errReason
       };
     }
   }
@@ -1159,14 +1152,8 @@ export async function getPublishedVideoBySlug(slug: string): Promise<PortfolioVi
       );
       if (res.video) return res.video;
       return null;
-    } catch (error) {
-      if (error instanceof Error && !(error instanceof CmsStorageUnavailableError)) {
-        return null;
-      }
-      const snapshot = getVerifiedPublishedVideosSnapshot();
-      if (snapshot) {
-        return snapshot.find((v) => v.slug === slug) || null;
-      }
+    } catch {
+      // In remote CMS mode, fail closed when Worker is unreachable
       return null;
     }
   }
@@ -1184,16 +1171,17 @@ export async function saveAdminVideo(
 ): Promise<CmsVideoRecord> {
   if (shouldUseWorkerApi()) {
     requireWorkerConfigForMutation("saveAdminVideo");
-    const method = input.id ? "PUT" : "POST";
-    const path = input.id
-      ? `/api/v1/admin/videos/${encodeURIComponent(input.id)}`
-      : "/api/v1/admin/videos";
+    const isCreate = actionType === "create";
+    const method = isCreate ? "POST" : (input.id ? "PUT" : "POST");
+    const path = isCreate
+      ? "/api/v1/admin/videos"
+      : (input.id ? `/api/v1/admin/videos/${encodeURIComponent(input.id)}` : "/api/v1/admin/videos");
     const res = await fetchWorkerJson<{ ok: boolean; video: CmsVideoRecord }>(path, {
       method,
       requireServiceAuth: true,
       actorEmail,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(input)
+      body: JSON.stringify({ ...input, actionType })
     });
     const saved = res.video;
     if (saved.cmsStatus !== "published") {
@@ -1247,7 +1235,7 @@ export async function deleteAdminVideo(
   const deleted = deleteVideoLocal(id, actorEmail);
   recordVideoSnapshotMutation({
     tombstoneId: deleted.deletedId,
-    tombstoneSlug: (deleted as any).slug
+    tombstoneSlug: (deleted as { deletedId: string; slug?: string }).slug
   });
   return deleted;
 }

@@ -1,0 +1,558 @@
+{
+  "timestamp": "2026-10-20T16:01:16.458Z",
+  "commit": "1fbd25eb2f020c9c980cd215f0d2c1b3dfad3719",
+  "total": 90,
+  "passed": 90,
+  "failed": 0,
+  "failures": [],
+  "groups": {
+    "Group A: Canonical Import Parity & CLI Guardrails": {
+      "total": 10,
+      "passed": 10,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Local D1 database exists (.local-d1/portfolio.sqlite)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Database contains exactly 21 videos (found 21)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "19 portrait 9:16 videos present (found 19)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "2 landscape 16:9 videos present (found 2)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Unknown CLI argument (--staging) fails closed with exit code 1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "--force against remote-staging fails closed with exit code 1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Remote staging importer defaults to read-only dry-run",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Remote staging importer validates exact approved D1 database ID",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Importer aborts with exit code 1 when remote admin inventory is unmigrated or fails (Section 1)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Local importer skips existing canonical records by default (non-destructive)",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "Group B: Database Schema & Foreign Key Integrity": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Table portfolio_videos exists",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Table portfolio_video_translations exists",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Table portfolio_video_assets exists",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Table portfolio_video_revisions exists",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "Group C: Fresh Local Database Initialization & No-Reseeding": {
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Fresh database initializes with exactly 0 videos (no silent auto-seed)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Subsequent read-only queries preserve 0 videos (no unexpected writes)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Admin authenticated successfully as staging-admin@local.test",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "Group D: Admin Video CRUD Endpoints": {
+      "total": 15,
+      "passed": 15,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "GET /api/admin/videos without session rejected with 401 Unauthorized",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "POST /api/admin/videos without CSRF rejected with 403 Forbidden",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "GET /api/admin/videos with valid admin cookie returns HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Returned 21 videos",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "POST /api/admin/videos creates draft video (HTTP 200)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Created video has valid ID: test-release-video-1792512078076",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "GET /api/admin/videos/[id] returns HTTP 200 for test-release-video-1792512078076",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Read video matches created bilingual title TR",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Completeness meter computed 100%",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "PUT /api/admin/videos/[id] updates video successfully",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "POST /api/admin/videos with existing video ID rejected with 409 Conflict",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "POST /api/admin/videos with existing video slug rejected with 409 Conflict",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "POST /api/admin/videos creates archived video",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Admin inventory includes all statuses: published, draft, and archived",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Public video feed hides draft and archived records completely",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "Group E: Point-in-Time Revisions & Asset Retention": {
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Uploaded Poster A (storageKey: videos/test-release-video-1792512078076/poster-1792512078172-d1b5f1d5.webp)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Uploaded Poster B replacement (videos/test-release-video-1792512078076/poster-1792512078184-2da65131.webp)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Poster A binary file retained on disk after replacement (NOT deleted)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Recorded 2 revision snapshots",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Rollback to revision #1 succeeded",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Restored historical asset (Poster A) is accessible via HTTP 200 after rollback",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "Group F: Publication Lifecycle & Unpublishing": {
+      "total": 7,
+      "passed": 7,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Published video via admin endpoint",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Published video appears immediately in public GET /api/videos",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "GET /api/videos/:slug returns HTTP 200 for newly published video",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Cache-Control prevents public edge caching: no-store, no-cache, must-revalidate",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Unpublished video back to draft status",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "GET /api/videos/:slug immediately returns HTTP 404 after unpublishing (zero leak)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "DELETE /api/admin/videos/[id] deleted test video cleanly",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "Group G: Drag-and-Drop Reordering": {
+      "total": 1,
+      "passed": 1,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "POST /api/admin/videos/reorder updates ordering atomically (HTTP 200)",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "Group H: Real MP4 Video Upload & Streaming Acceptance Gate": {
+      "total": 14,
+      "passed": 14,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "POST /api/admin/videos/upload without auth rejected with 401",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Upload with invalid magic bytes rejected with 400 Bad Request",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Error explains signature defect: Invalid video/mp4 ftyp box signature.",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "POST /api/admin/videos/upload with real MP4 returns HTTP 201 Created",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Uploaded asset registered with assetType='video'",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Persisted byte size matches real MP4 (6657395 bytes)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Asset record persisted in portfolio_video_assets (NOT project_media)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Draft video media returns HTTP 404 to anonymous visitors",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Draft video media returns HTTP 200 to authenticated admin preview",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Published MP4 accessible via HTTP 200 to public visitors",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Video delivery advertises Accept-Ranges: bytes",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Video Range streaming returns HTTP 206 Partial Content (got 206)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Content-Range header correct: bytes 0-1024/6657395",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Out of bounds Range returns HTTP 416 Range Not Satisfiable (got 416)",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "Group I: Public Media Cache Policy & Header Consistency": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "HTTP 200 media cache header enforces conservative no-store: no-store, no-cache, must-revalidate",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Next.js proxy does NOT cache publication-sensitive media with s-maxage",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "HTTP 206 Range media cache header enforces conservative no-store: no-store, no-cache, must-revalidate",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Conditional GET with matching ETag returns HTTP 304 Not Modified",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "HTTP 304 conditional cache header enforces no-store: no-store, no-cache, must-revalidate",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "Group J: Video Snapshot Bounded Lifetime & Invalidation": {
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Verified published video snapshot loaded into memory",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Unpublishing tombstones video: previously published video CANNOT reappear during outage",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Timestamp-based expiry test invalidates stale snapshot after TTL",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Remote Worker outage does NOT serve stale published snapshot (zero leakage)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Worker outage returns degraded: true",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Legacy mode retains full canonical video collection (21 records)",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "Group K: True Fail-Closed Behavior (Zero Local Fallback in Staging)": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Remote video save failure strictly blocks local fallback",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Remote video reorder failure strictly blocks local fallback",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Remote video delete failure strictly blocks local fallback",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Remote revision rollback failure strictly blocks local fallback",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Cryptographic proof: SQLite database SHA-256 identical before and after (zero local writes)",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "Group L: Worker D1 Error vs Empty Data & Health Endpoints": {
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "queryCmsVideosFromWorkerD1 does NOT silently swallow errors into empty array []",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Worker returns explicit error when video table is missing instead of count=0",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Worker supports both /api/v1/public/health and /api/v1/health",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Worker public endpoints support HEAD method",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "queryCmsVideosFromWorkerD1 on failing D1 throws error instead of swallowing into []",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "queryCmsVideosFromWorkerD1 on empty D1 returns HTTP 200 []",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "Group M: Bilingual Parity & Completeness": {
+      "total": 2,
+      "passed": 2,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "At least 42 translations present (2 per canonical video, found 42)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "All canonical videos possess non-empty bilingual titles and descriptions",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "Group N: Frontend Hydration & Public Regression Prevention": {
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "All 30 projects remain intact in D1 (found 30)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "ClientLocalePage hydrates store synchronously before first render (zero flash of static data)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "GET /tr renders HTTP 200 without server crash",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Public TR page contains valid layout and typography",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "GET /en renders HTTP 200 without server crash",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "GET /admin renders HTTP 200 without server crash",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    }
+  }
+}

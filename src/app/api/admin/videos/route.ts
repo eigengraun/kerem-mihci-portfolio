@@ -85,9 +85,7 @@ export async function POST(request: Request) {
     }
 
     const actionType: "create" | "update" =
-      body.actionType === "create" || (!body.id && !body.actionType)
-        ? "create"
-        : "update";
+      body.actionType === "update" ? "update" : "create";
 
     const saved = await saveAdminVideo(
       {
@@ -109,7 +107,17 @@ export async function POST(request: Request) {
       { headers: { "Cache-Control": "no-store" } }
     );
   } catch (error) {
-    const status = error instanceof CmsStorageUnavailableError ? 503 : 400;
+    const errorRecord = typeof error === "object" && error !== null ? (error as Record<string, unknown>) : null;
+    const isConflict =
+      errorRecord?.statusCode === 409 ||
+      errorRecord?.status === 409 ||
+      errorRecord?.code === "CONFLICT" ||
+      (error instanceof Error && error.message.includes("already exists"));
+    const status = error instanceof CmsStorageUnavailableError
+      ? 503
+      : isConflict
+      ? 409
+      : 400;
     const message = error instanceof Error ? error.message : "Failed to save video";
     return NextResponse.json(
       { ok: false, error: message },

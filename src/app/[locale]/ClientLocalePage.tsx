@@ -23,8 +23,8 @@ export function ClientLocalePage({ initialProjects, initialVideos, isCmsMode = f
   const hydrateVideos = useSessionStore((s) => s.hydrateVideos);
 
   // Synchronous first-render hydration to prevent any flash of static fallback data
-  const isHydratedRef = React.useRef(false);
-  if (!isHydratedRef.current) {
+  const isHydratedRef = React.useRef<boolean | null>(null);
+  if (isHydratedRef.current == null) {
     if (Array.isArray(initialVideos)) {
       useSessionStore.getState().hydrateVideos(initialVideos, isCmsMode);
     }

@@ -2661,14 +2661,41 @@ export function upsertVideoInD1(
     : undefined;
   const existingBySlug = db.prepare(`SELECT * FROM portfolio_videos WHERE slug = ?`).get(cleanSlug);
 
-  if (existingBySlug && existingById && String(existingBySlug.id) !== String(existingById.id)) {
-    throw new Error(`Slug "${cleanSlug}" is already in use by another video.`);
-  }
-  if (existingBySlug && !existingById && actionLabel === "create") {
-    throw new Error(`Slug "${cleanSlug}" is already in use.`);
+  if (actionLabel === "create") {
+    if (existingById) {
+      const err = new Error(`Video with ID "${input.id}" already exists.`) as Error & { statusCode: number; code: string };
+      err.statusCode = 409;
+      err.code = "CONFLICT";
+      throw err;
+    }
+    if (existingBySlug) {
+      const err = new Error(`Video with slug "${cleanSlug}" already exists.`) as Error & { statusCode: number; code: string };
+      err.statusCode = 409;
+      err.code = "CONFLICT";
+      throw err;
+    }
+  } else {
+    if (existingBySlug && existingById && String(existingBySlug.id) !== String(existingById.id)) {
+      const err = new Error(`Slug "${cleanSlug}" is already in use by another video.`) as Error & { statusCode: number; code: string };
+      err.statusCode = 409;
+      err.code = "CONFLICT";
+      throw err;
+    }
+    if (existingBySlug && !existingById) {
+      const err = new Error(`Slug "${cleanSlug}" is already in use.`) as Error & { statusCode: number; code: string };
+      err.statusCode = 409;
+      err.code = "CONFLICT";
+      throw err;
+    }
+    if (!existingById && !existingBySlug) {
+      const err = new Error("Video not found.") as Error & { statusCode: number; code: string };
+      err.statusCode = 404;
+      err.code = "NOT_FOUND";
+      throw err;
+    }
   }
 
-  const existing = existingById || existingBySlug;
+  const existing = actionLabel === "create" ? null : (existingById || existingBySlug);
   const videoId = existing ? String(existing.id) : input.id || cleanSlug;
   const now = new Date().toISOString();
 
@@ -2759,58 +2786,86 @@ export function upsertVideoInD1(
   }
 
   // Upsert portfolio_videos
-  db.prepare(
-    `INSERT INTO portfolio_videos (
-      id, slug, status, orientation, video_type, production_method, ai_assisted,
-      client_name, year, duration, aspect_ratio, featured, sort_order,
-      autoplay_preview, external_url, project_slug, tools_json, tags_json,
-      created_at, updated_at, published_at, archived_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(id) DO UPDATE SET
-      slug = excluded.slug,
-      status = excluded.status,
-      orientation = excluded.orientation,
-      video_type = excluded.video_type,
-      production_method = excluded.production_method,
-      ai_assisted = excluded.ai_assisted,
-      client_name = excluded.client_name,
-      year = excluded.year,
-      duration = excluded.duration,
-      aspect_ratio = excluded.aspect_ratio,
-      featured = excluded.featured,
-      sort_order = excluded.sort_order,
-      autoplay_preview = excluded.autoplay_preview,
-      external_url = excluded.external_url,
-      project_slug = excluded.project_slug,
-      tools_json = excluded.tools_json,
-      tags_json = excluded.tags_json,
-      updated_at = excluded.updated_at,
-      published_at = excluded.published_at,
-      archived_at = excluded.archived_at`
-  ).run(
-    videoId,
-    cleanSlug,
-    nextStatus,
-    orientation,
-    videoType,
-    productionMethod,
-    aiAssisted,
-    clientName,
-    year,
-    duration,
-    aspectRatio,
-    featured,
-    sortOrder,
-    autoplayPreview,
-    externalUrl,
-    projectSlug,
-    toolsJson,
-    tagsJson,
-    createdAt,
-    now,
-    publishedAt,
-    archivedAt
-  );
+  if (actionLabel === "create") {
+    db.prepare(
+      `INSERT INTO portfolio_videos (
+        id, slug, status, orientation, video_type, production_method, ai_assisted,
+        client_name, year, duration, aspect_ratio, featured, sort_order,
+        autoplay_preview, external_url, project_slug, tools_json, tags_json,
+        created_at, updated_at, published_at, archived_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(
+      videoId,
+      cleanSlug,
+      nextStatus,
+      orientation,
+      videoType,
+      productionMethod,
+      aiAssisted,
+      clientName,
+      year,
+      duration,
+      aspectRatio,
+      featured,
+      sortOrder,
+      autoplayPreview,
+      externalUrl,
+      projectSlug,
+      toolsJson,
+      tagsJson,
+      createdAt,
+      now,
+      publishedAt,
+      archivedAt
+    );
+  } else {
+    db.prepare(
+      `UPDATE portfolio_videos SET
+        slug = ?,
+        status = ?,
+        orientation = ?,
+        video_type = ?,
+        production_method = ?,
+        ai_assisted = ?,
+        client_name = ?,
+        year = ?,
+        duration = ?,
+        aspect_ratio = ?,
+        featured = ?,
+        sort_order = ?,
+        autoplay_preview = ?,
+        external_url = ?,
+        project_slug = ?,
+        tools_json = ?,
+        tags_json = ?,
+        updated_at = ?,
+        published_at = ?,
+        archived_at = ?
+      WHERE id = ?`
+    ).run(
+      cleanSlug,
+      nextStatus,
+      orientation,
+      videoType,
+      productionMethod,
+      aiAssisted,
+      clientName,
+      year,
+      duration,
+      aspectRatio,
+      featured,
+      sortOrder,
+      autoplayPreview,
+      externalUrl,
+      projectSlug,
+      toolsJson,
+      tagsJson,
+      now,
+      publishedAt,
+      archivedAt,
+      videoId
+    );
+  }
 
   // Upsert translations
   const servicesTRJson = JSON.stringify(input.servicesTR || input.services || []);
@@ -3190,7 +3245,6 @@ export function uploadVideoAssetToStorageAndD1(params: {
   const now = new Date().toISOString();
 
   let targetVideoId = initialVideoId;
-  let oldStorageKey: string | null = null;
 
   try {
     // 1. Resolve or establish target video identity
@@ -3221,10 +3275,6 @@ export function uploadVideoAssetToStorageAndD1(params: {
     const existingAsset = db
       .prepare(`SELECT * FROM portfolio_video_assets WHERE video_id = ? AND asset_type = ?`)
       .get(targetVideoId, assetType) as Record<string, unknown> | undefined;
-
-    if (existingAsset?.storage_key) {
-      oldStorageKey = String(existingAsset.storage_key);
-    }
 
     // 3. Atomically upsert asset record
     const assetId = existingAsset?.id

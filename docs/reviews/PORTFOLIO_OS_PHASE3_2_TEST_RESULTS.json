@@ -1,14 +1,14 @@
 {
-  "timestamp": "2026-10-20T15:07:51.893Z",
-  "commit": "cd361f5d080aa59aedb538ebfb0255eb6867530a",
-  "total": 79,
-  "passed": 79,
+  "timestamp": "2026-10-20T16:01:16.458Z",
+  "commit": "1fbd25eb2f020c9c980cd215f0d2c1b3dfad3719",
+  "total": 90,
+  "passed": 90,
   "failed": 0,
   "failures": [],
   "groups": {
     "Group A: Canonical Import Parity & CLI Guardrails": {
-      "total": 9,
-      "passed": 9,
+      "total": 10,
+      "passed": 10,
       "failed": 0,
       "checks": [
         {
@@ -48,6 +48,11 @@
         },
         {
           "name": "Remote staging importer validates exact approved D1 database ID",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Importer aborts with exit code 1 when remote admin inventory is unmigrated or fails (Section 1)",
           "status": "PASS",
           "detail": ""
         },
@@ -108,8 +113,8 @@
       ]
     },
     "Group D: Admin Video CRUD Endpoints": {
-      "total": 10,
-      "passed": 10,
+      "total": 15,
+      "passed": 15,
       "failed": 0,
       "checks": [
         {
@@ -138,12 +143,12 @@
           "detail": ""
         },
         {
-          "name": "Created video has valid ID: test-release-video-1792508873128",
+          "name": "Created video has valid ID: test-release-video-1792512078076",
           "status": "PASS",
           "detail": ""
         },
         {
-          "name": "GET /api/admin/videos/[id] returns HTTP 200 for test-release-video-1792508873128",
+          "name": "GET /api/admin/videos/[id] returns HTTP 200 for test-release-video-1792512078076",
           "status": "PASS",
           "detail": ""
         },
@@ -161,6 +166,31 @@
           "name": "PUT /api/admin/videos/[id] updates video successfully",
           "status": "PASS",
           "detail": ""
+        },
+        {
+          "name": "POST /api/admin/videos with existing video ID rejected with 409 Conflict",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "POST /api/admin/videos with existing video slug rejected with 409 Conflict",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "POST /api/admin/videos creates archived video",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Admin inventory includes all statuses: published, draft, and archived",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Public video feed hides draft and archived records completely",
+          "status": "PASS",
+          "detail": ""
         }
       ]
     },
@@ -170,12 +200,12 @@
       "failed": 0,
       "checks": [
         {
-          "name": "Uploaded Poster A (storageKey: videos/test-release-video-1792508873128/poster-1792508873148-757fa112.webp)",
+          "name": "Uploaded Poster A (storageKey: videos/test-release-video-1792512078076/poster-1792512078172-d1b5f1d5.webp)",
           "status": "PASS",
           "detail": ""
         },
         {
-          "name": "Uploaded Poster B replacement (videos/test-release-video-1792508873128/poster-1792508873158-b19f1155.webp)",
+          "name": "Uploaded Poster B replacement (videos/test-release-video-1792512078076/poster-1792512078184-2da65131.webp)",
           "status": "PASS",
           "detail": ""
         },
@@ -338,17 +368,17 @@
       "failed": 0,
       "checks": [
         {
-          "name": "HTTP 200 media cache header enforces revalidation: public, max-age=0, must-revalidate, s-maxage=3600",
+          "name": "HTTP 200 media cache header enforces conservative no-store: no-store, no-cache, must-revalidate",
           "status": "PASS",
           "detail": ""
         },
         {
-          "name": "Next.js proxy does NOT overwrite upstream with 7-day s-maxage=604800",
+          "name": "Next.js proxy does NOT cache publication-sensitive media with s-maxage",
           "status": "PASS",
           "detail": ""
         },
         {
-          "name": "HTTP 206 Range media cache header enforces revalidation: public, max-age=0, must-revalidate, s-maxage=3600",
+          "name": "HTTP 206 Range media cache header enforces conservative no-store: no-store, no-cache, must-revalidate",
           "status": "PASS",
           "detail": ""
         },
@@ -358,15 +388,15 @@
           "detail": ""
         },
         {
-          "name": "HTTP 304 conditional cache header consistent with 200/206: public, max-age=0, must-revalidate, s-maxage=3600",
+          "name": "HTTP 304 conditional cache header enforces no-store: no-store, no-cache, must-revalidate",
           "status": "PASS",
           "detail": ""
         }
       ]
     },
     "Group J: Video Snapshot Bounded Lifetime & Invalidation": {
-      "total": 3,
-      "passed": 3,
+      "total": 6,
+      "passed": 6,
       "failed": 0,
       "checks": [
         {
@@ -381,6 +411,21 @@
         },
         {
           "name": "Timestamp-based expiry test invalidates stale snapshot after TTL",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Remote Worker outage does NOT serve stale published snapshot (zero leakage)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Worker outage returns degraded: true",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Legacy mode retains full canonical video collection (21 records)",
           "status": "PASS",
           "detail": ""
         }
@@ -419,8 +464,8 @@
       ]
     },
     "Group L: Worker D1 Error vs Empty Data & Health Endpoints": {
-      "total": 4,
-      "passed": 4,
+      "total": 6,
+      "passed": 6,
       "failed": 0,
       "checks": [
         {
@@ -440,6 +485,16 @@
         },
         {
           "name": "Worker public endpoints support HEAD method",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "queryCmsVideosFromWorkerD1 on failing D1 throws error instead of swallowing into []",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "queryCmsVideosFromWorkerD1 on empty D1 returns HTTP 200 []",
           "status": "PASS",
           "detail": ""
         }

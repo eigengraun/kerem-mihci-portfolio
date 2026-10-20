@@ -29,8 +29,53 @@ const APPROVED_STAGING_CONFIG = {
   workerUrl: "https://kerem-mihci-portfolio-api-staging.kerem-mihci.workers.dev",
   workerName: "kerem-mihci-portfolio-api-staging",
   databaseName: "kerem-portfolio-db-staging",
-  databaseId: "0efef7a7-cc93-4dc2-8cb7-db28379fe01f"
+  databaseId: "0efef7a7-cc93-4dc2-8cb7-db28379fe01f",
+  r2Bucket: "kerem-portfolio-media-staging"
 };
+
+function verifyStagingTargetConfiguration() {
+  const wranglerPath = path.join(ROOT, "cloudflare", "portfolio-api", "wrangler.jsonc");
+  if (!fs.existsSync(wranglerPath)) {
+    throw new Error(`Wrangler configuration file not found at ${wranglerPath}`);
+  }
+  const content = fs.readFileSync(wranglerPath, "utf-8");
+  const cleanJson = content.replace(/\/\*[\s\S]*?\*\/|([^:]|^)\/\/.*$/gm, "");
+  let parsed;
+  try {
+    parsed = JSON.parse(cleanJson);
+  } catch (err) {
+    throw new Error(`Failed to parse wrangler.jsonc: ${err.message}`);
+  }
+
+  const stagingEnv = parsed.env?.staging;
+  if (!stagingEnv) {
+    throw new Error("Missing 'staging' environment block in wrangler.jsonc");
+  }
+
+  const d1 = stagingEnv.d1_databases?.[0];
+  const r2 = stagingEnv.r2_buckets?.[0];
+  const workerName = stagingEnv.name;
+
+  if (workerName !== APPROVED_STAGING_CONFIG.workerName) {
+    throw new Error(`Worker name mismatch: expected ${APPROVED_STAGING_CONFIG.workerName}, found ${workerName}`);
+  }
+  if (d1?.database_name !== APPROVED_STAGING_CONFIG.databaseName) {
+    throw new Error(`D1 database name mismatch: expected ${APPROVED_STAGING_CONFIG.databaseName}, found ${d1?.database_name}`);
+  }
+  if (d1?.database_id !== APPROVED_STAGING_CONFIG.databaseId) {
+    throw new Error(`D1 database ID mismatch: expected ${APPROVED_STAGING_CONFIG.databaseId}, found ${d1?.database_id}`);
+  }
+  if (r2?.bucket_name !== APPROVED_STAGING_CONFIG.r2Bucket) {
+    throw new Error(`R2 bucket mismatch: expected ${APPROVED_STAGING_CONFIG.r2Bucket}, found ${r2?.bucket_name}`);
+  }
+
+  // Reject production
+  if (workerName.includes("prod") || d1.database_name.includes("prod") || d1.database_id.includes("prod")) {
+    throw new Error("Production identifiers detected! Refusing to run.");
+  }
+
+  return { workerName, d1, r2 };
+}
 
 // 1. Strict Fail-Closed CLI Argument Parsing
 const rawArgs = process.argv.slice(2);
@@ -99,102 +144,187 @@ async function runRemoteStagingSeed(canonicalVideos) {
   console.log("REMOTE CLOUDFLARE STAGING CANONICAL VIDEO SEED ENGINE");
   console.log("============================================================");
   console.log("Target Mode:", isDryRun ? "DRY RUN (Read-Only Validation)" : "LIVE EXECUTION");
-  console.log("Verified Worker URL:", APPROVED_STAGING_CONFIG.workerUrl);
-  console.log("Verified D1 Database:", APPROVED_STAGING_CONFIG.databaseName, `(${APPROVED_STAGING_CONFIG.databaseId})`);
-  console.log("Verified Worker Name:", APPROVED_STAGING_CONFIG.workerName);
 
-  // Safety checks
-  if (APPROVED_STAGING_CONFIG.workerUrl.includes("production") || APPROVED_STAGING_CONFIG.databaseName.includes("prod")) {
-    console.error("FATAL: Production resources detected! Remote seed engine strictly refuses to run against production.");
+  // 1. Strict Configuration Verification
+  let verified;
+  try {
+    verified = verifyStagingTargetConfiguration();
+    console.log("✓ Verified Wrangler Staging Environment Configuration:");
+    console.log("  Worker Name:  ", verified.workerName);
+    console.log("  Worker URL:   ", APPROVED_STAGING_CONFIG.workerUrl);
+    console.log("  D1 Database:  ", `${verified.d1.database_name} (${verified.d1.database_id})`);
+    console.log("  R2 Bucket:    ", verified.r2.bucket_name);
+  } catch (err) {
+    console.error(`FATAL: Configuration verification failed: ${err.message}`);
     process.exit(1);
   }
 
+  // 2. Authentication Requirement
   const token = resolveServiceToken();
   if (!token) {
-    console.warn("Notice: Staging service token not available in local environment. Running read-only public inspection.");
+    console.error("\nFATAL: Remote staging inventory preflight strictly requires a valid service token (CLOUDFLARE_API_SERVICE_TOKEN).");
+    console.error("Token not found in environment or local credential files.");
+    process.exit(1);
   }
 
-  // 1. Fetch current remote staging video state
-  console.log("\nConnecting to remote staging worker...");
-  let remoteVideos = [];
+  // 3. Remote Worker Target Health Check
+  console.log("\nProbing remote staging Worker health...");
   try {
-    const res = await fetch(`${APPROVED_STAGING_CONFIG.workerUrl}/api/v1/public/videos`, {
+    const healthRes = await fetch(`${APPROVED_STAGING_CONFIG.workerUrl}/api/v1/public/health`, {
       headers: { "Cache-Control": "no-store" }
     });
-    if (res.ok) {
-      const data = await res.json();
-      remoteVideos = Array.isArray(data.videos) ? data.videos : [];
-      console.log(`✓ Remote staging worker connected. Current published videos: ${remoteVideos.length}`);
-    } else {
-      console.log(`Notice: Remote public video endpoint returned status ${res.status}. Video schema may not be migrated yet.`);
+    if (!healthRes.ok) {
+      console.error(`FATAL: Remote Worker health endpoint failed: HTTP ${healthRes.status} ${healthRes.statusText}`);
+      process.exit(1);
     }
+    const healthData = await healthRes.json();
+    if (healthData.environment && healthData.environment !== "staging") {
+      console.error(`FATAL: Remote Worker reported unexpected environment "${healthData.environment}". Expected "staging".`);
+      process.exit(1);
+    }
+    console.log("✓ Remote staging Worker is healthy and responsive.");
   } catch (err) {
-    console.log(`Notice: Remote staging worker unavailable (${err.message}).`);
+    console.error(`FATAL: Failed to connect to remote staging Worker: ${err.message}`);
+    process.exit(1);
+  }
+
+  // 4. Authenticated Admin Inventory Query
+  console.log("Fetching complete remote video inventory via authenticated admin endpoint...");
+  let remoteVideos = [];
+  try {
+    const adminRes = await fetch(`${APPROVED_STAGING_CONFIG.workerUrl}/api/v1/admin/videos`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "X-Actor-Email": "staging-seed@keremmihci.com",
+        "Cache-Control": "no-store"
+      }
+    });
+
+    if (adminRes.status === 401 || adminRes.status === 403) {
+      console.error(`FATAL: Remote admin endpoint rejected authentication: HTTP ${adminRes.status} ${adminRes.statusText}`);
+      process.exit(1);
+    }
+
+    if (!adminRes.ok) {
+      const errText = await adminRes.text();
+      console.error(`FATAL: Remote admin inventory endpoint returned HTTP ${adminRes.status}: ${errText.slice(0, 300)}`);
+      if (errText.includes("SCHEMA_NOT_INITIALIZED") || errText.includes("no such table")) {
+        console.error("Notice: Remote database requires schema migration 0002_videos_and_reels_schema.sql before seeding.");
+      }
+      process.exit(1);
+    }
+
+    const adminData = await adminRes.json();
+    if (!adminData.ok || !Array.isArray(adminData.videos)) {
+      console.error("FATAL: Remote admin endpoint returned invalid inventory response structure.");
+      process.exit(1);
+    }
+    remoteVideos = adminData.videos;
+  } catch (err) {
+    console.error(`FATAL: Error contacting remote admin video endpoint: ${err.message}`);
+    process.exit(1);
   }
 
   const existingSlugs = new Set(remoteVideos.map((v) => v.slug));
   const existingIds = new Set(remoteVideos.map((v) => v.id));
 
-  let missingCount = 0;
-  let skippedCount = 0;
+  const publishedCount = remoteVideos.filter((v) => v.cmsStatus === "published").length;
+  const draftCount = remoteVideos.filter((v) => v.cmsStatus === "draft").length;
+  const archivedCount = remoteVideos.filter((v) => v.cmsStatus === "archived").length;
+
+  console.log(`✓ Retrieved complete remote inventory: ${remoteVideos.length} total videos`);
+  console.log(`  Published: ${publishedCount} | Draft: ${draftCount} | Archived: ${archivedCount}`);
+
+  // 5. Canonical Parity & Missing Count Calculation
+  const missingVideos = [];
+  const existingCanonical = [];
 
   for (const c of canonicalVideos) {
-    if (existingSlugs.has(c.slug) || existingIds.has(c.id)) {
-      skippedCount++;
+    const match = remoteVideos.find((r) => r.id === c.id || r.slug === c.slug);
+    if (match) {
+      existingCanonical.push({ canonical: c, remote: match });
     } else {
-      missingCount++;
+      missingVideos.push(c);
     }
   }
 
-  console.log(`\nRemote Staging Evaluation:`);
-  console.log(`  Canonical videos: ${canonicalVideos.length}`);
-  console.log(`  Already existing on staging: ${skippedCount} (preserved without modification)`);
-  console.log(`  Missing from staging: ${missingCount}`);
+  console.log(`\nInventory Evaluation against Canonical 21 Videos:`);
+  console.log(`  Canonical videos in source:    ${canonicalVideos.length}`);
+  console.log(`  Already existing on staging:   ${existingCanonical.length} (preserved without modification)`);
+  console.log(`  Missing from staging:          ${missingVideos.length}`);
 
+  // Evaluate parity for existing canonical records
+  if (existingCanonical.length > 0) {
+    console.log(`\nEvaluating field parity for ${existingCanonical.length} existing records...`);
+    let mismatchCount = 0;
+    for (const { canonical: c, remote: r } of existingCanonical) {
+      const mismatches = [];
+      if (r.titleTR !== c.titleTR) mismatches.push(`titleTR: remote="${r.titleTR}" vs canon="${c.titleTR}"`);
+      if (r.titleEN !== c.titleEN) mismatches.push(`titleEN: remote="${r.titleEN}" vs canon="${c.titleEN}"`);
+      if (r.orientation !== (c.orientation || "portrait")) mismatches.push(`orientation: remote="${r.orientation}" vs canon="${c.orientation || "portrait"}"`);
+      if (r.type !== c.type) mismatches.push(`type: remote="${r.type}" vs canon="${c.type}"`);
+      if (mismatches.length > 0) {
+        mismatchCount++;
+        console.warn(`  [Notice] Differences detected in "${c.slug}": ${mismatches.join("; ")} (user edits preserved)`);
+      }
+    }
+    if (mismatchCount === 0) {
+      console.log(`  ✓ All ${existingCanonical.length} existing records match canonical baseline.`);
+    }
+  }
+
+  // 6. Dry Run Guardrail
   if (isDryRun) {
-    console.log("\n[DRY RUN COMPLETE] Zero remote mutations executed.");
-    console.log("To execute remote staging seeding upon user approval, run:");
+    console.log("\n========================================================");
+    console.log("[DRY RUN COMPLETE] Zero remote writes executed.");
+    console.log("Staging target identity and authenticated inventory verified.");
+    console.log(`To execute live remote seeding upon authorized approval, run:`);
     console.log("  node scripts/import-canonical-videos-to-d1.mjs --remote-staging --execute");
+    console.log("========================================================");
     return;
   }
 
-  // Live execution (requires user approval and valid token)
-  if (!token) {
-    console.error("FATAL: Staging service token required for live remote seeding.");
-    process.exit(1);
-  }
-
+  // 7. Live Execution Gate (Requires explicit --execute)
   console.log("\nExecuting live remote seeding of missing canonical videos...");
   let insertedCount = 0;
-  for (const c of canonicalVideos) {
-    if (existingSlugs.has(c.slug) || existingIds.has(c.id)) continue;
+  let failedCount = 0;
 
+  for (let idx = 0; idx < missingVideos.length; idx++) {
+    const c = missingVideos[idx];
     const payload = {
       id: c.id,
       slug: c.slug,
       type: c.type,
       orientation: c.orientation || "portrait",
-      aiAssisted: c.aiAssisted,
+      aiAssisted: Boolean(c.aiAssisted),
       productionMethod: c.productionMethod || "traditional",
       titleTR: c.titleTR,
       titleEN: c.titleEN,
-      shortTitleTR: c.shortTitleTR,
-      shortTitleEN: c.shortTitleEN,
-      descriptionTR: c.descriptionTR,
-      descriptionEN: c.descriptionEN,
-      client: c.client,
-      year: c.year,
+      shortTitleTR: c.shortTitleTR || "",
+      shortTitleEN: c.shortTitleEN || "",
+      descriptionTR: c.descriptionTR || "",
+      descriptionEN: c.descriptionEN || "",
+      fullDescriptionTR: c.fullDescriptionTR || c.descriptionTR || "",
+      fullDescriptionEN: c.fullDescriptionEN || c.descriptionEN || "",
+      client: c.client || "",
+      year: c.year || 2026,
       poster: c.poster,
+      thumbnail: c.thumbnail || null,
       src: c.src,
-      duration: c.duration,
+      duration: c.duration || "",
       aspectRatio: c.orientation === "landscape" ? "16:9" : "9:16",
-      servicesTR: c.servicesTR || c.services,
-      servicesEN: c.servicesEN || c.services,
-      services: c.services,
+      servicesTR: c.servicesTR || c.services || [],
+      servicesEN: c.servicesEN || c.services || [],
+      services: c.services || [],
+      tools: c.tools || [],
+      tags: c.tags || [],
       autoplayPreview: c.autoplayPreview !== false,
+      externalUrl: c.externalUrl || null,
+      projectSlug: c.projectSlug || null,
       featured: Boolean(c.featured),
-      sortOrder: c.sortOrder,
-      cmsStatus: "published"
+      sortOrder: c.sortOrder || idx + 1,
+      cmsStatus: "published",
+      actionType: "create"
     };
 
     const res = await fetch(`${APPROVED_STAGING_CONFIG.workerUrl}/api/v1/admin/videos`, {
@@ -207,14 +337,20 @@ async function runRemoteStagingSeed(canonicalVideos) {
       body: JSON.stringify(payload)
     });
 
-    if (res.ok) {
+    if (res.status === 200 || res.status === 201) {
       insertedCount++;
     } else {
-      console.error(`Failed to insert canonical video "${c.slug}": HTTP ${res.status}`);
+      failedCount++;
+      const errText = await res.text();
+      console.error(`Failed to insert canonical video "${c.slug}": HTTP ${res.status} - ${errText.slice(0, 200)}`);
     }
   }
 
-  console.log(`\n✓ Remote staging seeding completed: inserted=${insertedCount}, skipped=${skippedCount}`);
+  console.log(`\nRemote staging seeding summary: inserted=${insertedCount}, failed=${failedCount}`);
+  if (failedCount > 0) {
+    console.error("FATAL: Remote staging seeding encountered insertion failures.");
+    process.exit(1);
+  }
 }
 
 async function runLocalSeed(canonicalVideos) {
@@ -586,6 +722,14 @@ async function runLocalSeed(canonicalVideos) {
     check("src", c.src || `/videos/${c.slug}/video.mp4`, videoAsset?.public_url);
     check("duration", c.duration || "", r.duration || "");
     check("featured", Boolean(c.featured), Boolean(r.featured));
+    check("sortOrder", c.sortOrder, Number(r.sort_order));
+    check("autoplayPreview", c.autoplayPreview !== false, Boolean(r.autoplay_preview));
+    check("externalUrl", c.externalUrl || null, r.external_url || null);
+    check("projectSlug", c.projectSlug || null, r.project_slug || null);
+    check("tools", c.tools || [], JSON.parse(r.tools_json || "[]"));
+    check("tags", c.tags || [], JSON.parse(r.tags_json || "[]"));
+    check("servicesTR", c.servicesTR || c.services || [], JSON.parse(tr.services_json || "[]"));
+    check("servicesEN", c.servicesEN || c.services || [], JSON.parse(en.services_json || "[]"));
 
     if (fieldDiffs.length > 0) {
       manifest.mismatches.push({ slug: c.slug, fieldDiffs });

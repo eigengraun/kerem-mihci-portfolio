@@ -212,6 +212,14 @@ export function AdminDashboardClient({
     return () => clearTimeout(timer);
   }, [session, loadCoreData]);
 
+  // Reset scroll to top and ensure stage focusability on tab switch
+  useEffect(() => {
+    const main = document.getElementById("admin-main-stage");
+    if (main) {
+      main.scrollTop = 0;
+    }
+  }, [activeTab]);
+
   const handleLogin = async (mode: "master-password" | "dev-fixture") => {
     setLoginBusy(true);
     setLoginError(null);
@@ -528,18 +536,21 @@ export function AdminDashboardClient({
   // ==========================================================
   if (!session) {
     return (
-      <div className="h-full w-full overflow-y-auto flex items-center justify-center p-4 sm:p-6 bg-[#0B0C10]">
-        <div className="w-full max-w-md my-auto rounded-2xl border border-white/15 bg-[#12141C] p-6 sm:p-8 shadow-2xl">
-          <div className="flex items-center justify-between mb-6">
+      <div className="h-full w-full overflow-y-auto flex items-center justify-center p-4 sm:p-6 bg-[#0B0C0E]">
+        <div className="w-full max-w-md my-auto rounded-2xl border border-[#252A33] bg-[#121418] p-6 sm:p-8 shadow-2xl shadow-black/80">
+          <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#1C2027]">
             <div>
-              <span className="text-[11px] font-mono uppercase tracking-widest text-blue-400">
-                Portfolio OS • Private Admin
-              </span>
-              <h1 className="text-xl font-bold text-white mt-1">
-                Portfolio OS CMS Dashboard
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                <span className="text-[11px] font-mono uppercase tracking-widest text-indigo-400 font-semibold">
+                  Studio OS • Private CMS
+                </span>
+              </div>
+              <h1 className="text-xl font-bold text-[#F5F7FA] mt-1 tracking-tight">
+                Portfolio Control Suite
               </h1>
             </div>
-            <span className="px-2.5 py-1 rounded text-[10px] font-mono bg-white/5 border border-white/10 text-neutral-400">
+            <span className="px-2.5 py-1 rounded text-[10px] font-mono bg-[#181B22] border border-[#252A33] text-[#A0A8B5]">
               noindex
             </span>
           </div>
@@ -564,9 +575,9 @@ export function AdminDashboardClient({
                 </div>
               )}
 
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-mono text-neutral-400 mb-1">
+                  <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
                     Admin Email (Allowlisted)
                   </label>
                   <input
@@ -574,12 +585,12 @@ export function AdminDashboardClient({
                     data-testid="admin-email-input"
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-lg bg-black/50 border border-white/15 text-sm text-white focus:outline-none focus:border-blue-500"
+                    className="w-full px-3.5 py-2.5 rounded-lg bg-[#181B22] border border-[#252A33] text-sm text-[#F5F7FA] placeholder-neutral-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 transition-all"
                     placeholder="kerem@keremmihci.com"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-mono text-neutral-400 mb-1">
+                  <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
                     Admin Master Passphrase
                   </label>
                   <input
@@ -587,7 +598,7 @@ export function AdminDashboardClient({
                     data-testid="admin-password-input"
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-lg bg-black/50 border border-white/15 text-sm text-white focus:outline-none focus:border-blue-500"
+                    className="w-full px-3.5 py-2.5 rounded-lg bg-[#181B22] border border-[#252A33] text-sm text-[#F5F7FA] placeholder-neutral-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 transition-all"
                     placeholder="••••••••••••"
                   />
                 </div>
@@ -596,19 +607,19 @@ export function AdminDashboardClient({
                   data-testid="admin-password-login-btn"
                   disabled={loginBusy}
                   onClick={() => handleLogin("master-password")}
-                  className="w-full py-2.5 px-4 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-sm font-semibold text-white transition-colors cursor-pointer"
+                  className="w-full py-2.5 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-sm font-semibold text-white transition-all shadow-sm shadow-indigo-600/30 cursor-pointer"
                 >
-                  {loginBusy ? "Verifying..." : "Sign In with Admin Passphrase"}
+                  {loginBusy ? "Verifying Credentials..." : "Sign In with Studio Passphrase"}
                 </button>
               </div>
 
               {authConfig.devFixtureEnabled && (
-                <div className="pt-4 border-t border-white/10 space-y-2">
+                <div className="pt-4 border-t border-[#1C2027] space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-mono text-amber-400">
                       Local Development Auth Fixture
                     </span>
-                    <span className="text-[10px] font-mono text-neutral-500">
+                    <span className="text-[10px] font-mono text-[#64748B]">
                       HMAC-SHA256 Cookie + CSRF
                     </span>
                   </div>
@@ -617,7 +628,7 @@ export function AdminDashboardClient({
                     data-testid="dev-admin-login-btn"
                     disabled={loginBusy}
                     onClick={() => handleLogin("dev-fixture")}
-                    className="w-full py-2.5 px-4 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-xs font-mono font-semibold text-emerald-300 transition-colors cursor-pointer"
+                    className="w-full py-2.5 px-4 rounded-lg bg-emerald-600/15 hover:bg-emerald-600/25 border border-emerald-500/30 text-xs font-mono font-semibold text-emerald-300 transition-colors cursor-pointer"
                   >
                     Sign In (Local Dev Admin Session)
                   </button>
@@ -626,11 +637,11 @@ export function AdminDashboardClient({
             </div>
           )}
 
-          <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between text-xs text-neutral-500">
-            <Link href="/tr" className="hover:text-neutral-300">
+          <div className="mt-6 pt-4 border-t border-[#1C2027] flex items-center justify-between text-xs text-[#64748B]">
+            <Link href="/tr" className="hover:text-[#A0A8B5] transition-colors">
               ← Public Portfolio (/tr)
             </Link>
-            <Link href="/en" className="hover:text-neutral-300">
+            <Link href="/en" className="hover:text-[#A0A8B5] transition-colors">
               Public Portfolio (/en) →
             </Link>
           </div>
@@ -642,83 +653,186 @@ export function AdminDashboardClient({
   // ==========================================================
   // AUTHENTICATED ADMIN DASHBOARD SHELL
   // ==========================================================
-  const navItems: { id: AdminTab; label: string; badge?: string | number }[] = [
-    { id: "overview", label: "Overview" },
-    { id: "projects", label: "Projects", badge: projects.length },
-    { id: "editor", label: editorMode === "edit" ? "Edit Project" : "+ Create Project" },
-    { id: "media", label: "Media Library (R2)", badge: mediaList.length },
+  const navGroups: {
+    group: string;
+    items: { id: AdminTab; label: string; badge?: string | number; icon: React.ReactNode }[];
+  }[] = [
     {
-      id: "featured",
-      label: "Featured Manager",
-      badge: projects.filter((p) => p.cmsStatus === "published" && p.featured).length
+      group: "CONTENT",
+      items: [
+        {
+          id: "overview",
+          label: "Overview",
+          icon: (
+            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+            </svg>
+          )
+        },
+        {
+          id: "projects",
+          label: "Projects",
+          badge: projects.length,
+          icon: (
+            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+            </svg>
+          )
+        },
+        {
+          id: "editor",
+          label: editorMode === "edit" ? "Edit Project" : "+ Create Project",
+          icon: (
+            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          )
+        },
+        {
+          id: "media",
+          label: "Media Library (R2)",
+          badge: mediaList.length,
+          icon: (
+            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          )
+        }
+      ]
     },
-    { id: "system", label: "System & Cloudflare" },
-    { id: "settings", label: "Settings" }
+    {
+      group: "CURATION",
+      items: [
+        {
+          id: "featured",
+          label: "Featured Manager",
+          badge: projects.filter((p) => p.cmsStatus === "published" && p.featured).length,
+          icon: (
+            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+            </svg>
+          )
+        }
+      ]
+    },
+    {
+      group: "SYSTEM",
+      items: [
+        {
+          id: "system",
+          label: "System & Cloudflare",
+          icon: (
+            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
+            </svg>
+          )
+        },
+        {
+          id: "settings",
+          label: "Settings",
+          icon: (
+            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          )
+        }
+      ]
+    }
   ];
 
+  const allNavItems = navGroups.flatMap((g) => g.items);
+
   return (
-    <div className="h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-neutral-100 overflow-hidden">
+    <div className="h-full w-full flex flex-col lg:flex-row bg-[#0B0C0E] text-[#F5F7FA] overflow-hidden">
       {/* Sidebar Navigation */}
-      <aside className="w-full lg:w-64 bg-[#10121A] border-b lg:border-b-0 lg:border-r border-white/10 flex flex-col justify-between p-4 flex-shrink-0 lg:h-full lg:overflow-y-auto">
+      <aside className="w-full lg:w-64 bg-[#101216] border-b lg:border-b-0 lg:border-r border-[#1C2027] flex flex-col justify-between p-4 flex-shrink-0 lg:h-full lg:overflow-y-auto">
         <div>
-          <div className="px-2 py-2 mb-4 border-b border-white/10">
+          <div className="px-2 py-2 mb-4 border-b border-[#1C2027]">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-mono uppercase tracking-wider text-blue-400 font-semibold">
-                Portfolio OS CMS
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                <span className="text-[11px] font-mono uppercase tracking-wider text-[#F5F7FA] font-bold">
+                  PORTFOLIO OS
+                </span>
+              </div>
               <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                D1 Active
+                D1 Staging
               </span>
             </div>
-            <p className="text-xs text-neutral-400 truncate mt-1" title={session.email}>
-              {session.email}
-            </p>
+            <div className="flex items-center gap-2.5 mt-3 pt-2.5 border-t border-[#1C2027]/60">
+              <div className="w-6 h-6 rounded-full bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center text-[10px] font-mono font-bold text-indigo-300 shrink-0">
+                KM
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-medium text-[#F5F7FA] truncate" title={session.email}>
+                  {session.email}
+                </p>
+                <p className="text-[10px] text-[#A0A8B5] font-mono">Creative Director</p>
+              </div>
+            </div>
           </div>
 
-          <nav className="flex lg:flex-col gap-1 overflow-x-auto pb-2 lg:pb-0">
-            {navItems.map((item) => {
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  data-testid={`admin-tab-${item.id}`}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-colors cursor-pointer ${
-                    isActive
-                      ? "bg-blue-600 text-white font-semibold"
-                      : "text-neutral-400 hover:text-white hover:bg-white/5"
-                  }`}
-                >
-                  <span>{item.label}</span>
-                  {item.badge !== undefined && (
-                    <span
-                      className={`px-1.5 py-0.5 rounded text-[10px] font-mono ${
-                        isActive ? "bg-black/30 text-white" : "bg-white/10 text-neutral-300"
-                      }`}
-                    >
-                      {item.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+          <nav className="flex lg:flex-col gap-4 overflow-x-auto pb-2 lg:pb-0">
+            {navGroups.map((group) => (
+              <div key={group.group} className="space-y-1">
+                <div className="hidden lg:block px-2 text-[10px] font-mono uppercase tracking-wider text-[#64748B] font-semibold mb-1">
+                  {group.group}
+                </div>
+                <div className="flex lg:flex-col gap-1">
+                  {group.items.map((item) => {
+                    const isActive = activeTab === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        data-testid={`admin-tab-${item.id}`}
+                        onClick={() => setActiveTab(item.id)}
+                        className={`flex items-center justify-between gap-2.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all cursor-pointer ${
+                          isActive
+                            ? "bg-[#181B22] text-[#F5F7FA] border border-[#252A33] shadow-sm font-semibold"
+                            : "text-[#A0A8B5] hover:text-[#F5F7FA] hover:bg-[#181B22]/60 border border-transparent"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className={isActive ? "text-indigo-400" : "text-[#64748B]"}>
+                            {item.icon}
+                          </span>
+                          <span className="truncate">{item.label}</span>
+                        </div>
+                        {item.badge !== undefined && (
+                          <span
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-mono ${
+                              isActive
+                                ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/30"
+                                : "bg-white/5 text-[#A0A8B5] border border-white/5"
+                            }`}
+                          >
+                            {item.badge}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </nav>
         </div>
 
-        <div className="hidden lg:flex flex-col gap-2 pt-4 border-t border-white/10 text-xs">
+        <div className="hidden lg:flex flex-col gap-2 pt-4 border-t border-[#1C2027] text-xs">
           <div className="flex items-center justify-between gap-2">
             <Link
               href="/tr"
               target="_blank"
-              className="flex-1 text-center py-1.5 px-2 rounded bg-white/5 hover:bg-white/10 text-neutral-300 font-mono text-[11px]"
+              className="flex-1 text-center py-1.5 px-2 rounded-lg bg-[#181B22] hover:bg-[#1E222A] border border-[#252A33] text-[#A0A8B5] hover:text-[#F5F7FA] font-mono text-[11px] transition-colors"
             >
               /tr ↗
             </Link>
             <Link
               href="/en"
               target="_blank"
-              className="flex-1 text-center py-1.5 px-2 rounded bg-white/5 hover:bg-white/10 text-neutral-300 font-mono text-[11px]"
+              className="flex-1 text-center py-1.5 px-2 rounded-lg bg-[#181B22] hover:bg-[#1E222A] border border-[#252A33] text-[#A0A8B5] hover:text-[#F5F7FA] font-mono text-[11px] transition-colors"
             >
               /en ↗
             </Link>
@@ -726,7 +840,7 @@ export function AdminDashboardClient({
           <button
             type="button"
             onClick={handleLogout}
-            className="w-full py-2 px-3 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/20 text-xs font-mono cursor-pointer"
+            className="w-full py-2 px-3 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/20 text-xs font-mono transition-colors cursor-pointer"
           >
             Sign Out
           </button>
@@ -734,78 +848,88 @@ export function AdminDashboardClient({
       </aside>
 
       {/* Main Content Stage */}
-      <main className="flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-hidden w-full">
+      <main
+        id="admin-main-stage"
+        tabIndex={-1}
+        className="flex-1 min-w-0 min-h-0 p-4 sm:p-6 md:p-8 overflow-y-auto overflow-x-hidden w-full focus:outline-none"
+      >
         <div className="max-w-7xl mx-auto space-y-6 pb-20">
           {/* Top Action Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-white/10">
-          <div>
-            <h1 className="text-xl font-bold text-white">
-              {navItems.find((n) => n.id === activeTab)?.label}
-            </h1>
-            <p className="text-xs text-neutral-400">
-              Cloudflare D1 Normalized Database & R2 Object Storage • Bilingual TR/EN Publishing
-            </p>
+          <div className="flex flex-wrap items-center justify-between gap-4 pb-5 border-b border-[#1C2027]">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[11px] font-mono uppercase tracking-widest text-indigo-400 font-semibold">
+                  Studio Control
+                </span>
+                <span className="text-neutral-600 font-mono text-xs">•</span>
+                <span className="text-[11px] font-mono text-[#A0A8B5]">
+                  Cloudflare D1 & R2
+                </span>
+              </div>
+              <h1 className="text-2xl font-bold tracking-tight text-[#F5F7FA]">
+                {allNavItems.find((n) => n.id === activeTab)?.label}
+              </h1>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                data-testid="new-project-quick-btn"
+                onClick={openCreateEditor}
+                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white shadow-sm shadow-indigo-600/30 transition-all cursor-pointer"
+              >
+                + New Project
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  void loadCoreData();
+                }}
+                className="px-3.5 py-2 rounded-lg bg-[#181B22] hover:bg-[#1E222A] border border-[#252A33] text-xs font-mono text-[#A0A8B5] hover:text-white transition-all cursor-pointer"
+              >
+                ↻ Refresh
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              data-testid="new-project-quick-btn"
-              onClick={openCreateEditor}
-              className="px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white cursor-pointer"
-            >
-              + New Project
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                void loadCoreData();
-              }}
-              className="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono text-neutral-300 cursor-pointer"
-            >
-              ↻ Refresh
-            </button>
-          </div>
-        </div>
 
         {/* ======================================================
             1. OVERVIEW TAB
            ====================================================== */}
         {activeTab === "overview" && (
           <div className="space-y-6" data-testid="admin-overview-section">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-              <div className="p-4 rounded-xl bg-[#131620] border border-white/10">
-                <span className="text-[11px] font-mono text-neutral-400">Total Projects</span>
-                <p className="text-2xl font-bold text-white mt-1" data-testid="stat-total-projects">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
+              <div className="p-4 rounded-xl bg-[#121418] border border-[#252A33] shadow-sm">
+                <span className="text-[11px] font-mono uppercase tracking-wider text-[#A0A8B5] block">Total Projects</span>
+                <p className="text-2xl font-bold text-[#F5F7FA] mt-1.5 tracking-tight" data-testid="stat-total-projects">
                   {health?.counts.total ?? projects.length}
                 </p>
               </div>
-              <div className="p-4 rounded-xl bg-[#131620] border border-emerald-500/30">
-                <span className="text-[11px] font-mono text-emerald-400">Published</span>
-                <p className="text-2xl font-bold text-emerald-300 mt-1" data-testid="stat-published-projects">
+              <div className="p-4 rounded-xl bg-[#121418] border border-emerald-500/30 shadow-sm">
+                <span className="text-[11px] font-mono uppercase tracking-wider text-emerald-400 block">Published</span>
+                <p className="text-2xl font-bold text-emerald-300 mt-1.5 tracking-tight" data-testid="stat-published-projects">
                   {health?.counts.published ?? 0}
                 </p>
               </div>
-              <div className="p-4 rounded-xl bg-[#131620] border border-amber-500/30">
-                <span className="text-[11px] font-mono text-amber-400">Drafts</span>
-                <p className="text-2xl font-bold text-amber-300 mt-1" data-testid="stat-draft-projects">
+              <div className="p-4 rounded-xl bg-[#121418] border border-amber-500/30 shadow-sm">
+                <span className="text-[11px] font-mono uppercase tracking-wider text-amber-400 block">Drafts</span>
+                <p className="text-2xl font-bold text-amber-300 mt-1.5 tracking-tight" data-testid="stat-draft-projects">
                   {health?.counts.draft ?? 0}
                 </p>
               </div>
-              <div className="p-4 rounded-xl bg-[#131620] border border-neutral-500/30">
-                <span className="text-[11px] font-mono text-neutral-400">Archived</span>
-                <p className="text-2xl font-bold text-neutral-300 mt-1" data-testid="stat-archived-projects">
+              <div className="p-4 rounded-xl bg-[#121418] border border-[#252A33] shadow-sm">
+                <span className="text-[11px] font-mono uppercase tracking-wider text-[#A0A8B5] block">Archived</span>
+                <p className="text-2xl font-bold text-neutral-300 mt-1.5 tracking-tight" data-testid="stat-archived-projects">
                   {health?.counts.archived ?? 0}
                 </p>
               </div>
-              <div className="p-4 rounded-xl bg-[#131620] border border-blue-500/30">
-                <span className="text-[11px] font-mono text-blue-400">Featured Desktop (Live)</span>
-                <p className="text-2xl font-bold text-blue-300 mt-1" data-testid="stat-featured-live">
+              <div className="p-4 rounded-xl bg-[#121418] border border-indigo-500/30 shadow-sm">
+                <span className="text-[11px] font-mono uppercase tracking-wider text-indigo-400 block">Featured (Live)</span>
+                <p className="text-2xl font-bold text-indigo-300 mt-1.5 tracking-tight" data-testid="stat-featured-live">
                   {projects.filter((p) => p.cmsStatus === "published" && p.featured).length}
                 </p>
               </div>
-              <div className="p-4 rounded-xl bg-[#131620] border border-purple-500/30">
-                <span className="text-[11px] font-mono text-purple-400">Media Records (D1)</span>
-                <p className="text-2xl font-bold text-purple-300 mt-1" data-testid="stat-media-records">
+              <div className="p-4 rounded-xl bg-[#121418] border border-violet-500/30 shadow-sm">
+                <span className="text-[11px] font-mono uppercase tracking-wider text-violet-400 block">Media (D1/R2)</span>
+                <p className="text-2xl font-bold text-violet-300 mt-1.5 tracking-tight" data-testid="stat-media-records">
                   {health?.counts.mediaItems ?? mediaList.length}
                 </p>
               </div>
@@ -813,69 +937,77 @@ export function AdminDashboardClient({
 
             {/* Infrastructure & CMS Workspace Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-5 rounded-xl bg-[#131620] border border-white/10 space-y-2">
+              <div className="p-5 rounded-xl bg-[#121418] border border-[#252A33] space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-white">Cloudflare D1 & R2</h3>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <h3 className="text-sm font-semibold text-[#F5F7FA]">Cloudflare D1 & R2</h3>
+                  </div>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-medium">
                     OPERATIONAL
                   </span>
                 </div>
-                <p className="text-xs text-neutral-400">
-                  Mode: <code className="text-neutral-200">{health?.mode || "local-d1-sqlite"}</code>
-                </p>
-                <p className="text-xs text-neutral-400">
-                  Canonical Baseline:{" "}
-                  <span className="text-emerald-300 font-mono">
-                    {systemInfo?.reconciliation.missingSlugs.length === 0 &&
-                    systemInfo?.reconciliation.fieldMismatches.length === 0
-                      ? `${systemInfo.reconciliation.canonicalCount}/${systemInfo.reconciliation.canonicalCount} Baseline Reconciled${
-                          (systemInfo.reconciliation.nonCanonicalSlugs?.length || 0) > 0
-                            ? ` (+${systemInfo.reconciliation.nonCanonicalSlugs?.length || 0} CMS)`
-                            : ""
-                        }`
-                      : "Pending Mismatch"}
-                  </span>
-                </p>
+                <div className="space-y-1.5 text-xs text-[#A0A8B5]">
+                  <p className="flex justify-between">
+                    <span>Engine Mode:</span>
+                    <code className="text-[#F5F7FA] font-mono bg-[#181B22] px-1.5 py-0.5 rounded border border-[#252A33]">
+                      {health?.mode || "local-d1-sqlite"}
+                    </code>
+                  </p>
+                  <p className="flex justify-between items-center pt-1 border-t border-[#1C2027]">
+                    <span>Canonical Baseline:</span>
+                    <span className="text-emerald-400 font-mono text-[11px]">
+                      {systemInfo?.reconciliation.missingSlugs.length === 0 &&
+                      systemInfo?.reconciliation.fieldMismatches.length === 0
+                        ? `${systemInfo.reconciliation.canonicalCount}/${systemInfo.reconciliation.canonicalCount} Reconciled${
+                            (systemInfo.reconciliation.nonCanonicalSlugs?.length || 0) > 0
+                              ? ` (+${systemInfo.reconciliation.nonCanonicalSlugs?.length || 0} CMS)`
+                              : ""
+                          }`
+                        : "Pending Mismatch"}
+                    </span>
+                  </p>
+                </div>
               </div>
 
-              <div className="p-5 rounded-xl bg-[#131620] border border-white/10 space-y-2">
+              <div className="p-5 rounded-xl bg-[#121418] border border-[#252A33] space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-white">Projects by Workspace</h3>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                  <h3 className="text-sm font-semibold text-[#F5F7FA]">Projects by Workspace</h3>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-medium">
                     {projects.length} Total
                   </span>
                 </div>
-                <div className="grid grid-cols-3 gap-2 pt-1 text-center font-mono">
-                  <div className="p-2 rounded bg-black/30 border border-white/5">
-                    <span className="text-[10px] text-neutral-400 uppercase block">Design</span>
-                    <span className="text-sm font-bold text-white">{workspaceCounts.design}</span>
+                <div className="grid grid-cols-3 gap-2 text-center font-mono">
+                  <div className="p-2.5 rounded-lg bg-[#181B22] border border-[#252A33]">
+                    <span className="text-[10px] text-[#A0A8B5] uppercase block tracking-wider">Design</span>
+                    <span className="text-base font-bold text-[#F5F7FA] mt-0.5 block">{workspaceCounts.design}</span>
                   </div>
-                  <div className="p-2 rounded bg-black/30 border border-white/5">
-                    <span className="text-[10px] text-neutral-400 uppercase block">Web</span>
-                    <span className="text-sm font-bold text-white">{workspaceCounts.web}</span>
+                  <div className="p-2.5 rounded-lg bg-[#181B22] border border-[#252A33]">
+                    <span className="text-[10px] text-[#A0A8B5] uppercase block tracking-wider">Web</span>
+                    <span className="text-base font-bold text-[#F5F7FA] mt-0.5 block">{workspaceCounts.web}</span>
                   </div>
-                  <div className="p-2 rounded bg-black/30 border border-white/5">
-                    <span className="text-[10px] text-neutral-400 uppercase block">Motion / AI</span>
-                    <span className="text-sm font-bold text-white">{workspaceCounts["motion-ai"]}</span>
+                  <div className="p-2.5 rounded-lg bg-[#181B22] border border-[#252A33]">
+                    <span className="text-[10px] text-[#A0A8B5] uppercase block tracking-wider">Motion/AI</span>
+                    <span className="text-base font-bold text-[#F5F7FA] mt-0.5 block">{workspaceCounts["motion-ai"]}</span>
                   </div>
                 </div>
               </div>
 
-              <div className="p-5 rounded-xl bg-[#131620] border border-white/10 space-y-2">
-                <h3 className="text-sm font-semibold text-white">Quick CMS Actions</h3>
-                <div className="flex flex-col gap-2 pt-1">
+              <div className="p-5 rounded-xl bg-[#121418] border border-[#252A33] space-y-3">
+                <h3 className="text-sm font-semibold text-[#F5F7FA]">Quick CMS Actions</h3>
+                <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={openCreateEditor}
-                      className="flex-1 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white cursor-pointer text-center"
+                      className="flex-1 px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white shadow-sm shadow-indigo-600/30 transition-all cursor-pointer text-center"
                     >
                       + Create Project
                     </button>
                     <button
                       type="button"
                       onClick={() => setActiveTab("media")}
-                      className="flex-1 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-medium text-neutral-200 cursor-pointer text-center"
+                      className="flex-1 px-3 py-2 rounded-lg bg-[#181B22] hover:bg-[#1E222A] border border-[#252A33] text-xs font-medium text-[#F5F7FA] transition-all cursor-pointer text-center"
                     >
                       Upload Media
                     </button>
@@ -883,70 +1015,73 @@ export function AdminDashboardClient({
                   <button
                     type="button"
                     onClick={() => setActiveTab("featured")}
-                    className="w-full px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-medium text-neutral-300 cursor-pointer text-center"
+                    className="w-full px-3 py-2 rounded-lg bg-[#181B22] hover:bg-[#1E222A] border border-[#252A33] text-xs font-medium text-[#A0A8B5] hover:text-[#F5F7FA] transition-all cursor-pointer text-center"
                   >
-                    Manage Featured ({projects.filter((p) => p.cmsStatus === "published" && p.featured).length})
+                    Manage Featured ({projects.filter((p) => p.cmsStatus === "published" && p.featured).length}) →
                   </button>
                 </div>
               </div>
             </div>
 
             {/* Recently Modified Projects */}
-            <div className="p-5 rounded-xl bg-[#131620] border border-white/10">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-white">Recently Modified Projects</h3>
+            <div className="p-5 rounded-xl bg-[#121418] border border-[#252A33]">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-[#F5F7FA]">Recently Modified Projects</h3>
+                  <p className="text-xs text-[#A0A8B5] mt-0.5">Projects updated in Cloudflare D1 storage</p>
+                </div>
                 <button
                   type="button"
                   onClick={() => setActiveTab("projects")}
-                  className="text-xs text-blue-400 hover:text-blue-300 font-mono cursor-pointer"
+                  className="text-xs text-indigo-400 hover:text-indigo-300 font-mono transition-colors cursor-pointer"
                 >
                   View All ({projects.length}) →
                 </button>
               </div>
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto rounded-lg border border-[#252A33]">
                 <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="border-b border-white/10 text-neutral-400 font-mono">
-                      <th className="py-2 pr-4">Project</th>
-                      <th className="py-2 pr-4">Workspace</th>
-                      <th className="py-2 pr-4">Status</th>
-                      <th className="py-2 pr-4">Last Updated</th>
-                      <th className="py-2 text-right">Action</th>
+                    <tr className="bg-[#181B22] border-b border-[#252A33] text-[#A0A8B5] font-mono">
+                      <th className="py-2.5 px-3">Project</th>
+                      <th className="py-2.5 px-3">Workspace</th>
+                      <th className="py-2.5 px-3">Status</th>
+                      <th className="py-2.5 px-3">Last Updated</th>
+                      <th className="py-2.5 px-3 text-right">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5">
+                  <tbody className="divide-y divide-[#1C2027]">
                     {recentlyModifiedProjects.map((p) => (
-                      <tr key={p.id}>
-                        <td className="py-2 pr-4">
-                          <div className="font-semibold text-white">{p.titleTR}</div>
-                          <div className="text-[11px] font-mono text-neutral-500">/{p.slug}</div>
+                      <tr key={p.id} className="hover:bg-[#15181F] transition-colors">
+                        <td className="py-2.5 px-3">
+                          <div className="font-semibold text-[#F5F7FA]">{p.titleTR}</div>
+                          <div className="text-[11px] font-mono text-[#A0A8B5]">/{p.slug}</div>
                         </td>
-                        <td className="py-2 pr-4">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-white/5 text-neutral-300">
+                        <td className="py-2.5 px-3">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-[#181B22] text-[#A0A8B5] border border-[#252A33]">
                             {p.workspace}
                           </span>
                         </td>
-                        <td className="py-2 pr-4">
+                        <td className="py-2.5 px-3">
                           <span
                             className={`px-2 py-0.5 rounded text-[10px] font-mono uppercase ${
                               p.cmsStatus === "published"
-                                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                                ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                                 : p.cmsStatus === "draft"
-                                ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                                : "bg-neutral-500/20 text-neutral-400 border border-neutral-500/30"
+                                ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                                : "bg-neutral-500/10 text-neutral-400 border border-neutral-500/20"
                             }`}
                           >
                             {p.cmsStatus}
                           </span>
                         </td>
-                        <td className="py-2 pr-4 font-mono text-neutral-400">
+                        <td className="py-2.5 px-3 font-mono text-[#A0A8B5]">
                           {new Date(p.updatedAt).toLocaleString()}
                         </td>
-                        <td className="py-2 text-right">
+                        <td className="py-2.5 px-3 text-right">
                           <button
                             type="button"
                             onClick={() => void openEditEditor(p)}
-                            className="px-2.5 py-1 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono text-neutral-300 hover:text-white cursor-pointer"
+                            className="px-2.5 py-1 rounded bg-[#181B22] hover:bg-[#1E222A] border border-[#252A33] text-xs font-mono text-[#A0A8B5] hover:text-[#F5F7FA] transition-colors cursor-pointer"
                           >
                             Edit
                           </button>
@@ -959,33 +1094,36 @@ export function AdminDashboardClient({
             </div>
 
             {/* Recent Publishing Events */}
-            <div className="p-5 rounded-xl bg-[#131620] border border-white/10">
-              <h3 className="text-sm font-semibold text-white mb-3">Recent Publishing Events</h3>
-              <div className="overflow-x-auto">
+            <div className="p-5 rounded-xl bg-[#121418] border border-[#252A33]">
+              <div className="mb-4">
+                <h3 className="text-sm font-semibold text-[#F5F7FA]">Recent Publishing Events</h3>
+                <p className="text-xs text-[#A0A8B5] mt-0.5">Immutable publication lifecycle trail recorded in D1</p>
+              </div>
+              <div className="overflow-x-auto rounded-lg border border-[#252A33]">
                 <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="border-b border-white/10 text-neutral-400 font-mono">
-                      <th className="py-2 pr-4">Project ID</th>
-                      <th className="py-2 pr-4">Event</th>
-                      <th className="py-2 pr-4">Transition</th>
-                      <th className="py-2 pr-4">Actor</th>
-                      <th className="py-2">Timestamp</th>
+                    <tr className="bg-[#181B22] border-b border-[#252A33] text-[#A0A8B5] font-mono">
+                      <th className="py-2.5 px-3">Project ID</th>
+                      <th className="py-2.5 px-3">Event</th>
+                      <th className="py-2.5 px-3">Transition</th>
+                      <th className="py-2.5 px-3">Actor</th>
+                      <th className="py-2.5 px-3">Timestamp</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5">
+                  <tbody className="divide-y divide-[#1C2027]">
                     {(systemInfo?.publishingEvents || []).slice(0, 8).map((ev) => (
-                      <tr key={ev.id}>
-                        <td className="py-2 pr-4 font-mono text-white">{ev.projectId}</td>
-                        <td className="py-2 pr-4">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-white/10 text-neutral-200">
+                      <tr key={ev.id} className="hover:bg-[#15181F] transition-colors">
+                        <td className="py-2.5 px-3 font-mono text-[#F5F7FA]">{ev.projectId}</td>
+                        <td className="py-2.5 px-3">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
                             {ev.eventType}
                           </span>
                         </td>
-                        <td className="py-2 pr-4 font-mono text-neutral-400">
-                          {ev.previousStatus || "none"} → {ev.newStatus}
+                        <td className="py-2.5 px-3 font-mono text-[#A0A8B5]">
+                          {ev.previousStatus || "none"} → <span className="text-[#F5F7FA]">{ev.newStatus}</span>
                         </td>
-                        <td className="py-2 pr-4 text-neutral-400">{ev.actorEmail}</td>
-                        <td className="py-2 font-mono text-neutral-500">
+                        <td className="py-2.5 px-3 text-[#A0A8B5]">{ev.actorEmail}</td>
+                        <td className="py-2.5 px-3 font-mono text-neutral-500">
                           {new Date(ev.createdAt).toLocaleString()}
                         </td>
                       </tr>
@@ -1002,19 +1140,19 @@ export function AdminDashboardClient({
            ====================================================== */}
         {activeTab === "projects" && (
           <div className="space-y-4" data-testid="admin-projects-section">
-            <div className="flex flex-wrap items-center gap-3 bg-[#131620] p-4 rounded-xl border border-white/10">
+            <div className="flex flex-wrap items-center gap-3 bg-[#121418] p-4 rounded-xl border border-[#252A33] shadow-sm">
               <input
                 type="text"
                 data-testid="projects-search-input"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by title, slug, or client..."
-                className="flex-1 min-w-[220px] px-3.5 py-2 rounded-lg bg-black/40 border border-white/15 text-xs text-white focus:outline-none focus:border-blue-500"
+                className="flex-1 min-w-[220px] px-3.5 py-2.5 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] placeholder-neutral-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 transition-all"
               />
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 rounded-lg bg-black/40 border border-white/15 text-xs text-white"
+                className="px-3.5 py-2.5 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] focus:outline-none focus:border-indigo-500 transition-all"
               >
                 <option value="all">All Statuses</option>
                 <option value="published">Published Only</option>
@@ -1024,7 +1162,7 @@ export function AdminDashboardClient({
               <select
                 value={workspaceFilter}
                 onChange={(e) => setWorkspaceFilter(e.target.value)}
-                className="px-3 py-2 rounded-lg bg-black/40 border border-white/15 text-xs text-white"
+                className="px-3.5 py-2.5 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] focus:outline-none focus:border-indigo-500 transition-all"
               >
                 <option value="all">All Workspaces</option>
                 <option value="design">Design</option>
@@ -1033,11 +1171,11 @@ export function AdminDashboardClient({
               </select>
             </div>
 
-            <div className="rounded-xl bg-[#131620] border border-white/10 overflow-hidden">
+            <div className="rounded-xl bg-[#121418] border border-[#252A33] overflow-hidden shadow-sm">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="border-b border-white/10 bg-black/30 text-neutral-400 font-mono">
+                    <tr className="border-b border-[#252A33] bg-[#181B22] text-[#A0A8B5] font-mono">
                       <th className="py-3 px-4">Project (TR / EN)</th>
                       <th className="py-3 px-3">Workspace</th>
                       <th className="py-3 px-3">Status</th>
@@ -1046,32 +1184,34 @@ export function AdminDashboardClient({
                       <th className="py-3 px-4 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5">
+                  <tbody className="divide-y divide-[#1C2027]">
                     {filteredProjects.map((project) => (
                       <tr
                         key={project.id}
                         data-testid={`project-row-${project.slug}`}
-                        className="hover:bg-white/[0.02]"
+                        className="hover:bg-[#15181F] transition-colors"
                       >
                         <td className="py-3 px-4">
-                          <div className="font-semibold text-white">{project.titleTR}</div>
-                          <div className="text-neutral-400">{project.titleEN}</div>
+                          <div className="font-semibold text-[#F5F7FA]">{project.titleTR}</div>
+                          <div className="text-[#A0A8B5] text-[11px]">{project.titleEN}</div>
                           <div className="text-[11px] font-mono text-neutral-500 mt-0.5">
                             /{project.slug} • {project.client} ({project.year})
                           </div>
                         </td>
-                        <td className="py-3 px-3 font-mono uppercase text-neutral-300">
-                          {project.workspace}
+                        <td className="py-3 px-3 font-mono uppercase text-[#A0A8B5]">
+                          <span className="px-2 py-0.5 rounded bg-[#181B22] border border-[#252A33] text-[10px]">
+                            {project.workspace}
+                          </span>
                         </td>
                         <td className="py-3 px-3">
                           <span
                             data-testid={`status-badge-${project.slug}`}
                             className={`px-2 py-0.5 rounded text-[10px] font-mono uppercase border ${
                               project.cmsStatus === "published"
-                                ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                                ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/20"
                                 : project.cmsStatus === "draft"
-                                ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
-                                : "bg-neutral-500/15 text-neutral-400 border-neutral-500/30"
+                                ? "bg-amber-500/10 text-amber-300 border-amber-500/20"
+                                : "bg-neutral-500/10 text-neutral-400 border-neutral-500/20"
                             }`}
                           >
                             {project.cmsStatus}
@@ -1079,20 +1219,22 @@ export function AdminDashboardClient({
                         </td>
                         <td className="py-3 px-3 font-mono">
                           {project.featured ? (
-                            <span className="text-blue-400 font-semibold">★ Yes</span>
+                            <span className="text-indigo-400 font-semibold flex items-center gap-1">
+                              <span>★</span> Yes
+                            </span>
                           ) : (
                             <span className="text-neutral-500">No</span>
                           )}
                         </td>
                         <td className="py-3 px-3">
                           <div className="flex items-center gap-2">
-                            <div className="w-20 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                            <div className="w-20 h-1.5 rounded-full bg-[#181B22] border border-[#252A33] overflow-hidden">
                               <div
                                 className="h-full bg-emerald-400"
                                 style={{ width: `${project.completeness.score}%` }}
                               />
                             </div>
-                            <span className="font-mono text-[11px] text-neutral-300">
+                            <span className="font-mono text-[11px] text-[#A0A8B5]">
                               {project.completeness.score}%
                             </span>
                           </div>
@@ -1102,13 +1244,13 @@ export function AdminDashboardClient({
                             type="button"
                             data-testid={`edit-btn-${project.slug}`}
                             onClick={() => openEditEditor(project)}
-                            className="px-2.5 py-1 rounded bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 font-mono text-[11px] cursor-pointer"
+                            className="px-2.5 py-1 rounded bg-[#181B22] hover:bg-[#1E222A] text-indigo-300 border border-indigo-500/30 font-mono text-[11px] transition-colors cursor-pointer"
                           >
                             Edit
                           </button>
                           <Link
                             href={`/admin/preview/${project.slug}?locale=tr`}
-                            className="inline-block px-2.5 py-1 rounded bg-white/5 hover:bg-white/10 text-neutral-300 border border-white/10 font-mono text-[11px]"
+                            className="inline-block px-2.5 py-1 rounded bg-[#181B22] hover:bg-[#1E222A] text-[#A0A8B5] hover:text-[#F5F7FA] border border-[#252A33] font-mono text-[11px] transition-colors"
                           >
                             Preview
                           </Link>
@@ -1117,7 +1259,7 @@ export function AdminDashboardClient({
                               type="button"
                               data-testid={`publish-btn-${project.slug}`}
                               onClick={() => handleQuickStatusChange(project.id, "published")}
-                              className="px-2.5 py-1 rounded bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 font-mono text-[11px] cursor-pointer"
+                              className="px-2.5 py-1 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/20 font-mono text-[11px] transition-colors cursor-pointer"
                             >
                               Publish
                             </button>
@@ -1126,7 +1268,7 @@ export function AdminDashboardClient({
                               type="button"
                               data-testid={`unpublish-btn-${project.slug}`}
                               onClick={() => handleQuickStatusChange(project.id, "draft")}
-                              className="px-2.5 py-1 rounded bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 font-mono text-[11px] cursor-pointer"
+                              className="px-2.5 py-1 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/20 font-mono text-[11px] transition-colors cursor-pointer"
                             >
                               Unpublish
                             </button>
@@ -1136,7 +1278,7 @@ export function AdminDashboardClient({
                               type="button"
                               data-testid={`archive-btn-${project.slug}`}
                               onClick={() => handleQuickStatusChange(project.id, "archived")}
-                              className="px-2.5 py-1 rounded bg-neutral-700/40 hover:bg-neutral-700/60 text-neutral-300 border border-white/10 font-mono text-[11px] cursor-pointer"
+                              className="px-2.5 py-1 rounded bg-[#181B22] hover:bg-[#1E222A] text-neutral-400 hover:text-neutral-300 border border-[#252A33] font-mono text-[11px] transition-colors cursor-pointer"
                             >
                               Archive
                             </button>
@@ -1161,8 +1303,8 @@ export function AdminDashboardClient({
                 data-testid="editor-save-message"
                 className={`p-4 rounded-xl border text-xs font-mono ${
                   saveMessage.type === "ok"
-                    ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-300"
-                    : "bg-red-500/15 border-red-500/30 text-red-300"
+                    ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-300"
+                    : "bg-red-500/10 border-red-500/25 text-red-300"
                 }`}
               >
                 {saveMessage.text}
@@ -1170,13 +1312,13 @@ export function AdminDashboardClient({
             )}
 
             {/* Completeness Bar & Publishing Actions */}
-            <div className="p-4 rounded-xl bg-[#131620] border border-white/10 flex flex-wrap items-center justify-between gap-4">
+            <div className="p-4 rounded-xl bg-[#121418] border border-[#252A33] flex flex-wrap items-center justify-between gap-4 shadow-sm">
               <div className="space-y-1">
                 <div className="flex items-center gap-3">
-                  <span className="text-xs font-semibold text-white">
+                  <span className="text-xs font-semibold text-[#F5F7FA]">
                     Completeness: {editorCompleteness.score}%
                   </span>
-                  <span className="text-[11px] font-mono text-neutral-400">
+                  <span className="text-[11px] font-mono text-[#A0A8B5]">
                     TR: {editorCompleteness.trScore}% • EN: {editorCompleteness.enScore}% • Media:{" "}
                     {editorCompleteness.mediaScore}%
                   </span>
@@ -1192,7 +1334,7 @@ export function AdminDashboardClient({
                 {formState.slug && (
                   <Link
                     href={`/admin/preview/${normalizeSlug(formState.slug)}?locale=tr`}
-                    className="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/15 text-xs font-mono text-neutral-200"
+                    className="px-3.5 py-2 rounded-lg bg-[#181B22] hover:bg-[#1E222A] border border-[#252A33] text-xs font-mono text-[#F5F7FA] transition-colors"
                   >
                     Preview Draft
                   </Link>
@@ -1202,7 +1344,7 @@ export function AdminDashboardClient({
                   data-testid="save-draft-btn"
                   disabled={saving}
                   onClick={() => handleSaveProject("draft")}
-                  className="px-4 py-2 rounded-lg bg-amber-600/20 hover:bg-amber-600/30 border border-amber-500/40 text-xs font-semibold text-amber-300 cursor-pointer"
+                  className="px-4 py-2 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-xs font-semibold text-amber-300 transition-colors cursor-pointer"
                 >
                   Save as Draft
                 </button>
@@ -1211,7 +1353,7 @@ export function AdminDashboardClient({
                   data-testid="save-publish-btn"
                   disabled={saving}
                   onClick={() => handleSaveProject("published")}
-                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold text-white cursor-pointer"
+                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold text-white shadow-sm shadow-emerald-600/30 transition-all cursor-pointer"
                 >
                   {formState.cmsStatus === "published" ? "Save & Update Published" : "Publish Now"}
                 </button>
@@ -1221,7 +1363,7 @@ export function AdminDashboardClient({
                     data-testid="editor-unpublish-btn"
                     disabled={saving}
                     onClick={() => handleSaveProject("draft")}
-                    className="px-3 py-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 border border-white/15 text-xs font-mono text-neutral-300 cursor-pointer"
+                    className="px-3.5 py-2 rounded-lg bg-[#181B22] hover:bg-[#1E222A] border border-[#252A33] text-xs font-mono text-[#A0A8B5] hover:text-[#F5F7FA] transition-colors cursor-pointer"
                   >
                     Unpublish
                   </button>
@@ -1232,7 +1374,7 @@ export function AdminDashboardClient({
                     data-testid="editor-archive-btn"
                     disabled={saving}
                     onClick={() => handleSaveProject("archived")}
-                    className="px-3 py-2 rounded-lg bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 text-xs font-mono text-red-300 cursor-pointer"
+                    className="px-3.5 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-xs font-mono text-red-300 transition-colors cursor-pointer"
                   >
                     Archive
                   </button>
@@ -1241,9 +1383,9 @@ export function AdminDashboardClient({
             </div>
 
             {/* Core Metadata Grid */}
-            <div className="p-5 rounded-xl bg-[#131620] border border-white/10 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-5 rounded-xl bg-[#121418] border border-[#252A33] grid grid-cols-1 md:grid-cols-3 gap-4 shadow-sm">
               <div>
-                <label className="block text-xs font-mono text-neutral-400 mb-1">
+                <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
                   URL Slug (Unique) *
                 </label>
                 <input
@@ -1252,18 +1394,18 @@ export function AdminDashboardClient({
                   value={formState.slug}
                   onChange={(e) => setFormState({ ...formState, slug: e.target.value })}
                   placeholder="cms-publish-test"
-                  className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/15 text-xs font-mono text-white"
+                  className="w-full px-3.5 py-2.5 rounded-lg bg-[#181B22] border border-[#252A33] text-xs font-mono text-[#F5F7FA] placeholder-neutral-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 transition-all"
                 />
               </div>
               <div>
-                <label className="block text-xs font-mono text-neutral-400 mb-1">Workspace *</label>
+                <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">Workspace *</label>
                 <select
                   data-testid="input-project-workspace"
                   value={formState.workspace}
                   onChange={(e) =>
                     setFormState({ ...formState, workspace: e.target.value as WorkspaceCategory })
                   }
-                  className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/15 text-xs text-white"
+                  className="w-full px-3.5 py-2.5 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] focus:outline-none focus:border-indigo-500 transition-all"
                 >
                   <option value="design">Design (Graphic & Brand)</option>
                   <option value="web">Web & Product</option>
@@ -1271,7 +1413,7 @@ export function AdminDashboardClient({
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-mono text-neutral-400 mb-1">
+                <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
                   Client / Brand Name
                 </label>
                 <input
@@ -1280,57 +1422,57 @@ export function AdminDashboardClient({
                   value={formState.client}
                   onChange={(e) => setFormState({ ...formState, client: e.target.value })}
                   placeholder="Client or Studio"
-                  className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/15 text-xs text-white"
+                  className="w-full px-3.5 py-2.5 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] placeholder-neutral-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 transition-all"
                 />
               </div>
               <div>
-                <label className="block text-xs font-mono text-neutral-400 mb-1">Year</label>
+                <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">Year</label>
                 <input
                   type="text"
                   data-testid="input-project-year"
                   value={formState.year}
                   onChange={(e) => setFormState({ ...formState, year: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/15 text-xs text-white"
+                  className="w-full px-3.5 py-2.5 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] placeholder-neutral-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 transition-all"
                 />
               </div>
               <div>
-                <label className="block text-xs font-mono text-neutral-400 mb-1">Live URL</label>
+                <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">Live URL</label>
                 <input
                   type="url"
                   data-testid="input-project-live-url"
                   value={formState.liveUrl || ""}
                   onChange={(e) => setFormState({ ...formState, liveUrl: e.target.value })}
                   placeholder="https://..."
-                  className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/15 text-xs text-white"
+                  className="w-full px-3.5 py-2.5 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] placeholder-neutral-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 transition-all"
                 />
               </div>
-              <div className="flex items-center gap-3 pt-5">
+              <div className="flex items-center gap-3 pt-6">
                 <input
                   id="featured-checkbox"
                   type="checkbox"
                   data-testid="input-project-featured"
                   checked={formState.featured}
                   onChange={(e) => setFormState({ ...formState, featured: e.target.checked })}
-                  className="w-4 h-4 rounded"
+                  className="w-4 h-4 rounded border-[#252A33] bg-[#181B22] text-indigo-600 focus:ring-indigo-500"
                 />
-                <label htmlFor="featured-checkbox" className="text-xs font-medium text-white">
+                <label htmlFor="featured-checkbox" className="text-xs font-medium text-[#F5F7FA]">
                   Featured on Desktop & Mobile Workspace
                 </label>
               </div>
             </div>
 
             {/* Bilingual Content Editor (TR & EN Tabs) */}
-            <div className="p-5 rounded-xl bg-[#131620] border border-white/10 space-y-4">
-              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+            <div className="p-5 rounded-xl bg-[#121418] border border-[#252A33] space-y-4 shadow-sm">
+              <div className="flex items-center justify-between border-b border-[#1C2027] pb-3">
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     data-testid="locale-tab-tr"
                     onClick={() => setEditorLocaleTab("tr")}
-                    className={`px-3.5 py-1.5 rounded-lg text-xs font-mono font-semibold cursor-pointer ${
+                    className={`px-3.5 py-1.5 rounded-lg text-xs font-mono font-semibold transition-all cursor-pointer ${
                       editorLocaleTab === "tr"
-                        ? "bg-blue-600 text-white"
-                        : "bg-white/5 text-neutral-400 hover:text-white"
+                        ? "bg-indigo-600 text-white shadow-sm shadow-indigo-600/30"
+                        : "bg-[#181B22] text-[#A0A8B5] hover:text-[#F5F7FA] border border-[#252A33]"
                     }`}
                   >
                     🇹🇷 Türkçe İçerik (TR)
@@ -1339,10 +1481,10 @@ export function AdminDashboardClient({
                     type="button"
                     data-testid="locale-tab-en"
                     onClick={() => setEditorLocaleTab("en")}
-                    className={`px-3.5 py-1.5 rounded-lg text-xs font-mono font-semibold cursor-pointer ${
+                    className={`px-3.5 py-1.5 rounded-lg text-xs font-mono font-semibold transition-all cursor-pointer ${
                       editorLocaleTab === "en"
-                        ? "bg-blue-600 text-white"
-                        : "bg-white/5 text-neutral-400 hover:text-white"
+                        ? "bg-indigo-600 text-white shadow-sm shadow-indigo-600/30"
+                        : "bg-[#181B22] text-[#A0A8B5] hover:text-[#F5F7FA] border border-[#252A33]"
                     }`}
                   >
                     🇬🇧 English Content (EN)
@@ -1353,7 +1495,7 @@ export function AdminDashboardClient({
               {editorLocaleTab === "tr" ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-mono text-neutral-400 mb-1">
+                    <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
                       Proje Başlığı (TR) *
                     </label>
                     <input
@@ -1361,11 +1503,11 @@ export function AdminDashboardClient({
                       data-testid="input-title-tr"
                       value={formState.titleTR}
                       onChange={(e) => setFormState({ ...formState, titleTR: e.target.value })}
-                      className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/15 text-xs text-white"
+                      className="w-full px-3.5 py-2.5 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] placeholder-neutral-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 transition-all"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-mono text-neutral-400 mb-1">
+                    <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
                       Kategori Etiketi (TR) *
                     </label>
                     <input
@@ -1374,11 +1516,11 @@ export function AdminDashboardClient({
                       value={formState.categoryTR}
                       onChange={(e) => setFormState({ ...formState, categoryTR: e.target.value })}
                       placeholder="Web Tasarım & Geliştirme"
-                      className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/15 text-xs text-white"
+                      className="w-full px-3.5 py-2.5 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] placeholder-neutral-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 transition-all"
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-xs font-mono text-neutral-400 mb-1">
+                    <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
                       Kısa Özet / Summary (TR)
                     </label>
                     <input
@@ -1386,11 +1528,11 @@ export function AdminDashboardClient({
                       data-testid="input-summary-tr"
                       value={formState.summaryTR || ""}
                       onChange={(e) => setFormState({ ...formState, summaryTR: e.target.value })}
-                      className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/15 text-xs text-white"
+                      className="w-full px-3.5 py-2.5 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] placeholder-neutral-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 transition-all"
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-xs font-mono text-neutral-400 mb-1">
+                    <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
                       Detaylı Proje Açıklaması (TR) *
                     </label>
                     <textarea
@@ -1400,14 +1542,14 @@ export function AdminDashboardClient({
                       onChange={(e) =>
                         setFormState({ ...formState, descriptionTR: e.target.value })
                       }
-                      className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/15 text-xs text-white"
+                      className="w-full px-3.5 py-2.5 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] placeholder-neutral-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 transition-all leading-relaxed"
                     />
                   </div>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-mono text-neutral-400 mb-1">
+                    <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
                       Project Title (EN) *
                     </label>
                     <input
@@ -1415,11 +1557,11 @@ export function AdminDashboardClient({
                       data-testid="input-title-en"
                       value={formState.titleEN}
                       onChange={(e) => setFormState({ ...formState, titleEN: e.target.value })}
-                      className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/15 text-xs text-white"
+                      className="w-full px-3.5 py-2.5 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] placeholder-neutral-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 transition-all"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-mono text-neutral-400 mb-1">
+                    <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
                       Category Label (EN) *
                     </label>
                     <input
@@ -1428,11 +1570,11 @@ export function AdminDashboardClient({
                       value={formState.categoryEN}
                       onChange={(e) => setFormState({ ...formState, categoryEN: e.target.value })}
                       placeholder="Web Design & Engineering"
-                      className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/15 text-xs text-white"
+                      className="w-full px-3.5 py-2.5 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] placeholder-neutral-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 transition-all"
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-xs font-mono text-neutral-400 mb-1">
+                    <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
                       Short Summary (EN)
                     </label>
                     <input
@@ -1440,11 +1582,11 @@ export function AdminDashboardClient({
                       data-testid="input-summary-en"
                       value={formState.summaryEN || ""}
                       onChange={(e) => setFormState({ ...formState, summaryEN: e.target.value })}
-                      className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/15 text-xs text-white"
+                      className="w-full px-3.5 py-2.5 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] placeholder-neutral-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 transition-all"
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-xs font-mono text-neutral-400 mb-1">
+                    <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
                       Full Project Description (EN) *
                     </label>
                     <textarea
@@ -1454,7 +1596,7 @@ export function AdminDashboardClient({
                       onChange={(e) =>
                         setFormState({ ...formState, descriptionEN: e.target.value })
                       }
-                      className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/15 text-xs text-white"
+                      className="w-full px-3.5 py-2.5 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] placeholder-neutral-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 transition-all leading-relaxed"
                     />
                   </div>
                 </div>
@@ -1462,13 +1604,13 @@ export function AdminDashboardClient({
             </div>
 
             {/* Cover, Thumbnail & R2 Media Manager */}
-            <div className="p-5 rounded-xl bg-[#131620] border border-white/10 space-y-4">
-              <h3 className="text-sm font-semibold text-white">
+            <div className="p-5 rounded-xl bg-[#121418] border border-[#252A33] space-y-4 shadow-sm">
+              <h3 className="text-sm font-semibold text-[#F5F7FA]">
                 Project Cover, Thumbnail & Gallery Media (Cloudflare R2)
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-mono text-neutral-400 mb-1">
+                  <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
                     Cover / Hero Image URL
                   </label>
                   <div className="flex gap-2">
@@ -1478,9 +1620,9 @@ export function AdminDashboardClient({
                       value={formState.cover || ""}
                       onChange={(e) => setFormState({ ...formState, cover: e.target.value })}
                       placeholder="/projects/... or /api/media/..."
-                      className="flex-1 min-w-0 px-3 py-2 rounded-lg bg-black/40 border border-white/15 text-xs font-mono text-white"
+                      className="flex-1 min-w-0 px-3.5 py-2 rounded-lg bg-[#181B22] border border-[#252A33] text-xs font-mono text-[#F5F7FA] placeholder-neutral-500 focus:outline-none focus:border-indigo-500"
                     />
-                    <label className="px-3 py-2 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-xs font-mono text-blue-300 cursor-pointer whitespace-nowrap">
+                    <label className="px-3 py-2 rounded-lg bg-[#181B22] hover:bg-[#1E222A] border border-[#252A33] text-xs font-mono text-indigo-300 hover:text-white transition-colors cursor-pointer whitespace-nowrap">
                       {uploadingMedia ? "..." : "Upload R2"}
                       <input
                         type="file"
@@ -1497,7 +1639,7 @@ export function AdminDashboardClient({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-mono text-neutral-400 mb-1">
+                  <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
                     Desktop / Grid Thumbnail URL
                   </label>
                   <div className="flex gap-2">
@@ -1507,9 +1649,9 @@ export function AdminDashboardClient({
                       value={formState.thumbnail || ""}
                       onChange={(e) => setFormState({ ...formState, thumbnail: e.target.value })}
                       placeholder="/projects/... or /api/media/..."
-                      className="flex-1 min-w-0 px-3 py-2 rounded-lg bg-black/40 border border-white/15 text-xs font-mono text-white"
+                      className="flex-1 min-w-0 px-3.5 py-2 rounded-lg bg-[#181B22] border border-[#252A33] text-xs font-mono text-[#F5F7FA] placeholder-neutral-500 focus:outline-none focus:border-indigo-500"
                     />
-                    <label className="px-3 py-2 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-xs font-mono text-blue-300 cursor-pointer whitespace-nowrap">
+                    <label className="px-3 py-2 rounded-lg bg-[#181B22] hover:bg-[#1E222A] border border-[#252A33] text-xs font-mono text-indigo-300 hover:text-white transition-colors cursor-pointer whitespace-nowrap">
                       Upload R2
                       <input
                         type="file"
@@ -1526,12 +1668,12 @@ export function AdminDashboardClient({
               </div>
 
               {/* Gallery Media List & Reordering */}
-              <div className="pt-3 border-t border-white/10 space-y-3">
+              <div className="pt-3 border-t border-[#1C2027] space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-mono text-neutral-300">
+                  <span className="text-xs font-mono text-[#A0A8B5]">
                     Gallery Media Items ({(formState.media || []).length})
                   </span>
-                  <label className="px-3 py-1.5 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/40 text-xs font-mono text-purple-300 cursor-pointer">
+                  <label className="px-3 py-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-xs font-mono text-indigo-300 transition-colors cursor-pointer">
                     + Upload Gallery Image/Video to R2
                     <input
                       type="file"
@@ -1550,7 +1692,7 @@ export function AdminDashboardClient({
                   {(formState.media || []).map((m, idx) => (
                     <div
                       key={`${m.src}-${idx}`}
-                      className="flex flex-wrap items-center gap-2 p-2.5 rounded-lg bg-black/30 border border-white/10 text-xs"
+                      className="flex flex-wrap items-center gap-2 p-2.5 rounded-lg bg-[#181B22] border border-[#252A33] text-xs"
                     >
                       <span className="font-mono text-neutral-500 w-6">#{idx + 1}</span>
                       <input
@@ -1561,7 +1703,7 @@ export function AdminDashboardClient({
                           next[idx] = { ...next[idx], src: e.target.value };
                           setFormState({ ...formState, media: next });
                         }}
-                        className="flex-1 min-w-[180px] px-2.5 py-1 rounded bg-black/50 border border-white/10 font-mono text-[11px] text-white"
+                        className="flex-1 min-w-[180px] px-2.5 py-1.5 rounded bg-[#121418] border border-[#252A33] font-mono text-[11px] text-[#F5F7FA] focus:outline-none focus:border-indigo-500"
                       />
                       <input
                         type="text"
@@ -1572,7 +1714,7 @@ export function AdminDashboardClient({
                           next[idx] = { ...next[idx], altTR: e.target.value };
                           setFormState({ ...formState, media: next });
                         }}
-                        className="w-36 px-2.5 py-1 rounded bg-black/50 border border-white/10 text-[11px] text-white"
+                        className="w-36 px-2.5 py-1.5 rounded bg-[#121418] border border-[#252A33] text-[11px] text-[#F5F7FA] focus:outline-none focus:border-indigo-500"
                       />
                       <input
                         type="text"
@@ -1583,7 +1725,7 @@ export function AdminDashboardClient({
                           next[idx] = { ...next[idx], altEN: e.target.value };
                           setFormState({ ...formState, media: next });
                         }}
-                        className="w-36 px-2.5 py-1 rounded bg-black/50 border border-white/10 text-[11px] text-white"
+                        className="w-36 px-2.5 py-1.5 rounded bg-[#121418] border border-[#252A33] text-[11px] text-[#F5F7FA] focus:outline-none focus:border-indigo-500"
                       />
                       <button
                         type="button"
@@ -1595,7 +1737,7 @@ export function AdminDashboardClient({
                           next[idx] = temp;
                           setFormState({ ...formState, media: next });
                         }}
-                        className="px-2 py-1 rounded bg-white/5 hover:bg-white/10 disabled:opacity-30 font-mono"
+                        className="px-2.5 py-1 rounded bg-[#121418] hover:bg-[#1E222A] border border-[#252A33] disabled:opacity-30 font-mono text-[#A0A8B5]"
                       >
                         ↑
                       </button>
@@ -1609,7 +1751,7 @@ export function AdminDashboardClient({
                           next[idx] = temp;
                           setFormState({ ...formState, media: next });
                         }}
-                        className="px-2 py-1 rounded bg-white/5 hover:bg-white/10 disabled:opacity-30 font-mono"
+                        className="px-2.5 py-1 rounded bg-[#121418] hover:bg-[#1E222A] border border-[#252A33] disabled:opacity-30 font-mono text-[#A0A8B5]"
                       >
                         ↓
                       </button>
@@ -1619,7 +1761,7 @@ export function AdminDashboardClient({
                           const next = (formState.media || []).filter((_, i) => i !== idx);
                           setFormState({ ...formState, media: next });
                         }}
-                        className="px-2 py-1 rounded bg-red-500/20 text-red-300 font-mono"
+                        className="px-2.5 py-1 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 font-mono"
                       >
                         ✕
                       </button>
@@ -1631,24 +1773,27 @@ export function AdminDashboardClient({
 
             {/* Revision History & Rollback */}
             {revisions.length > 0 && (
-              <div className="p-5 rounded-xl bg-[#131620] border border-white/10">
-                <h3 className="text-sm font-semibold text-white mb-3">
-                  Revision Snapshots & Rollback ({revisions.length})
-                </h3>
+              <div className="p-5 rounded-xl bg-[#121418] border border-[#252A33] shadow-sm">
+                <div className="mb-3">
+                  <h3 className="text-sm font-semibold text-[#F5F7FA]">
+                    Revision Snapshots & Rollback ({revisions.length})
+                  </h3>
+                  <p className="text-xs text-[#A0A8B5] mt-0.5">Historical snapshots preserved in Cloudflare D1</p>
+                </div>
                 <div className="space-y-2 max-h-60 overflow-y-auto">
                   {revisions.map((rev) => (
                     <div
                       key={rev.id}
-                      className="flex items-center justify-between p-2.5 rounded-lg bg-black/30 border border-white/5 text-xs"
+                      className="flex items-center justify-between p-2.5 rounded-lg bg-[#181B22] border border-[#252A33] text-xs"
                     >
                       <div className="flex items-center gap-3">
-                        <span className="font-mono font-bold text-blue-400">
+                        <span className="font-mono font-bold text-indigo-400">
                           Rev #{rev.revisionNumber}
                         </span>
-                        <span className="px-2 py-0.5 rounded bg-white/10 font-mono text-[10px]">
+                        <span className="px-2 py-0.5 rounded bg-[#121418] border border-[#252A33] font-mono text-[10px] text-[#A0A8B5]">
                           {rev.action}
                         </span>
-                        <span className="text-neutral-400">{rev.actorEmail}</span>
+                        <span className="text-[#A0A8B5]">{rev.actorEmail}</span>
                         <span className="text-neutral-500 font-mono">
                           {new Date(rev.createdAt).toLocaleString()}
                         </span>
@@ -1656,7 +1801,7 @@ export function AdminDashboardClient({
                       <button
                         type="button"
                         onClick={() => handleRollbackRevision(rev.revisionNumber)}
-                        className="px-2.5 py-1 rounded bg-white/5 hover:bg-white/15 border border-white/10 font-mono text-[11px] text-neutral-200 cursor-pointer"
+                        className="px-2.5 py-1 rounded bg-[#121418] hover:bg-[#1E222A] border border-[#252A33] font-mono text-[11px] text-[#F5F7FA] transition-colors cursor-pointer"
                       >
                         Restore Snapshot
                       </button>
@@ -1673,14 +1818,17 @@ export function AdminDashboardClient({
            ====================================================== */}
         {activeTab === "media" && (
           <div className="space-y-4" data-testid="admin-media-section">
-            <div className="p-5 rounded-xl bg-[#131620] border border-white/10 flex flex-wrap items-center justify-between gap-4">
+            <div className="p-5 rounded-xl bg-[#121418] border border-[#252A33] flex flex-wrap items-center justify-between gap-4 shadow-sm">
               <div>
-                <h3 className="text-sm font-semibold text-white">Cloudflare R2 Media Library</h3>
-                <p className="text-xs text-neutral-400">
-                  Validated image/video uploads with structured key prefixing and immutable caching.
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-violet-400" />
+                  <h3 className="text-sm font-semibold text-[#F5F7FA]">Cloudflare R2 Media Library</h3>
+                </div>
+                <p className="text-xs text-[#A0A8B5] mt-1">
+                  Validated image & video uploads with cryptographic key hashing and immutable caching.
                 </p>
               </div>
-              <label className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white cursor-pointer">
+              <label className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white shadow-sm shadow-indigo-600/30 transition-all cursor-pointer">
                 {uploadingMedia ? "Uploading..." : "+ Upload Asset to R2"}
                 <input
                   type="file"
@@ -1698,9 +1846,9 @@ export function AdminDashboardClient({
               {mediaList.slice(0, 60).map((item) => (
                 <div
                   key={item.id}
-                  className="rounded-xl bg-[#131620] border border-white/10 overflow-hidden flex flex-col justify-between"
+                  className="rounded-xl bg-[#121418] border border-[#252A33] overflow-hidden flex flex-col justify-between shadow-sm hover:border-[#353C48] transition-all"
                 >
-                  <div className="h-32 bg-black/50 flex items-center justify-center overflow-hidden relative">
+                  <div className="h-32 bg-[#0B0C0E] border-b border-[#252A33] flex items-center justify-center overflow-hidden relative">
                     {item.mediaType === "image" ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -1710,14 +1858,14 @@ export function AdminDashboardClient({
                         loading="lazy"
                       />
                     ) : (
-                      <span className="font-mono text-xs text-purple-300">VIDEO ({item.mimeType})</span>
+                      <span className="font-mono text-xs text-violet-300">VIDEO ({item.mimeType})</span>
                     )}
                   </div>
-                  <div className="p-3 space-y-1 text-[11px]">
-                    <div className="font-mono text-white truncate" title={item.filename}>
+                  <div className="p-3 space-y-1 text-[11px] bg-[#121418]">
+                    <div className="font-mono text-[#F5F7FA] truncate font-medium" title={item.filename}>
                       {item.filename}
                     </div>
-                    <div className="text-neutral-500 font-mono truncate" title={item.publicUrl}>
+                    <div className="text-[#A0A8B5] font-mono text-[10px] truncate" title={item.publicUrl}>
                       {item.publicUrl}
                     </div>
                   </div>
@@ -1738,10 +1886,10 @@ export function AdminDashboardClient({
                   key={ws}
                   type="button"
                   onClick={() => setFeaturedWorkspace(ws)}
-                  className={`px-4 py-2 rounded-lg text-xs font-mono uppercase cursor-pointer ${
+                  className={`px-4 py-2 rounded-lg text-xs font-mono uppercase transition-all cursor-pointer ${
                     featuredWorkspace === ws
-                      ? "bg-blue-600 text-white font-semibold"
-                      : "bg-[#131620] text-neutral-400 border border-white/10"
+                      ? "bg-indigo-600 text-white font-semibold shadow-sm shadow-indigo-600/30"
+                      : "bg-[#181B22] text-[#A0A8B5] hover:text-[#F5F7FA] border border-[#252A33]"
                   }`}
                 >
                   {ws} Workspace
@@ -1749,17 +1897,17 @@ export function AdminDashboardClient({
               ))}
             </div>
 
-            <div className="p-5 rounded-xl bg-[#131620] border border-white/10 space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-3">
-                <p className="text-xs text-neutral-400">
-                  Manage featured desktop icons for the <strong className="text-white">{featuredWorkspace}</strong> workspace.
-                  Only <strong>published</strong> projects with the featured flag appear on the live Portfolio OS desktop.
+            <div className="p-5 rounded-xl bg-[#121418] border border-[#252A33] space-y-3 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#1C2027] pb-3">
+                <p className="text-xs text-[#A0A8B5]">
+                  Manage featured desktop icons for the <strong className="text-[#F5F7FA]">{featuredWorkspace}</strong> workspace.
+                  Only <strong className="text-emerald-400">published</strong> projects with the featured flag appear on the live Portfolio OS desktop.
                 </p>
-                <div className="text-[11px] font-mono text-neutral-300">
-                  Live Featured: <span className="text-blue-400 font-bold">{projects.filter((p) => p.workspace === featuredWorkspace && p.cmsStatus === "published" && p.featured).length}</span> published
+                <div className="text-[11px] font-mono text-[#A0A8B5]">
+                  Live Featured: <span className="text-indigo-400 font-bold">{projects.filter((p) => p.workspace === featuredWorkspace && p.cmsStatus === "published" && p.featured).length}</span> published
                 </div>
               </div>
-              <div className="divide-y divide-white/5">
+              <div className="divide-y divide-[#1C2027]">
                 {projects
                   .filter((p) => p.workspace === featuredWorkspace)
                   .map((p) => {
@@ -1768,8 +1916,8 @@ export function AdminDashboardClient({
                     return (
                       <div key={p.id} className="py-3 flex items-center justify-between gap-4 text-xs">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold text-white">{p.titleTR}</span>{" "}
-                          <span className="text-neutral-400">({p.titleEN})</span>
+                          <span className="font-semibold text-[#F5F7FA]">{p.titleTR}</span>{" "}
+                          <span className="text-[#A0A8B5]">({p.titleEN})</span>
                           <span
                             className={`px-2 py-0.5 rounded text-[10px] font-mono border ${
                               isPublished
@@ -1780,7 +1928,7 @@ export function AdminDashboardClient({
                             {isPublished ? "PUBLISHED" : "DRAFT / NOT PUBLIC"}
                           </span>
                           {p.featured && !isPublished && (
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-blue-500/10 text-blue-300 border border-blue-500/20">
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
                               Staged for Feature
                             </span>
                           )}
@@ -1798,12 +1946,12 @@ export function AdminDashboardClient({
                             });
                             await loadCoreData();
                           }}
-                          className={`px-3 py-1.5 rounded-lg font-mono text-xs cursor-pointer border ${
+                          className={`px-3 py-1.5 rounded-lg font-mono text-xs cursor-pointer border transition-all ${
                             isLiveFeatured
-                              ? "bg-blue-600/20 text-blue-300 border-blue-500/40 font-semibold"
+                              ? "bg-indigo-500/10 text-indigo-300 border-indigo-500/30 font-semibold"
                               : p.featured
-                                ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
-                                : "bg-white/5 text-neutral-400 border-white/10 hover:text-white"
+                                ? "bg-amber-500/10 text-amber-300 border-amber-500/30"
+                                : "bg-[#181B22] text-[#A0A8B5] hover:text-[#F5F7FA] border border-[#252A33]"
                           }`}
                         >
                           {isLiveFeatured
@@ -1826,19 +1974,22 @@ export function AdminDashboardClient({
         {activeTab === "system" && systemInfo && (
           <div className="space-y-6" data-testid="admin-system-section">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-5 rounded-xl bg-[#131620] border border-white/10 space-y-2 text-xs">
-                <h3 className="text-sm font-semibold text-white">Database & Migration Health</h3>
-                <p className="text-neutral-400">
-                  Engine Mode: <code className="text-white">{systemInfo.d1Health.mode}</code>
+              <div className="p-5 rounded-xl bg-[#121418] border border-[#252A33] space-y-2 text-xs shadow-sm">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  <h3 className="text-sm font-semibold text-[#F5F7FA]">Database & Migration Health</h3>
+                </div>
+                <p className="text-[#A0A8B5]">
+                  Engine Mode: <code className="text-[#F5F7FA] font-mono bg-[#181B22] px-1.5 py-0.5 rounded border border-[#252A33]">{systemInfo.d1Health.mode}</code>
                 </p>
-                <p className="text-neutral-400">
+                <p className="text-[#A0A8B5]">
                   Canonical 30-Project Reconciliation:{" "}
                   <strong
                     className={
                       systemInfo.reconciliation.missingSlugs.length === 0 &&
                       systemInfo.reconciliation.fieldMismatches.length === 0
-                        ? "text-emerald-400"
-                        : "text-amber-400"
+                        ? "text-emerald-400 font-mono"
+                        : "text-amber-400 font-mono"
                     }
                   >
                     {systemInfo.reconciliation.missingSlugs.length === 0 &&
@@ -1849,65 +2000,71 @@ export function AdminDashboardClient({
                       : "MISMATCH DETECTED"}
                   </strong>
                 </p>
-                <p className="text-neutral-400">
-                  Total Translations: <code>{systemInfo.d1Health.counts.translations}</code> rows
+                <p className="text-[#A0A8B5]">
+                  Total Translations: <code className="text-[#F5F7FA] font-mono bg-[#181B22] px-1.5 py-0.5 rounded border border-[#252A33]">{systemInfo.d1Health.counts.translations}</code> rows
                 </p>
               </div>
 
-              <div className="p-5 rounded-xl bg-[#131620] border border-white/10 space-y-2 text-xs">
-                <h3 className="text-sm font-semibold text-white">Environment Readiness</h3>
-                <p className="text-neutral-400">
+              <div className="p-5 rounded-xl bg-[#121418] border border-[#252A33] space-y-2 text-xs shadow-sm">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="w-2 h-2 rounded-full bg-indigo-400" />
+                  <h3 className="text-sm font-semibold text-[#F5F7FA]">Environment Readiness</h3>
+                </div>
+                <p className="text-[#A0A8B5]">
                   Cloudflare Remote Worker URL:{" "}
-                  <code>
+                  <code className="text-[#F5F7FA] font-mono bg-[#181B22] px-1.5 py-0.5 rounded border border-[#252A33]">
                     {systemInfo.environment.cloudflareRemoteWorkerConfigured
                       ? "Configured"
                       : "Local D1 Active"}
                   </code>
                 </p>
-                <p className="text-neutral-400">
+                <p className="text-[#A0A8B5]">
                   D1 Storage Engine:{" "}
-                  <code className="text-white">{systemInfo.d1Health.mode}</code>
+                  <code className="text-[#F5F7FA] font-mono bg-[#181B22] px-1.5 py-0.5 rounded border border-[#252A33]">{systemInfo.d1Health.mode}</code>
                 </p>
-                <p className="text-neutral-400">
+                <p className="text-[#A0A8B5]">
                   Node Environment:{" "}
-                  <code className="text-white">{systemInfo.environment.nodeEnv || "production"}</code>
+                  <code className="text-[#F5F7FA] font-mono bg-[#181B22] px-1.5 py-0.5 rounded border border-[#252A33]">{systemInfo.environment.nodeEnv || "production"}</code>
                 </p>
-                <p className="text-neutral-400">
+                <p className="text-[#A0A8B5]">
                   Cloudflare R2 Storage:{" "}
-                  <span className="text-emerald-300 font-mono">
+                  <span className="text-emerald-300 font-mono text-[11px]">
                     Active & Bound
                   </span>
                 </p>
               </div>
             </div>
 
-            <div className="p-5 rounded-xl bg-[#131620] border border-white/10">
-              <h3 className="text-sm font-semibold text-white mb-3">
-                Admin Security & Mutation Audit Logs
-              </h3>
-              <div className="overflow-x-auto">
+            <div className="p-5 rounded-xl bg-[#121418] border border-[#252A33] shadow-sm">
+              <div className="mb-4">
+                <h3 className="text-sm font-semibold text-[#F5F7FA]">
+                  Admin Security & Mutation Audit Logs
+                </h3>
+                <p className="text-xs text-[#A0A8B5] mt-0.5">Cryptographically logged administrative operations</p>
+              </div>
+              <div className="overflow-x-auto rounded-lg border border-[#252A33]">
                 <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="border-b border-white/10 text-neutral-400 font-mono">
-                      <th className="py-2 pr-4">Action</th>
-                      <th className="py-2 pr-4">Entity</th>
-                      <th className="py-2 pr-4">Actor</th>
-                      <th className="py-2 pr-4">Details</th>
-                      <th className="py-2">Time</th>
+                    <tr className="bg-[#181B22] border-b border-[#252A33] text-[#A0A8B5] font-mono">
+                      <th className="py-2.5 px-3">Action</th>
+                      <th className="py-2.5 px-3">Entity</th>
+                      <th className="py-2.5 px-3">Actor</th>
+                      <th className="py-2.5 px-3">Details</th>
+                      <th className="py-2.5 px-3">Time</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5">
+                  <tbody className="divide-y divide-[#1C2027]">
                     {systemInfo.auditLogs.map((log) => (
-                      <tr key={log.id}>
-                        <td className="py-2 pr-4 font-mono text-blue-300">{log.action}</td>
-                        <td className="py-2 pr-4 font-mono text-neutral-300">
+                      <tr key={log.id} className="hover:bg-[#15181F] transition-colors">
+                        <td className="py-2.5 px-3 font-mono text-indigo-300">{log.action}</td>
+                        <td className="py-2.5 px-3 font-mono text-[#F5F7FA]">
                           {log.entityType}:{log.entityId || "-"}
                         </td>
-                        <td className="py-2 pr-4 text-neutral-400">{log.actorEmail}</td>
-                        <td className="py-2 pr-4 font-mono text-[11px] text-neutral-500 max-w-xs truncate">
+                        <td className="py-2.5 px-3 text-[#A0A8B5]">{log.actorEmail}</td>
+                        <td className="py-2.5 px-3 font-mono text-[11px] text-neutral-400 max-w-xs truncate">
                           {log.detailsJson}
                         </td>
-                        <td className="py-2 font-mono text-neutral-500">
+                        <td className="py-2.5 px-3 font-mono text-neutral-500">
                           {new Date(log.createdAt).toLocaleString()}
                         </td>
                       </tr>
@@ -1924,25 +2081,28 @@ export function AdminDashboardClient({
            ====================================================== */}
         {activeTab === "settings" && (
           <div
-            className="p-6 rounded-xl bg-[#131620] border border-white/10 space-y-4 text-xs"
+            className="p-6 rounded-xl bg-[#121418] border border-[#252A33] space-y-4 text-xs shadow-sm"
             data-testid="admin-settings-section"
           >
-            <h3 className="text-sm font-semibold text-white">
-              Portfolio OS CMS & Security Configuration
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-neutral-300">
-              <div className="p-4 rounded-lg bg-black/30 border border-white/5 space-y-1">
-                <div className="font-mono text-neutral-400">Active Admin Session</div>
-                <div>Email: {session.email}</div>
-                <div>Auth Mode: {session.mode}</div>
-                <div>Expires: {new Date(session.exp).toLocaleString()}</div>
+            <div>
+              <h3 className="text-sm font-semibold text-[#F5F7FA]">
+                Portfolio OS CMS & Security Configuration
+              </h3>
+              <p className="text-xs text-[#A0A8B5] mt-0.5">Runtime isolation & cryptographic protections</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-[#A0A8B5]">
+              <div className="p-4 rounded-lg bg-[#181B22] border border-[#252A33] space-y-1.5">
+                <div className="font-mono text-indigo-400 font-semibold text-[11px] uppercase tracking-wider">Active Admin Session</div>
+                <div className="text-xs"><span className="text-neutral-500">Email:</span> <span className="text-[#F5F7FA]">{session.email}</span></div>
+                <div className="text-xs"><span className="text-neutral-500">Auth Mode:</span> <span className="text-[#F5F7FA]">{session.mode}</span></div>
+                <div className="text-xs"><span className="text-neutral-500">Expires:</span> <span className="text-[#F5F7FA] font-mono">{new Date(session.exp).toLocaleString()}</span></div>
               </div>
-              <div className="p-4 rounded-lg bg-black/30 border border-white/5 space-y-1">
-                <div className="font-mono text-neutral-400">Security Controls</div>
-                <div>• HTTP-Only HMAC-SHA256 Signed Session Cookie</div>
-                <div>• Same-Origin + X-CSRF-Token Mutation Verification</div>
-                <div>• Robots.txt & X-Robots-Tag noindex Isolation</div>
-                <div>• Public Consent & Tracking Scripts Suppressed on /admin</div>
+              <div className="p-4 rounded-lg bg-[#181B22] border border-[#252A33] space-y-1.5">
+                <div className="font-mono text-indigo-400 font-semibold text-[11px] uppercase tracking-wider">Security Controls</div>
+                <div className="text-xs text-[#F5F7FA]">• HTTP-Only HMAC-SHA256 Signed Session Cookie</div>
+                <div className="text-xs text-[#F5F7FA]">• Same-Origin + X-CSRF-Token Mutation Verification</div>
+                <div className="text-xs text-[#F5F7FA]">• Robots.txt & X-Robots-Tag noindex Isolation</div>
+                <div className="text-xs text-[#F5F7FA]">• Public Consent & Tracking Scripts Suppressed on /admin</div>
               </div>
             </div>
           </div>

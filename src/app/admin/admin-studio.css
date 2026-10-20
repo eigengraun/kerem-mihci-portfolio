@@ -1,0 +1,60 @@
+/* ==========================================================================
+   Portfolio OS: Studio OS Design System Tokens
+   Exclusively scoped to /admin layout. Zero leakage to public desktop.
+   ========================================================================== */
+
+:root {
+  --studio-bg: #0B0C0E;
+  --studio-surface-primary: #121418;
+  --studio-surface-elevated: #181B22;
+  --studio-surface-hover: #1E222A;
+  --studio-surface-active: #252A34;
+
+  --studio-border-subtle: #1C2027;
+  --studio-border-default: #252A33;
+  --studio-border-strong: #323846;
+  --studio-border-focus: #6366F1;
+
+  --studio-text-primary: #F5F7FA;
+  --studio-text-secondary: #A0A8B5;
+  --studio-text-muted: #64748B;
+  --studio-text-disabled: #475569;
+
+  --studio-indigo: #6366F1;
+  --studio-indigo-hover: #4F46E5;
+  --studio-indigo-glow: rgba(99, 102, 241, 0.15);
+
+  --studio-emerald: #10B981;
+  --studio-emerald-glow: rgba(16, 185, 129, 0.15);
+
+  --studio-amber: #F59E0B;
+  --studio-amber-glow: rgba(245, 158, 11, 0.15);
+
+  --studio-rose: #EF4444;
+  --studio-rose-glow: rgba(239, 68, 68, 0.15);
+}
+
+/* Custom Scrollbar for Studio OS Admin stage */
+#admin-main-stage::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+#admin-main-stage::-webkit-scrollbar-track {
+  background: #0B0C0E;
+}
+
+#admin-main-stage::-webkit-scrollbar-thumb {
+  background: #252A33;
+  border-radius: 4px;
+}
+
+#admin-main-stage::-webkit-scrollbar-thumb:hover {
+  background: #323846;
+}
+
+/* Focus styles for keyboard accessibility */
+.studio-focus:focus-visible {
+  outline: 2px solid var(--studio-border-focus);
+  outline-offset: 2px;
+}

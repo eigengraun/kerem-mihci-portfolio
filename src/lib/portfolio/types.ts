@@ -11,6 +11,19 @@ import type {
   ProjectStatus,
   WorkspaceId
 } from "@/data/projects";
+import type {
+  PortfolioVideo,
+  VideoType,
+  VideoOrientation,
+  ProductionMethod
+} from "@/data/videos";
+
+export type {
+  PortfolioVideo,
+  VideoType,
+  VideoOrientation,
+  ProductionMethod
+};
 
 export type CmsPublishStatus = "draft" | "published" | "archived";
 export type WorkspaceCategory = WorkspaceId;
@@ -97,6 +110,77 @@ export interface CmsAuditLogRecord {
   detailsJson?: string | null;
   ipAddress?: string | null;
   createdAt: string;
+}
+
+export interface CmsVideoAssetRecord {
+  id: string;
+  videoId: string;
+  assetType: "video" | "poster" | "thumbnail";
+  storageMode: "local_static" | "r2" | "external";
+  storageKey: string;
+  publicUrl: string;
+  mimeType: string;
+  byteSize: number;
+  width?: number | null;
+  height?: number | null;
+  durationSeconds?: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CmsVideoRevisionRecord {
+  id: string;
+  videoId: string;
+  revisionNumber: number;
+  action: string;
+  snapshotJson: string;
+  actorEmail: string;
+  createdAt: string;
+}
+
+export interface CmsVideoRecord extends PortfolioVideo {
+  cmsStatus: CmsPublishStatus;
+  aspectRatio: string;
+  createdAt: string;
+  updatedAt: string;
+  publishedAt?: string | null;
+  archivedAt?: string | null;
+  assets?: CmsVideoAssetRecord[];
+}
+
+export interface UpsertVideoInput {
+  id?: string;
+  slug: string;
+  cmsStatus?: CmsPublishStatus;
+  type: VideoType;
+  orientation?: VideoOrientation;
+  aiAssisted?: boolean;
+  productionMethod?: ProductionMethod;
+  titleTR: string;
+  titleEN: string;
+  shortTitleTR?: string;
+  shortTitleEN?: string;
+  descriptionTR?: string;
+  descriptionEN?: string;
+  fullDescriptionTR?: string;
+  fullDescriptionEN?: string;
+  client?: string;
+  year?: number;
+  poster: string;
+  thumbnail?: string;
+  src?: string;
+  duration?: string;
+  aspectRatio?: string;
+  servicesTR?: string[];
+  servicesEN?: string[];
+  services?: string[];
+  tools?: string[];
+  tags?: string[];
+  autoplayPreview?: boolean;
+  externalUrl?: string;
+  projectSlug?: string;
+  featured?: boolean;
+  sortOrder?: number;
 }
 
 export interface UpsertProjectInput {
@@ -242,6 +326,67 @@ export function calculateProjectCompleteness(project: Partial<UpsertProjectInput
       project.categoryEN?.trim() &&
       (project.descriptionTR?.trim() || project.summaryTR?.trim()) &&
       (project.descriptionEN?.trim() || project.summaryEN?.trim())
+  );
+
+  return {
+    score,
+    trScore,
+    enScore,
+    mediaScore,
+    missingFields,
+    readyToPublish
+  };
+}
+
+export function calculateVideoCompleteness(video: Partial<CmsVideoRecord>): {
+  score: number;
+  trScore: number;
+  enScore: number;
+  mediaScore: number;
+  missingFields: string[];
+  readyToPublish: boolean;
+} {
+  const missingFields: string[] = [];
+
+  const trChecks = [
+    { ok: Boolean(video.titleTR?.trim()), label: "TR Title" },
+    { ok: Boolean(video.shortTitleTR?.trim()), label: "TR Short Title" },
+    { ok: Boolean(video.descriptionTR?.trim() || video.fullDescriptionTR?.trim()), label: "TR Description" }
+  ];
+
+  const enChecks = [
+    { ok: Boolean(video.titleEN?.trim()), label: "EN Title" },
+    { ok: Boolean(video.shortTitleEN?.trim()), label: "EN Short Title" },
+    { ok: Boolean(video.descriptionEN?.trim() || video.fullDescriptionEN?.trim()), label: "EN Description" }
+  ];
+
+  const mediaChecks = [
+    { ok: Boolean(video.poster?.trim()), label: "Poster Image" },
+    { ok: Boolean(video.src?.trim()), label: "Video Source" },
+    { ok: Boolean(video.duration?.trim()), label: "Duration" }
+  ];
+
+  for (const c of [...trChecks, ...enChecks, ...mediaChecks]) {
+    if (!c.ok) missingFields.push(c.label);
+  }
+
+  const trScore = Math.round((trChecks.filter((c) => c.ok).length / trChecks.length) * 100);
+  const enScore = Math.round((enChecks.filter((c) => c.ok).length / enChecks.length) * 100);
+  const mediaScore = Math.round(
+    (mediaChecks.filter((c) => c.ok).length / mediaChecks.length) * 100
+  );
+  const totalChecks = trChecks.length + enChecks.length + mediaChecks.length;
+  const passedChecks = [...trChecks, ...enChecks, ...mediaChecks].filter((c) => c.ok).length;
+  const score = Math.round((passedChecks / totalChecks) * 100);
+
+  const readyToPublish = Boolean(
+    video.slug?.trim() &&
+      video.titleTR?.trim() &&
+      video.titleEN?.trim() &&
+      video.poster?.trim() &&
+      video.src?.trim() &&
+      (video.descriptionTR?.trim() || video.fullDescriptionTR?.trim()) &&
+      (video.descriptionEN?.trim() || video.fullDescriptionEN?.trim())
   );
 
   return {

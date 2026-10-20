@@ -74,6 +74,7 @@ export interface SessionStoreState {
   isDraggingProject: boolean;
   setIsDraggingProject: (isDragging: boolean) => void;
   hydrateProjects: (projects: Project[]) => void;
+  hydrateVideos: (videos: PortfolioVideo[], isCmsMode?: boolean) => void;
   updateDesktopPosition: (workspaceId: string, projectId: string, pos: { x: number; y: number }) => void;
 }
 
@@ -101,6 +102,19 @@ export const useSessionStore = create<SessionStoreState>((set) => ({
         rawProjects: projects,
         sessionProjects: shuffled,
         desktopPlacements: placements
+      };
+    });
+  },
+  hydrateVideos: (videos: PortfolioVideo[], isCmsMode = true) => {
+    if (!Array.isArray(videos) || videos.length === 0) return;
+    set((state) => {
+      // In CMS mode, respect explicit sortOrder ASC.
+      // In legacy mode, preserve seeded PRNG shuffle.
+      const resolvedVideos = isCmsMode
+        ? [...videos].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+        : shuffleArray(videos, createMulberry32(state.sessionSeed + 1));
+      return {
+        sessionVideos: resolvedVideos
       };
     });
   },

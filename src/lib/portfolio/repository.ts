@@ -1,27 +1,39 @@
 import fs from "node:fs";
 import path from "node:path";
 import { projectsData, type Project, type WorkspaceId } from "@/data/projects";
+import { videosData, type PortfolioVideo } from "@/data/videos";
 import {
   assertLocalSimulationAllowed,
   deleteMediaFromD1AndR2 as deleteMediaLocal,
   deleteProjectInD1 as deleteProjectLocal,
+  deleteVideoFromD1 as deleteVideoLocal,
   getCmsDataSource,
   getCmsStorageMode,
   getD1HealthAndStats as getLocalD1HealthAndStats,
   getProjectByIdOrSlugForAdminFromD1,
   getPublishedProjectBySlugFromD1,
+  getVideoByIdFromD1 as getVideoByIdLocal,
+  getVideoBySlugFromD1 as getVideoBySlugLocal,
   listAllProjectsForAdminFromD1,
+  listAllVideosForAdminFromD1 as listVideosLocal,
   listAuditLogsFromD1 as listAuditLogsLocal,
   listMediaFromD1 as listMediaLocal,
   listProjectRevisionsFromD1 as listRevisionsLocal,
   listPublishedProjectsFromD1,
+  listPublishedVideosFromD1 as listPublishedVideosLocal,
   listPublishingEventsFromD1 as listPublishingEventsLocal,
+  listVideoRevisionsFromD1 as listVideoRevisionsLocal,
   reconcileProjectsListWithCanonical,
+  reconcileVideosListWithCanonical,
   rollbackProjectRevisionInD1 as rollbackRevisionLocal,
+  rollbackVideoRevisionInD1 as rollbackVideoRevisionLocal,
+  seedCanonicalVideosInLocalD1 as seedCanonicalVideosLocal,
   updateFeaturedOrderingInD1 as updateFeaturedLocal,
   updateProjectStatusInD1 as updateStatusLocal,
+  updateVideoOrderingInD1 as updateVideoOrderingLocal,
   uploadMediaToR2AndD1 as uploadMediaLocal,
-  upsertProjectInD1 as upsertProjectLocal
+  upsertProjectInD1 as upsertProjectLocal,
+  upsertVideoInD1 as upsertVideoLocal
 } from "./d1Engine";
 import {
   CmsStorageUnavailableError,
@@ -32,7 +44,10 @@ import {
   type CmsPublishStatus,
   type CmsPublishingEventRecord,
   type CmsRevisionRecord,
-  type UpsertProjectInput
+  type CmsVideoRecord,
+  type CmsVideoRevisionRecord,
+  type UpsertProjectInput,
+  type UpsertVideoInput
 } from "./types";
 
 const WORKER_TIMEOUT_MS = 8000;
@@ -868,13 +883,253 @@ export async function getD1HealthAndStats() {
           archived: 0,
           featuredPublished: 0,
           mediaItems: 0,
-          translations: 0
+          translations: 0,
+          totalVideos: 0,
+          publishedVideos: 0,
+          draftVideos: 0,
+          archivedVideos: 0,
+          portraitVideos: 0,
+          landscapeVideos: 0,
+          aiAssistedVideos: 0
         },
         workspaceBreakdown: []
       };
     }
   }
   return getLocalD1HealthAndStats();
+}
+
+export async function getPublishedVideos(): Promise<PortfolioVideo[]> {
+  const dataSource = getCmsDataSource();
+  if (dataSource === "legacy") {
+    return videosData;
+  }
+
+  if (shouldUseWorkerApi()) {
+    try {
+      const res = await fetchWorkerJson<{ ok: boolean; videos: PortfolioVideo[] }>(
+        "/api/v1/public/videos",
+        { cache: "no-store" }
+      );
+      if (Array.isArray(res.videos)) {
+        return res.videos;
+      }
+    } catch (err) {
+      console.error("[getPublishedVideos] Remote Worker video query failed:", err);
+    }
+  }
+
+  try {
+    assertLocalSimulationAllowed("getPublishedVideos", true);
+    const d1Videos = listPublishedVideosLocal();
+    if (d1Videos.length > 0) return d1Videos;
+  } catch (err) {
+    console.error("[getPublishedVideos] Local D1 video query failed:", err);
+  }
+
+  // Fallback to static canonical archive only if D1 empty
+  return videosData;
+}
+
+export async function getAdminVideos(): Promise<CmsVideoRecord[]> {
+  if (shouldUseWorkerApi()) {
+    try {
+      const res = await fetchWorkerJson<{ ok: boolean; videos: CmsVideoRecord[] }>(
+        "/api/v1/admin/videos",
+        { requireServiceAuth: true }
+      );
+      return res.videos || [];
+    } catch (err) {
+      console.warn("[getAdminVideos] Worker endpoint unavailable, using local D1:", err);
+      return listVideosLocal();
+    }
+  }
+
+  assertLocalSimulationAllowed("getAdminVideos", true);
+  return listVideosLocal();
+}
+
+export async function getAdminVideoById(id: string): Promise<CmsVideoRecord | null> {
+  if (shouldUseWorkerApi()) {
+    try {
+      const res = await fetchWorkerJson<{ ok: boolean; video: CmsVideoRecord | null }>(
+        `/api/v1/admin/videos/${encodeURIComponent(id)}`,
+        { requireServiceAuth: true }
+      );
+      return res.video || null;
+    } catch (err) {
+      console.warn("[getAdminVideoById] Worker endpoint unavailable, using local D1:", err);
+      return getVideoByIdLocal(id);
+    }
+  }
+
+  assertLocalSimulationAllowed("getAdminVideoById", true);
+  return getVideoByIdLocal(id);
+}
+
+export async function getPublishedVideoBySlug(slug: string): Promise<PortfolioVideo | null> {
+  const dataSource = getCmsDataSource();
+  if (dataSource === "legacy") {
+    return videosData.find((v) => v.slug === slug) || null;
+  }
+
+  if (shouldUseWorkerApi()) {
+    try {
+      const res = await fetchWorkerJson<{ ok: boolean; video: PortfolioVideo | null }>(
+        `/api/v1/public/videos/${encodeURIComponent(slug)}`,
+        { cache: "no-store" }
+      );
+      if (res.video) return res.video;
+    } catch (err) {
+      console.error("[getPublishedVideoBySlug] Remote Worker video query failed:", err);
+    }
+  }
+
+  try {
+    assertLocalSimulationAllowed("getPublishedVideoBySlug", true);
+    const found = getVideoBySlugLocal(slug);
+    if (found && found.cmsStatus === "published") return found;
+  } catch {
+    // fallback
+  }
+
+  return videosData.find((v) => v.slug === slug) || null;
+}
+
+export async function saveAdminVideo(
+  input: UpsertVideoInput,
+  actorEmail: string,
+  actionType: "create" | "update" = "update"
+): Promise<CmsVideoRecord> {
+  if (shouldUseWorkerApi()) {
+    try {
+      requireWorkerConfigForMutation("saveAdminVideo");
+      const method = input.id ? "PUT" : "POST";
+      const path = input.id ? `/api/v1/admin/videos/${encodeURIComponent(input.id)}` : "/api/v1/admin/videos";
+      const res = await fetchWorkerJson<{ ok: boolean; video: CmsVideoRecord }>(path, {
+        method,
+        requireServiceAuth: true,
+        actorEmail,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input)
+      });
+      return res.video;
+    } catch (err) {
+      console.warn("[saveAdminVideo] Worker endpoint unavailable, using local D1:", err);
+      return upsertVideoLocal(input, actorEmail, actionType);
+    }
+  }
+
+  assertLocalSimulationAllowed("saveAdminVideo", true);
+  return upsertVideoLocal(input, actorEmail, actionType);
+}
+
+export async function deleteAdminVideo(
+  id: string,
+  actorEmail: string
+): Promise<{ deletedId: string }> {
+  if (shouldUseWorkerApi()) {
+    try {
+      requireWorkerConfigForMutation("deleteAdminVideo");
+      const res = await fetchWorkerJson<{ ok: boolean; deletedId: string }>(
+        `/api/v1/admin/videos/${encodeURIComponent(id)}`,
+        {
+          method: "DELETE",
+          requireServiceAuth: true,
+          actorEmail
+        }
+      );
+      return { deletedId: res.deletedId };
+    } catch (err) {
+      console.warn("[deleteAdminVideo] Worker endpoint unavailable, using local D1:", err);
+      return deleteVideoLocal(id, actorEmail);
+    }
+  }
+
+  assertLocalSimulationAllowed("deleteAdminVideo", true);
+  return deleteVideoLocal(id, actorEmail);
+}
+
+export async function updateVideoOrderingInD1(
+  orderings: { id: string; sortOrder: number }[],
+  actorEmail: string
+): Promise<{ updatedCount: number }> {
+  if (shouldUseWorkerApi()) {
+    try {
+      requireWorkerConfigForMutation("updateVideoOrderingInD1");
+      const res = await fetchWorkerJson<{ ok: boolean; updatedCount: number }>(
+        "/api/v1/admin/videos/reorder",
+        {
+          method: "POST",
+          requireServiceAuth: true,
+          actorEmail,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderings })
+        }
+      );
+      return { updatedCount: res.updatedCount };
+    } catch (err) {
+      console.warn("[updateVideoOrderingInD1] Worker endpoint unavailable, using local D1:", err);
+      return updateVideoOrderingLocal(orderings, actorEmail);
+    }
+  }
+
+  assertLocalSimulationAllowed("updateVideoOrderingInD1", true);
+  return updateVideoOrderingLocal(orderings, actorEmail);
+}
+
+export async function listVideoRevisionsFromD1(videoId: string): Promise<CmsVideoRevisionRecord[]> {
+  if (shouldUseWorkerApi()) {
+    try {
+      const res = await fetchWorkerJson<{ ok: boolean; revisions: CmsVideoRevisionRecord[] }>(
+        `/api/v1/admin/videos/${encodeURIComponent(videoId)}/revisions`,
+        { requireServiceAuth: true }
+      );
+      return res.revisions || [];
+    } catch (err) {
+      console.warn("[listVideoRevisionsFromD1] Worker endpoint unavailable, using local D1:", err);
+      return listVideoRevisionsLocal(videoId);
+    }
+  }
+
+  assertLocalSimulationAllowed("listVideoRevisionsFromD1", true);
+  return listVideoRevisionsLocal(videoId);
+}
+
+export async function rollbackVideoRevisionInD1(
+  videoId: string,
+  revisionNumber: number,
+  actorEmail: string
+): Promise<CmsVideoRecord> {
+  if (shouldUseWorkerApi()) {
+    try {
+      requireWorkerConfigForMutation("rollbackVideoRevisionInD1");
+      const res = await fetchWorkerJson<{ ok: boolean; video: CmsVideoRecord }>(
+        `/api/v1/admin/videos/${encodeURIComponent(videoId)}/revisions`,
+        {
+          method: "POST",
+          requireServiceAuth: true,
+          actorEmail,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ revisionNumber })
+        }
+      );
+      return res.video;
+    } catch (err) {
+      console.warn("[rollbackVideoRevisionInD1] Worker endpoint unavailable, using local D1:", err);
+      return rollbackVideoRevisionLocal(videoId, revisionNumber, actorEmail);
+    }
+  }
+
+  assertLocalSimulationAllowed("rollbackVideoRevisionInD1", true);
+  return rollbackVideoRevisionLocal(videoId, revisionNumber, actorEmail);
+}
+
+export async function seedCanonicalVideosInLocalD1(
+  force = false
+): Promise<{ insertedCount: number; skippedCount: number; totalVideos: number }> {
+  assertLocalSimulationAllowed("seedCanonicalVideosInLocalD1", true);
+  return seedCanonicalVideosLocal(force);
 }
 
 export async function reconcileCanonicalProjectsWithD1() {
@@ -894,6 +1149,27 @@ export async function reconcileCanonicalProjectsWithD1() {
       fieldMismatches: [] as { slug: string; field: string; expected: unknown; actual: unknown }[],
       reconciled: false,
       error: `Reconciliation check failed: ${message}`
+    };
+  }
+}
+
+export async function reconcileCanonicalVideosWithD1() {
+  try {
+    const videos = await getAdminVideos();
+    return reconcileVideosListWithCanonical(videos);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[reconcileCanonicalVideosWithD1] Video reconciliation failed:", err);
+    return {
+      checkCompleted: false,
+      status: "unexecuted" as const,
+      canonicalCount: videosData.length,
+      d1TotalCount: 0,
+      missingSlugs: [] as string[],
+      nonCanonicalSlugs: [] as string[],
+      fieldMismatches: [] as { slug: string; field: string; expected: unknown; actual: unknown }[],
+      reconciled: false,
+      error: `Video reconciliation check failed: ${message}`
     };
   }
 }

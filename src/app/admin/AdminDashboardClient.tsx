@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { AdminSessionPayload } from "@/lib/admin/auth";
 import {
   calculateProjectCompleteness,
+  calculateVideoCompleteness,
   normalizeSlug,
   type CmsAuditLogRecord,
   type CmsMediaRecord,
@@ -12,14 +13,22 @@ import {
   type CmsPublishStatus,
   type CmsPublishingEventRecord,
   type CmsRevisionRecord,
+  type CmsVideoRecord,
+  type CmsVideoRevisionRecord,
   type CompletenessCheck,
   type UpsertProjectInput,
+  type UpsertVideoInput,
+  type VideoOrientation,
+  type VideoType,
+  type ProductionMethod,
   type WorkspaceCategory
 } from "@/lib/portfolio/types";
 type AdminTab =
   | "overview"
   | "projects"
   | "editor"
+  | "videos"
+  | "video-editor"
   | "media"
   | "featured"
   | "system"
@@ -27,6 +36,10 @@ type AdminTab =
 
 interface ProjectWithCompleteness extends CmsProjectRecord {
   completeness: CompletenessCheck;
+}
+
+interface VideoWithCompleteness extends CmsVideoRecord {
+  completeness: ReturnType<typeof calculateVideoCompleteness>;
 }
 
 interface D1HealthSummary {
@@ -49,6 +62,13 @@ interface D1HealthSummary {
     featuredPublished: number;
     mediaItems: number;
     translations: number;
+    totalVideos?: number;
+    publishedVideos?: number;
+    draftVideos?: number;
+    archivedVideos?: number;
+    portraitVideos?: number;
+    landscapeVideos?: number;
+    aiAssistedVideos?: number;
   };
   workspaceBreakdown: { workspace: string; status: string; count: number }[];
 }
@@ -130,6 +150,40 @@ const EMPTY_FORM: UpsertProjectInput = {
   media: []
 };
 
+const EMPTY_VIDEO_FORM: UpsertVideoInput = {
+  id: "",
+  slug: "",
+  cmsStatus: "draft",
+  type: "reel",
+  orientation: "portrait",
+  productionMethod: "traditional",
+  aiAssisted: false,
+  titleTR: "",
+  titleEN: "",
+  shortTitleTR: "",
+  shortTitleEN: "",
+  descriptionTR: "",
+  descriptionEN: "",
+  fullDescriptionTR: "",
+  fullDescriptionEN: "",
+  client: "",
+  year: 2026,
+  poster: "",
+  src: "",
+  thumbnail: "",
+  duration: "0:30",
+  aspectRatio: "9:16",
+  featured: false,
+  sortOrder: 0,
+  autoplayPreview: true,
+  externalUrl: "",
+  projectSlug: "",
+  servicesTR: [],
+  servicesEN: [],
+  tools: [],
+  tags: []
+};
+
 export function AdminDashboardClient({
   initialSession,
   authConfig
@@ -145,6 +199,7 @@ export function AdminDashboardClient({
 
   // Data state
   const [projects, setProjects] = useState<ProjectWithCompleteness[]>([]);
+  const [videos, setVideos] = useState<VideoWithCompleteness[]>([]);
   const [health, setHealth] = useState<D1HealthSummary | null>(null);
   const [mediaList, setMediaList] = useState<CmsMediaRecord[]>([]);
   const [mediaDisplayLimit, setMediaDisplayLimit] = useState(60);
@@ -155,6 +210,23 @@ export function AdminDashboardClient({
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [workspaceFilter, setWorkspaceFilter] = useState<string>("all");
+
+  // Video filter & curation state
+  const [videoSearchQuery, setVideoSearchQuery] = useState("");
+  const [videoStatusFilter, setVideoStatusFilter] = useState<string>("all");
+  const [videoOrientationFilter, setVideoOrientationFilter] = useState<string>("all");
+  const [videoAiFilter, setVideoAiFilter] = useState<string>("all");
+  const [videoReorderMode, setVideoReorderMode] = useState(false);
+
+  // Video Editor state
+  const [videoEditorMode, setVideoEditorMode] = useState<"create" | "edit">("create");
+  const [videoEditorLocaleTab, setVideoEditorLocaleTab] = useState<"tr" | "en">("tr");
+  const [videoFormState, setVideoFormState] = useState<UpsertVideoInput>(EMPTY_VIDEO_FORM);
+  const [videoRevisions, setVideoRevisions] = useState<CmsVideoRevisionRecord[]>([]);
+  const [videoSaveMessage, setVideoSaveMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const [videoSaving, setVideoSaving] = useState(false);
+  const [videoDeleteConfirm, setVideoDeleteConfirm] = useState<CmsVideoRecord | null>(null);
+  const [videoPreviewTarget, setVideoPreviewTarget] = useState<CmsVideoRecord | null>(null);
 
   // Derived CMS statistics
   const workspaceCounts = useMemo(() => {
@@ -172,6 +244,48 @@ export function AdminDashboardClient({
       .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
       .slice(0, 6);
   }, [projects]);
+
+  const videoStats = useMemo(() => {
+    const total = videos.length;
+    let published = 0;
+    let draft = 0;
+    let archived = 0;
+    let portrait = 0;
+    let landscape = 0;
+    let aiAssisted = 0;
+
+    for (const v of videos) {
+      if (v.cmsStatus === "published") published++;
+      else if (v.cmsStatus === "draft") draft++;
+      else if (v.cmsStatus === "archived") archived++;
+
+      if (v.orientation === "portrait") portrait++;
+      else if (v.orientation === "landscape") landscape++;
+
+      if (v.aiAssisted) aiAssisted++;
+    }
+
+    return { total, published, draft, archived, portrait, landscape, aiAssisted };
+  }, [videos]);
+
+  const filteredVideos = useMemo(() => {
+    return videos.filter((v) => {
+      if (videoStatusFilter !== "all" && v.cmsStatus !== videoStatusFilter) return false;
+      if (videoOrientationFilter !== "all" && v.orientation !== videoOrientationFilter) return false;
+      if (videoAiFilter === "ai" && !v.aiAssisted) return false;
+      if (videoAiFilter === "traditional" && v.aiAssisted) return false;
+      if (videoSearchQuery.trim()) {
+        const q = videoSearchQuery.toLowerCase();
+        return (
+          v.titleTR.toLowerCase().includes(q) ||
+          v.titleEN.toLowerCase().includes(q) ||
+          v.slug.toLowerCase().includes(q) ||
+          (v.client && v.client.toLowerCase().includes(q))
+        );
+      }
+      return true;
+    });
+  }, [videos, videoStatusFilter, videoOrientationFilter, videoAiFilter, videoSearchQuery]);
 
   // Editor state
   const [editorMode, setEditorMode] = useState<"create" | "edit">("create");
@@ -193,17 +307,31 @@ export function AdminDashboardClient({
     if (!session) return;
     setLoadingCore(true);
     try {
-      const [projRes, sysRes, mediaRes] = await Promise.all([
+      const [projRes, sysRes, mediaRes, vidRes] = await Promise.all([
         fetch("/api/admin/projects", { cache: "no-store" }),
         fetch("/api/admin/system", { cache: "no-store" }),
-        fetch("/api/admin/media", { cache: "no-store" })
+        fetch("/api/admin/media", { cache: "no-store" }),
+        fetch("/api/admin/videos", { cache: "no-store" })
       ]);
 
       if (projRes.ok) {
         const pj = await projRes.json();
         setProjects(pj.projects || []);
         setHealth(pj.health || null);
+      } else {
+        const errJson = await projRes.json().catch(() => ({}));
+        setHealth((prev) => ({
+          ok: false,
+          mode: prev?.mode || "unknown",
+          d1Connected: false,
+          remoteWorkerUrl: prev?.remoteWorkerUrl || null,
+          remoteServiceTokenConfigured: Boolean(prev?.remoteServiceTokenConfigured),
+          error: String(errJson.error || `HTTP ${projRes.status} on /api/admin/projects`),
+          counts: prev?.counts || { total: 0, published: 0, draft: 0, archived: 0, featuredPublished: 0, mediaItems: 0, translations: 0 },
+          workspaceBreakdown: prev?.workspaceBreakdown || []
+        }));
       }
+
       if (sysRes.ok) {
         const sj = await sysRes.json();
         setSystemInfo(sj);
@@ -212,8 +340,22 @@ export function AdminDashboardClient({
         const mj = await mediaRes.json();
         setMediaList(mj.media || []);
       }
+      if (vidRes.ok) {
+        const vj = await vidRes.json();
+        setVideos(vj.videos || []);
+      }
     } catch (err) {
       console.error("Failed to load admin core data:", err);
+      setHealth((prev) => ({
+        ok: false,
+        mode: prev?.mode || "unknown",
+        d1Connected: false,
+        remoteWorkerUrl: prev?.remoteWorkerUrl || null,
+        remoteServiceTokenConfigured: Boolean(prev?.remoteServiceTokenConfigured),
+        error: err instanceof Error ? err.message : String(err),
+        counts: prev?.counts || { total: 0, published: 0, draft: 0, archived: 0, featuredPublished: 0, mediaItems: 0, translations: 0 },
+        workspaceBreakdown: prev?.workspaceBreakdown || []
+      }));
     } finally {
       setLoadingCore(false);
     }
@@ -662,6 +804,290 @@ export function AdminDashboardClient({
     [formState]
   );
 
+  const videoEditorCompleteness = useMemo(
+    () => calculateVideoCompleteness(videoFormState),
+    [videoFormState]
+  );
+
+  const handleOpenVideoEditor = async (video?: CmsVideoRecord) => {
+    if (video) {
+      setVideoEditorMode("edit");
+      setVideoFormState({
+        id: video.id,
+        slug: video.slug,
+        cmsStatus: video.cmsStatus,
+        type: video.type,
+        orientation: video.orientation,
+        productionMethod: video.productionMethod,
+        aiAssisted: video.aiAssisted,
+        titleTR: video.titleTR || "",
+        titleEN: video.titleEN || "",
+        shortTitleTR: video.shortTitleTR || "",
+        shortTitleEN: video.shortTitleEN || "",
+        descriptionTR: video.descriptionTR || "",
+        descriptionEN: video.descriptionEN || "",
+        fullDescriptionTR: video.fullDescriptionTR || "",
+        fullDescriptionEN: video.fullDescriptionEN || "",
+        client: video.client || "",
+        year: video.year || 2026,
+        poster: video.poster || "",
+        src: video.src || "",
+        thumbnail: video.thumbnail || "",
+        duration: video.duration || "0:30",
+        aspectRatio: video.aspectRatio || (video.orientation === "landscape" ? "16:9" : "9:16"),
+        featured: Boolean(video.featured),
+        sortOrder: video.sortOrder || 0,
+        autoplayPreview: video.autoplayPreview ?? true,
+        externalUrl: video.externalUrl || "",
+        projectSlug: video.projectSlug || "",
+        servicesTR: video.servicesTR || video.services || [],
+        servicesEN: video.servicesEN || video.services || [],
+        tools: video.tools || [],
+        tags: video.tags || []
+      });
+      setActiveTab("video-editor");
+      try {
+        const res = await fetch(`/api/admin/videos/${encodeURIComponent(video.id)}`);
+        if (res.ok) {
+          const detail = await res.json();
+          setVideoRevisions(detail.revisions || []);
+        }
+      } catch {}
+    } else {
+      setVideoEditorMode("create");
+      const nextSort = videos.length > 0 ? Math.max(...videos.map((v) => v.sortOrder || 0)) + 1 : 1;
+      setVideoFormState({
+        ...EMPTY_VIDEO_FORM,
+        sortOrder: nextSort
+      });
+      setVideoRevisions([]);
+      setActiveTab("video-editor");
+    }
+  };
+
+  const handleSaveVideo = async (overrideStatus?: CmsPublishStatus) => {
+    setVideoSaving(true);
+    setVideoSaveMessage(null);
+    try {
+      const payload: UpsertVideoInput = {
+        ...videoFormState,
+        slug: normalizeSlug(videoFormState.slug || videoFormState.titleEN || videoFormState.titleTR),
+        cmsStatus: overrideStatus || videoFormState.cmsStatus || "draft"
+      };
+
+      const url = videoFormState.id
+        ? `/api/admin/videos/${encodeURIComponent(videoFormState.id)}`
+        : "/api/admin/videos";
+      const method = videoFormState.id ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          ...csrfHeaders
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setVideoSaveMessage({ type: "err", text: data.error || "Failed to save video." });
+      } else {
+        const saved: VideoWithCompleteness = data.video;
+        setVideoEditorMode("edit");
+        setVideoFormState((prev) => ({
+          ...prev,
+          id: saved.id,
+          slug: saved.slug,
+          cmsStatus: saved.cmsStatus
+        }));
+        if (data.revisions) setVideoRevisions(data.revisions);
+        setVideoSaveMessage({
+          type: "ok",
+          text: `Saved "${saved.titleEN}" (${saved.cmsStatus.toUpperCase()}) at ${new Date().toLocaleTimeString()}`
+        });
+        await loadCoreData();
+      }
+    } catch {
+      setVideoSaveMessage({ type: "err", text: "Network error while saving video." });
+    } finally {
+      setVideoSaving(false);
+    }
+  };
+
+  const handleQuickVideoStatusChange = async (videoId: string, newStatus: CmsPublishStatus) => {
+    try {
+      const res = await fetch(`/api/admin/videos/${encodeURIComponent(videoId)}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...csrfHeaders
+        },
+        body: JSON.stringify({ cmsStatus: newStatus })
+      });
+      if (res.ok) {
+        await loadCoreData();
+      }
+    } catch (err) {
+      console.error("Failed to change video status:", err);
+    }
+  };
+
+  const handleDeleteVideo = async (video: CmsVideoRecord) => {
+    try {
+      const res = await fetch(`/api/admin/videos/${encodeURIComponent(video.id)}`, {
+        method: "DELETE",
+        headers: {
+          ...csrfHeaders
+        }
+      });
+      if (res.ok) {
+        setVideoDeleteConfirm(null);
+        await loadCoreData();
+        setVideoSaveMessage({ type: "ok", text: `Video "${video.titleEN}" deleted successfully.` });
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setVideoSaveMessage({ type: "err", text: data.error || "Failed to delete video." });
+      }
+    } catch {
+      setVideoSaveMessage({ type: "err", text: "Network error while deleting video." });
+    }
+  };
+
+  const handleMoveVideo = async (video: CmsVideoRecord, direction: "up" | "down") => {
+    const currentIndex = videos.findIndex((v) => v.id === video.id);
+    if (currentIndex < 0) return;
+    const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= videos.length) return;
+
+    const newVideos = [...videos];
+    const temp = newVideos[currentIndex];
+    newVideos[currentIndex] = newVideos[targetIndex];
+    newVideos[targetIndex] = temp;
+
+    const orderings = newVideos.map((v, idx) => ({
+      id: v.id,
+      sortOrder: idx + 1
+    }));
+
+    try {
+      const res = await fetch("/api/admin/videos/reorder", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...csrfHeaders
+        },
+        body: JSON.stringify({ orderings })
+      });
+      if (res.ok) {
+        await loadCoreData();
+      }
+    } catch (err) {
+      console.error("Failed to reorder videos:", err);
+    }
+  };
+
+  const handleRollbackVideo = async (revisionNumber: number) => {
+    if (!videoFormState.id) return;
+    try {
+      const res = await fetch(`/api/admin/videos/${encodeURIComponent(videoFormState.id)}/revisions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...csrfHeaders
+        },
+        body: JSON.stringify({ revisionNumber })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const restored: VideoWithCompleteness = data.video;
+        setVideoFormState({
+          id: restored.id,
+          slug: restored.slug,
+          cmsStatus: restored.cmsStatus,
+          type: restored.type,
+          orientation: restored.orientation,
+          productionMethod: restored.productionMethod,
+          aiAssisted: restored.aiAssisted,
+          titleTR: restored.titleTR || "",
+          titleEN: restored.titleEN || "",
+          shortTitleTR: restored.shortTitleTR || "",
+          shortTitleEN: restored.shortTitleEN || "",
+          descriptionTR: restored.descriptionTR || "",
+          descriptionEN: restored.descriptionEN || "",
+          fullDescriptionTR: restored.fullDescriptionTR || "",
+          fullDescriptionEN: restored.fullDescriptionEN || "",
+          client: restored.client || "",
+          year: restored.year || 2026,
+          poster: restored.poster || "",
+          src: restored.src || "",
+          thumbnail: restored.thumbnail || "",
+          duration: restored.duration || "0:30",
+          aspectRatio: restored.aspectRatio || (restored.orientation === "landscape" ? "16:9" : "9:16"),
+          featured: Boolean(restored.featured),
+          sortOrder: restored.sortOrder || 0,
+          autoplayPreview: restored.autoplayPreview ?? true,
+          externalUrl: restored.externalUrl || "",
+          projectSlug: restored.projectSlug || "",
+          servicesTR: restored.servicesTR || restored.services || [],
+          servicesEN: restored.servicesEN || restored.services || [],
+          tools: restored.tools || [],
+          tags: restored.tags || []
+        });
+        if (data.revisions) setVideoRevisions(data.revisions);
+        setVideoSaveMessage({ type: "ok", text: `Rolled back to revision #${revisionNumber}` });
+        await loadCoreData();
+      }
+    } catch {
+      setVideoSaveMessage({ type: "err", text: "Failed to rollback revision." });
+    }
+  };
+
+  const handleUploadVideoAsset = async (
+    file: File,
+    targetField: "poster" | "src" | "thumbnail"
+  ) => {
+    setUploadingMedia(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("kind", targetField === "src" ? "video" : "poster");
+      fd.append("projectSlug", videoFormState.slug || "videos");
+      if (videoFormState.id) fd.append("projectId", videoFormState.id);
+      fd.append("altTR", videoFormState.titleTR || file.name);
+      fd.append("altEN", videoFormState.titleEN || file.name);
+
+      const res = await fetch("/api/admin/media", {
+        method: "POST",
+        headers: {
+          ...csrfHeaders
+        },
+        body: fd
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setVideoSaveMessage({ type: "err", text: data.error || "Media upload failed." });
+        return;
+      }
+
+      const uploaded: CmsMediaRecord = data.media;
+      setVideoFormState((prev) => ({
+        ...prev,
+        [targetField]: uploaded.publicUrl,
+        ...(targetField === "poster" && !prev.thumbnail ? { thumbnail: uploaded.publicUrl } : {})
+      }));
+      await loadCoreData();
+      setVideoSaveMessage({
+        type: "ok",
+        text: `Uploaded ${uploaded.filename} (${uploaded.publicUrl})`
+      });
+    } catch {
+      setVideoSaveMessage({ type: "err", text: "Error uploading media file." });
+    } finally {
+      setUploadingMedia(false);
+    }
+  };
+
   // ==========================================================
   // UNAUTHENTICATED LOGIN GATE
   // ==========================================================
@@ -810,6 +1236,29 @@ export function AdminDashboardClient({
             </svg>
           )
         },
+        {
+          id: "videos",
+          label: "Videos & Reels",
+          badge: videos.length,
+          icon: (
+            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+          )
+        },
+        ...(activeTab === "video-editor"
+          ? [
+              {
+                id: "video-editor" as AdminTab,
+                label: videoEditorMode === "edit" ? "Edit Video" : "+ Create Video",
+                icon: (
+                  <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                )
+              }
+            ]
+          : []),
         {
           id: "editor",
           label: editorMode === "edit" ? "Edit Project" : "+ Create Project",
@@ -1012,6 +1461,14 @@ export function AdminDashboardClient({
               </button>
               <button
                 type="button"
+                data-testid="new-video-quick-btn"
+                onClick={() => handleOpenVideoEditor()}
+                className="px-4 py-2 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-xs font-semibold text-indigo-300 transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <span>+</span> New Video
+              </button>
+              <button
+                type="button"
                 onClick={() => {
                   void loadCoreData();
                 }}
@@ -1069,6 +1526,36 @@ export function AdminDashboardClient({
                 <span className="text-[10px] font-mono text-[#A0A8B5] mt-1 block">
                   {health?.counts.mediaItems ?? mediaList.length} indexed metadata records
                 </span>
+              </div>
+            </div>
+
+            {/* Videos & Reels CMS Summary Card */}
+            <div className="p-5 rounded-xl bg-[#121418] border border-[#252A33] shadow-sm flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400 shrink-0">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-[#F5F7FA]">Videos & Reels Engine</h3>
+                  <p className="text-xs text-[#A0A8B5] mt-0.5">
+                    {videos.length} videos indexed • {videoStats.portrait} portrait 9:16 reels • {videoStats.landscape} landscape 16:9 • {videoStats.aiAssisted} AI-assisted
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-1 rounded text-xs font-mono bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+                  {videoStats.published} Published Live
+                </span>
+                <button
+                  type="button"
+                  data-testid="overview-manage-videos-btn"
+                  onClick={() => setActiveTab("videos")}
+                  className="px-3.5 py-1.5 rounded-lg bg-[#181B22] hover:bg-[#1E222A] border border-[#252A33] text-xs font-semibold text-indigo-300 hover:text-indigo-200 transition-colors cursor-pointer"
+                >
+                  Manage Videos & Reels →
+                </button>
               </div>
             </div>
 
@@ -1953,6 +2440,948 @@ export function AdminDashboardClient({
         )}
 
         {/* ======================================================
+            VIDEOS & REELS CATALOG TAB
+           ====================================================== */}
+        {activeTab === "videos" && (
+          <div className="space-y-6" data-testid="admin-videos-section">
+            {videoSaveMessage && (
+              <div
+                className={`p-4 rounded-xl border text-xs font-mono ${
+                  videoSaveMessage.type === "ok"
+                    ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-300"
+                    : "bg-red-500/10 border-red-500/25 text-red-300"
+                }`}
+              >
+                {videoSaveMessage.text}
+              </div>
+            )}
+
+            {/* Video Overview Stat Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
+              <div className="p-4 rounded-xl bg-[#121418] border border-[#252A33] shadow-sm">
+                <span className="text-[11px] font-mono uppercase tracking-wider text-[#A0A8B5] block">Total Videos</span>
+                <p className="text-2xl font-bold text-[#F5F7FA] mt-1.5 tracking-tight" data-testid="stat-total-videos">
+                  {videoStats.total}
+                </p>
+                <span className="text-[10px] font-mono text-[#64748B] mt-1 block">
+                  {videoStats.published} live • {videoStats.draft} draft
+                </span>
+              </div>
+              <div className="p-4 rounded-xl bg-[#121418] border border-emerald-500/30 shadow-sm">
+                <span className="text-[11px] font-mono uppercase tracking-wider text-emerald-400 block">Published Live</span>
+                <p className="text-2xl font-bold text-emerald-300 mt-1.5 tracking-tight" data-testid="stat-published-videos">
+                  {videoStats.published}
+                </p>
+                <span className="text-[10px] font-mono text-[#64748B] mt-1 block">Active on public site</span>
+              </div>
+              <div className="p-4 rounded-xl bg-[#121418] border border-amber-500/30 shadow-sm">
+                <span className="text-[11px] font-mono uppercase tracking-wider text-amber-400 block">Drafts</span>
+                <p className="text-2xl font-bold text-amber-300 mt-1.5 tracking-tight" data-testid="stat-draft-videos">
+                  {videoStats.draft}
+                </p>
+                <span className="text-[10px] font-mono text-[#64748B] mt-1 block">Unpublished staging</span>
+              </div>
+              <div className="p-4 rounded-xl bg-[#121418] border border-indigo-500/30 shadow-sm">
+                <span className="text-[11px] font-mono uppercase tracking-wider text-indigo-400 block">9:16 Portrait Reels</span>
+                <p className="text-2xl font-bold text-indigo-300 mt-1.5 tracking-tight" data-testid="stat-portrait-videos">
+                  {videoStats.portrait}
+                </p>
+                <span className="text-[10px] font-mono text-[#64748B] mt-1 block">Vertical mobile reels</span>
+              </div>
+              <div className="p-4 rounded-xl bg-[#121418] border border-cyan-500/30 shadow-sm">
+                <span className="text-[11px] font-mono uppercase tracking-wider text-cyan-400 block">16:9 Landscape</span>
+                <p className="text-2xl font-bold text-cyan-300 mt-1.5 tracking-tight" data-testid="stat-landscape-videos">
+                  {videoStats.landscape}
+                </p>
+                <span className="text-[10px] font-mono text-[#64748B] mt-1 block">Widescreen showcase</span>
+              </div>
+              <div className="p-4 rounded-xl bg-[#121418] border border-violet-500/30 shadow-sm">
+                <span className="text-[11px] font-mono uppercase tracking-wider text-violet-400 block">AI-Assisted</span>
+                <p className="text-2xl font-bold text-violet-300 mt-1.5 tracking-tight" data-testid="stat-ai-videos">
+                  {videoStats.aiAssisted}
+                </p>
+                <span className="text-[10px] font-mono text-[#64748B] mt-1 block">Gen-AI motion workflow</span>
+              </div>
+            </div>
+
+            {/* Filter Toolbar */}
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-[#121418] p-4 rounded-xl border border-[#252A33] shadow-sm">
+              <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
+                <input
+                  type="text"
+                  data-testid="videos-search-input"
+                  value={videoSearchQuery}
+                  onChange={(e) => setVideoSearchQuery(e.target.value)}
+                  placeholder="Search videos by title, client, or slug..."
+                  className="flex-1 min-w-[200px] px-3.5 py-2.5 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] placeholder-neutral-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 transition-all"
+                />
+                <select
+                  data-testid="videos-status-filter"
+                  value={videoStatusFilter}
+                  onChange={(e) => setVideoStatusFilter(e.target.value)}
+                  className="px-3.5 py-2.5 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] focus:outline-none focus:border-indigo-500 transition-all"
+                >
+                  <option value="all">All Statuses ({videos.length})</option>
+                  <option value="published">Published Only ({videoStats.published})</option>
+                  <option value="draft">Drafts Only ({videoStats.draft})</option>
+                  <option value="archived">Archived Only ({videoStats.archived})</option>
+                </select>
+                <select
+                  data-testid="videos-orientation-filter"
+                  value={videoOrientationFilter}
+                  onChange={(e) => setVideoOrientationFilter(e.target.value)}
+                  className="px-3.5 py-2.5 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] focus:outline-none focus:border-indigo-500 transition-all"
+                >
+                  <option value="all">All Formats</option>
+                  <option value="portrait">9:16 Portrait Reels ({videoStats.portrait})</option>
+                  <option value="landscape">16:9 Landscape Videos ({videoStats.landscape})</option>
+                </select>
+                <select
+                  data-testid="videos-ai-filter"
+                  value={videoAiFilter}
+                  onChange={(e) => setVideoAiFilter(e.target.value)}
+                  className="px-3.5 py-2.5 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] focus:outline-none focus:border-indigo-500 transition-all"
+                >
+                  <option value="all">All Methods</option>
+                  <option value="ai">AI-Assisted Only ({videoStats.aiAssisted})</option>
+                  <option value="traditional">Traditional Only ({videoStats.total - videoStats.aiAssisted})</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  data-testid="videos-reorder-toggle"
+                  onClick={() => setVideoReorderMode(!videoReorderMode)}
+                  className={`px-3.5 py-2 rounded-lg text-xs font-mono transition-colors border cursor-pointer ${
+                    videoReorderMode
+                      ? "bg-indigo-600/20 border-indigo-500/40 text-indigo-300 font-semibold"
+                      : "bg-[#181B22] border-[#252A33] text-[#A0A8B5] hover:text-[#F5F7FA]"
+                  }`}
+                >
+                  {videoReorderMode ? "✓ Done Reordering" : "⇅ Reorder Mode"}
+                </button>
+                <button
+                  type="button"
+                  data-testid="create-video-btn"
+                  onClick={() => handleOpenVideoEditor()}
+                  className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white shadow-sm shadow-indigo-600/30 transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <span>+</span> Add Video
+                </button>
+              </div>
+            </div>
+
+            {/* Video Cards Grid */}
+            {filteredVideos.length === 0 ? (
+              <div className="p-12 text-center rounded-xl bg-[#121418] border border-[#252A33]">
+                <p className="text-sm font-medium text-[#F5F7FA]">No videos match the current filters.</p>
+                <p className="text-xs text-[#A0A8B5] mt-1">Try resetting search or status filters, or add a new video.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {filteredVideos.map((video, index) => {
+                  const isPortrait = video.orientation === "portrait";
+                  return (
+                    <div
+                      key={video.id}
+                      data-testid={`video-card-${video.slug}`}
+                      className="rounded-xl bg-[#121418] border border-[#252A33] overflow-hidden flex flex-col justify-between shadow-sm hover:border-[#353C49] transition-all group"
+                    >
+                      {/* Media Thumbnail Container with Aspect Ratio Awareness */}
+                      <div className="relative bg-[#0B0C0E] overflow-hidden">
+                        <div className={`w-full overflow-hidden flex items-center justify-center ${isPortrait ? "aspect-[9/13]" : "aspect-video"}`}>
+                          {video.poster ? (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img
+                              src={video.poster}
+                              alt={video.titleEN || video.titleTR}
+                              loading="lazy"
+                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            />
+                          ) : (
+                            <div className="flex flex-col items-center justify-center text-[#64748B] text-xs font-mono">
+                              <span>No Poster</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Top Badges */}
+                        <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between gap-1 pointer-events-none">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold uppercase backdrop-blur-md shadow-sm ${
+                            isPortrait
+                              ? "bg-indigo-950/80 text-indigo-300 border border-indigo-500/40"
+                              : "bg-cyan-950/80 text-cyan-300 border border-cyan-500/40"
+                          }`}>
+                            {isPortrait ? "9:16 REEL" : "16:9 VIDEO"}
+                          </span>
+
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold uppercase backdrop-blur-md shadow-sm border ${
+                            video.cmsStatus === "published"
+                              ? "bg-emerald-950/80 text-emerald-300 border-emerald-500/40"
+                              : video.cmsStatus === "draft"
+                              ? "bg-amber-950/80 text-amber-300 border-amber-500/40"
+                              : "bg-neutral-900/80 text-neutral-400 border-neutral-700/40"
+                          }`}>
+                            {video.cmsStatus}
+                          </span>
+                        </div>
+
+                        {/* Bottom Badges */}
+                        <div className="absolute bottom-2.5 left-2.5 right-2.5 flex items-center justify-between gap-1 pointer-events-none">
+                          {video.aiAssisted ? (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-violet-950/80 text-violet-300 border border-violet-500/40 backdrop-blur-md">
+                              ✦ AI ASSISTED
+                            </span>
+                          ) : (
+                            <span />
+                          )}
+                          {video.duration && (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-black/70 text-[#F5F7FA] border border-white/10 backdrop-blur-md">
+                              {video.duration}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Hover Quick Preview Button */}
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setVideoPreviewTarget(video)}
+                            className="p-3 rounded-full bg-white/20 hover:bg-white/30 text-white backdrop-blur-md border border-white/20 transition-transform hover:scale-110 cursor-pointer"
+                            title="Preview Video Playback"
+                          >
+                            <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                              <path d="M8 5v14l11-7z" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Video Info Section */}
+                      <div className="p-4 space-y-2.5 flex-1 flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[10px] font-mono text-[#64748B]">
+                              #{video.sortOrder} • {video.year || 2026}
+                            </span>
+                            {video.client && (
+                              <span className="text-[10px] font-mono text-indigo-400 truncate max-w-[130px]">
+                                {video.client}
+                              </span>
+                            )}
+                          </div>
+                          <h4 className="text-sm font-semibold text-[#F5F7FA] mt-1 line-clamp-1" title={video.titleEN}>
+                            {video.titleEN}
+                          </h4>
+                          <p className="text-xs text-[#A0A8B5] line-clamp-1" title={video.titleTR}>
+                            {video.titleTR}
+                          </p>
+                        </div>
+
+                        <div className="space-y-2 pt-2 border-t border-[#1C2027]">
+                          {/* Completeness Bar */}
+                          <div className="flex items-center justify-between text-[10px] font-mono text-[#64748B]">
+                            <span>Completeness</span>
+                            <span className={video.completeness.readyToPublish ? "text-emerald-400" : "text-amber-400"}>
+                              {video.completeness.score}%
+                            </span>
+                          </div>
+                          <div className="w-full h-1 rounded-full bg-[#181B22] overflow-hidden">
+                            <div
+                              className={`h-full ${video.completeness.readyToPublish ? "bg-emerald-400" : "bg-amber-400"}`}
+                              style={{ width: `${video.completeness.score}%` }}
+                            />
+                          </div>
+
+                          {/* Reorder Buttons if Active */}
+                          {videoReorderMode && (
+                            <div className="flex items-center gap-1.5 pt-1">
+                              <button
+                                type="button"
+                                disabled={index === 0}
+                                onClick={() => handleMoveVideo(video, "up")}
+                                className="flex-1 py-1 rounded bg-[#181B22] hover:bg-[#1E222A] disabled:opacity-30 border border-[#252A33] text-[11px] font-mono text-[#A0A8B5] hover:text-[#F5F7FA] transition-colors cursor-pointer"
+                              >
+                                ↑ Up
+                              </button>
+                              <button
+                                type="button"
+                                disabled={index === filteredVideos.length - 1}
+                                onClick={() => handleMoveVideo(video, "down")}
+                                className="flex-1 py-1 rounded bg-[#181B22] hover:bg-[#1E222A] disabled:opacity-30 border border-[#252A33] text-[11px] font-mono text-[#A0A8B5] hover:text-[#F5F7FA] transition-colors cursor-pointer"
+                              >
+                                ↓ Down
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Action Footer */}
+                          <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#1C2027]">
+                            <select
+                              value={video.cmsStatus}
+                              onChange={(e) => handleQuickVideoStatusChange(video.id, e.target.value as CmsPublishStatus)}
+                              className="px-2 py-1 rounded bg-[#181B22] border border-[#252A33] text-[11px] font-mono text-[#A0A8B5] focus:outline-none focus:border-indigo-500 transition-all cursor-pointer"
+                            >
+                              <option value="published">Published</option>
+                              <option value="draft">Draft</option>
+                              <option value="archived">Archived</option>
+                            </select>
+
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                data-testid={`edit-video-${video.slug}`}
+                                onClick={() => handleOpenVideoEditor(video)}
+                                className="px-3 py-1 rounded-lg bg-[#181B22] hover:bg-[#1E222A] border border-[#252A33] text-xs font-semibold text-[#F5F7FA] transition-colors cursor-pointer"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                data-testid={`delete-video-${video.slug}`}
+                                onClick={() => setVideoDeleteConfirm(video)}
+                                className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-colors cursor-pointer"
+                                title="Delete Video"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ======================================================
+            VIDEO & REEL EDITOR TAB
+           ====================================================== */}
+        {activeTab === "video-editor" && (
+          <div className="space-y-6" data-testid="admin-video-editor-section">
+            {videoSaveMessage && (
+              <div
+                className={`p-4 rounded-xl border text-xs font-mono ${
+                  videoSaveMessage.type === "ok"
+                    ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-300"
+                    : "bg-red-500/10 border-red-500/25 text-red-300"
+                }`}
+              >
+                {videoSaveMessage.text}
+              </div>
+            )}
+
+            {/* Completeness & Actions Header */}
+            <div className="p-4 rounded-xl bg-[#121418] border border-[#252A33] flex flex-wrap items-center justify-between gap-4 shadow-sm">
+              <div className="space-y-1">
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("videos")}
+                    className="text-xs font-mono text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-1 cursor-pointer"
+                  >
+                    ← Back to Videos & Reels
+                  </button>
+                  <span className="text-neutral-600 font-mono text-xs">•</span>
+                  <span className="text-xs font-semibold text-[#F5F7FA]">
+                    Completeness: {videoEditorCompleteness.score}%
+                  </span>
+                  <span className="text-[11px] font-mono text-[#A0A8B5]">
+                    TR: {videoEditorCompleteness.trScore}% • EN: {videoEditorCompleteness.enScore}% • Media: {videoEditorCompleteness.mediaScore}%
+                  </span>
+                </div>
+                {videoEditorCompleteness.missingFields.length > 0 && (
+                  <p className="text-[11px] text-amber-400 font-mono">
+                    Missing for publication: {videoEditorCompleteness.missingFields.join(", ")}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  data-testid="save-video-draft-btn"
+                  disabled={videoSaving}
+                  onClick={() => handleSaveVideo("draft")}
+                  className="px-4 py-2 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-xs font-semibold text-amber-300 transition-colors cursor-pointer"
+                >
+                  Save as Draft
+                </button>
+                <button
+                  type="button"
+                  data-testid="save-video-publish-btn"
+                  disabled={videoSaving}
+                  onClick={() => handleSaveVideo("published")}
+                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold text-white shadow-sm shadow-emerald-600/30 transition-all cursor-pointer"
+                >
+                  {videoFormState.cmsStatus === "published" ? "Save & Update Published" : "Publish Video"}
+                </button>
+                {videoFormState.id && videoFormState.cmsStatus === "published" && (
+                  <button
+                    type="button"
+                    disabled={videoSaving}
+                    onClick={() => handleSaveVideo("draft")}
+                    className="px-3.5 py-2 rounded-lg bg-[#181B22] hover:bg-[#1E222A] border border-[#252A33] text-xs font-mono text-[#A0A8B5] hover:text-[#F5F7FA] transition-colors cursor-pointer"
+                  >
+                    Unpublish
+                  </button>
+                )}
+                {videoFormState.id && (
+                  <button
+                    type="button"
+                    disabled={videoSaving}
+                    onClick={() => handleSaveVideo("archived")}
+                    className="px-3.5 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-xs font-mono text-red-300 transition-colors cursor-pointer"
+                  >
+                    Archive
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Core Classification & Identity Grid */}
+            <div className="p-5 rounded-xl bg-[#121418] border border-[#252A33] grid grid-cols-1 md:grid-cols-4 gap-4 shadow-sm">
+              <div>
+                <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
+                  URL Slug (Unique) *
+                </label>
+                <input
+                  type="text"
+                  data-testid="video-slug-input"
+                  value={videoFormState.slug}
+                  onChange={(e) => setVideoFormState((prev) => ({ ...prev, slug: normalizeSlug(e.target.value) }))}
+                  placeholder="e.g. dynamic-reel-2026"
+                  className="w-full px-3.5 py-2 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] font-mono focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
+                  Client / Brand *
+                </label>
+                <input
+                  type="text"
+                  data-testid="video-client-input"
+                  value={videoFormState.client || ""}
+                  onChange={(e) => setVideoFormState((prev) => ({ ...prev, client: e.target.value }))}
+                  placeholder="e.g. Nike, Red Bull, Studio Lab"
+                  className="w-full px-3.5 py-2 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
+                  Production Year
+                </label>
+                <input
+                  type="number"
+                  value={videoFormState.year || 2026}
+                  onChange={(e) => setVideoFormState((prev) => ({ ...prev, year: Number(e.target.value) || 2026 }))}
+                  className="w-full px-3.5 py-2 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] font-mono focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
+                  Linked Project Slug (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={videoFormState.projectSlug || ""}
+                  onChange={(e) => setVideoFormState((prev) => ({ ...prev, projectSlug: e.target.value }))}
+                  placeholder="e.g. it-works-brand-identity"
+                  className="w-full px-3.5 py-2 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] font-mono focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
+                  Format / Orientation *
+                </label>
+                <select
+                  data-testid="video-orientation-select"
+                  value={videoFormState.orientation || "portrait"}
+                  onChange={(e) => {
+                    const orientation = e.target.value as VideoOrientation;
+                    setVideoFormState((prev) => ({
+                      ...prev,
+                      orientation,
+                      aspectRatio: orientation === "portrait" ? "9:16" : "16:9"
+                    }));
+                  }}
+                  className="w-full px-3.5 py-2 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] focus:outline-none focus:border-indigo-500"
+                >
+                  <option value="portrait">9:16 Portrait (Vertical Reel)</option>
+                  <option value="landscape">16:9 Landscape (Horizontal Video)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
+                  Video Type
+                </label>
+                <select
+                  value={videoFormState.type || "reel"}
+                  onChange={(e) => setVideoFormState((prev) => ({ ...prev, type: e.target.value as VideoType }))}
+                  className="w-full px-3.5 py-2 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] focus:outline-none focus:border-indigo-500"
+                >
+                  <option value="reel">Reel / Short-form</option>
+                  <option value="showreel">Showreel</option>
+                  <option value="spot">Commercial Spot</option>
+                  <option value="case-study">Motion Case Study</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
+                  Production Method
+                </label>
+                <select
+                  value={videoFormState.productionMethod || "traditional"}
+                  onChange={(e) => {
+                    const productionMethod = e.target.value as ProductionMethod;
+                    setVideoFormState((prev) => ({
+                      ...prev,
+                      productionMethod,
+                      aiAssisted: productionMethod !== "traditional"
+                    }));
+                  }}
+                  className="w-full px-3.5 py-2 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] focus:outline-none focus:border-indigo-500"
+                >
+                  <option value="traditional">Traditional Motion / 3D</option>
+                  <option value="ai-generated">AI Generated (Full GenAI)</option>
+                  <option value="hybrid">Hybrid (Human + AI Assisted)</option>
+                </select>
+              </div>
+
+              <div className="flex flex-col justify-end space-y-2">
+                <label className="flex items-center gap-2 cursor-pointer text-xs text-[#F5F7FA]">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(videoFormState.aiAssisted)}
+                    onChange={(e) => setVideoFormState((prev) => ({ ...prev, aiAssisted: e.target.checked }))}
+                    className="w-4 h-4 rounded bg-[#181B22] border border-[#252A33] text-indigo-600 focus:ring-0"
+                  />
+                  <span>AI-Assisted Production</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer text-xs text-[#F5F7FA]">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(videoFormState.featured)}
+                    onChange={(e) => setVideoFormState((prev) => ({ ...prev, featured: e.target.checked }))}
+                    className="w-4 h-4 rounded bg-[#181B22] border border-[#252A33] text-indigo-600 focus:ring-0"
+                  />
+                  <span>Featured Video</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Bilingual Content Editor (TR & EN Tabs) */}
+            <div className="p-5 rounded-xl bg-[#121418] border border-[#252A33] space-y-4 shadow-sm">
+              <div className="flex items-center justify-between border-b border-[#1C2027] pb-3">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setVideoEditorLocaleTab("tr")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition-colors cursor-pointer ${
+                      videoEditorLocaleTab === "tr"
+                        ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/40"
+                        : "text-[#A0A8B5] hover:text-[#F5F7FA]"
+                    }`}
+                  >
+                    🇹🇷 Turkish (TR) Content
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setVideoEditorLocaleTab("en")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition-colors cursor-pointer ${
+                      videoEditorLocaleTab === "en"
+                        ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/40"
+                        : "text-[#A0A8B5] hover:text-[#F5F7FA]"
+                    }`}
+                  >
+                    🇬🇧 English (EN) Content
+                  </button>
+                </div>
+                <span className="text-[11px] font-mono text-[#64748B]">
+                  Both languages required for publishing
+                </span>
+              </div>
+
+              {videoEditorLocaleTab === "tr" ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
+                        Başlık (Title TR) *
+                      </label>
+                      <input
+                        type="text"
+                        data-testid="video-title-tr-input"
+                        value={videoFormState.titleTR || ""}
+                        onChange={(e) => setVideoFormState((prev) => ({ ...prev, titleTR: e.target.value }))}
+                        placeholder="Örn: It Works! Alum Stick Roll-On Reels"
+                        className="w-full px-3.5 py-2 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
+                        Kısa Başlık (Short Title TR)
+                      </label>
+                      <input
+                        type="text"
+                        value={videoFormState.shortTitleTR || ""}
+                        onChange={(e) => setVideoFormState((prev) => ({ ...prev, shortTitleTR: e.target.value }))}
+                        placeholder="Örn: Alum Stick Roll-On"
+                        className="w-full px-3.5 py-2 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
+                      Açıklama (Description TR) *
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={videoFormState.descriptionTR || ""}
+                      onChange={(e) => setVideoFormState((prev) => ({ ...prev, descriptionTR: e.target.value }))}
+                      placeholder="Video hakkında kısa açıklama..."
+                      className="w-full px-3.5 py-2.5 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
+                      Detaylı Açıklama (Full Description TR)
+                    </label>
+                    <textarea
+                      rows={4}
+                      value={videoFormState.fullDescriptionTR || ""}
+                      onChange={(e) => setVideoFormState((prev) => ({ ...prev, fullDescriptionTR: e.target.value }))}
+                      placeholder="Video detayları, prodüksiyon süreci ve konsept..."
+                      className="w-full px-3.5 py-2.5 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
+                      Hizmetler (Services TR, virgülle ayırın)
+                    </label>
+                    <input
+                      type="text"
+                      value={(videoFormState.servicesTR || []).join(", ")}
+                      onChange={(e) =>
+                        setVideoFormState((prev) => ({
+                          ...prev,
+                          servicesTR: e.target.value.split(",").map((s) => s.trim()).filter(Boolean)
+                        }))
+                      }
+                      placeholder="Örn: 3D Animasyon, Motion Graphics, Ses Tasarımı"
+                      className="w-full px-3.5 py-2 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
+                        Title (Title EN) *
+                      </label>
+                      <input
+                        type="text"
+                        data-testid="video-title-en-input"
+                        value={videoFormState.titleEN || ""}
+                        onChange={(e) => setVideoFormState((prev) => ({ ...prev, titleEN: e.target.value }))}
+                        placeholder="e.g. It Works! Alum Stick Roll-On Reels"
+                        className="w-full px-3.5 py-2 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
+                        Short Title (Short Title EN)
+                      </label>
+                      <input
+                        type="text"
+                        value={videoFormState.shortTitleEN || ""}
+                        onChange={(e) => setVideoFormState((prev) => ({ ...prev, shortTitleEN: e.target.value }))}
+                        placeholder="e.g. Alum Stick Roll-On"
+                        className="w-full px-3.5 py-2 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
+                      Description (Description EN) *
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={videoFormState.descriptionEN || ""}
+                      onChange={(e) => setVideoFormState((prev) => ({ ...prev, descriptionEN: e.target.value }))}
+                      placeholder="Brief video description..."
+                      className="w-full px-3.5 py-2.5 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
+                      Full Description (Full Description EN)
+                    </label>
+                    <textarea
+                      rows={4}
+                      value={videoFormState.fullDescriptionEN || ""}
+                      onChange={(e) => setVideoFormState((prev) => ({ ...prev, fullDescriptionEN: e.target.value }))}
+                      placeholder="Detailed breakdown of production, storytelling, and motion tools..."
+                      className="w-full px-3.5 py-2.5 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
+                      Services (Services EN, comma-separated)
+                    </label>
+                    <input
+                      type="text"
+                      value={(videoFormState.servicesEN || []).join(", ")}
+                      onChange={(e) =>
+                        setVideoFormState((prev) => ({
+                          ...prev,
+                          servicesEN: e.target.value.split(",").map((s) => s.trim()).filter(Boolean)
+                        }))
+                      }
+                      placeholder="e.g. 3D Animation, Motion Graphics, Sound Design"
+                      className="w-full px-3.5 py-2 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Media & Playback Section */}
+            <div className="p-5 rounded-xl bg-[#121418] border border-[#252A33] space-y-4 shadow-sm">
+              <h3 className="text-sm font-semibold text-[#F5F7FA] pb-2 border-b border-[#1C2027]">
+                Media Assets & Playback Configuration
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Poster Configuration */}
+                <div>
+                  <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
+                    Poster Image URL *
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      data-testid="video-poster-input"
+                      value={videoFormState.poster || ""}
+                      onChange={(e) => setVideoFormState((prev) => ({ ...prev, poster: e.target.value }))}
+                      placeholder="e.g. /videos/slug/poster.webp or /api/media/..."
+                      className="flex-1 px-3.5 py-2 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] font-mono focus:outline-none focus:border-indigo-500"
+                    />
+                    <label className="px-3.5 py-2 rounded-lg bg-[#181B22] hover:bg-[#1E222A] border border-[#252A33] text-xs font-mono text-[#A0A8B5] hover:text-[#F5F7FA] transition-colors cursor-pointer shrink-0">
+                      Upload
+                      <input
+                        type="file"
+                        accept="image/webp,image/png,image/jpeg"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) handleUploadVideoAsset(f, "poster");
+                        }}
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                {/* Video Source Configuration */}
+                <div>
+                  <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
+                    Video Source URL (MP4 / WebM) *
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      data-testid="video-src-input"
+                      value={videoFormState.src || ""}
+                      onChange={(e) => setVideoFormState((prev) => ({ ...prev, src: e.target.value }))}
+                      placeholder="e.g. /videos/slug/video.mp4 or /api/media/..."
+                      className="flex-1 px-3.5 py-2 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] font-mono focus:outline-none focus:border-indigo-500"
+                    />
+                    <label className="px-3.5 py-2 rounded-lg bg-[#181B22] hover:bg-[#1E222A] border border-[#252A33] text-xs font-mono text-[#A0A8B5] hover:text-[#F5F7FA] transition-colors cursor-pointer shrink-0">
+                      Upload
+                      <input
+                        type="file"
+                        accept="video/mp4,video/webm"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) handleUploadVideoAsset(f, "src");
+                        }}
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                {/* Duration & Aspect Ratio */}
+                <div>
+                  <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
+                    Duration (e.g. 0:30, 1:15)
+                  </label>
+                  <input
+                    type="text"
+                    value={videoFormState.duration || "0:30"}
+                    onChange={(e) => setVideoFormState((prev) => ({ ...prev, duration: e.target.value }))}
+                    className="w-full px-3.5 py-2 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] font-mono focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
+                    Aspect Ratio (e.g. 9:16 or 16:9)
+                  </label>
+                  <input
+                    type="text"
+                    value={videoFormState.aspectRatio || "9:16"}
+                    onChange={(e) => setVideoFormState((prev) => ({ ...prev, aspectRatio: e.target.value }))}
+                    className="w-full px-3.5 py-2 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] font-mono focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
+                    External URL (Instagram Reel / Vimeo / YouTube)
+                  </label>
+                  <input
+                    type="url"
+                    value={videoFormState.externalUrl || ""}
+                    onChange={(e) => setVideoFormState((prev) => ({ ...prev, externalUrl: e.target.value }))}
+                    placeholder="https://instagram.com/reels/..."
+                    className="w-full px-3.5 py-2 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] font-mono focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
+                    Sort Order (Rank)
+                  </label>
+                  <input
+                    type="number"
+                    value={videoFormState.sortOrder || 0}
+                    onChange={(e) => setVideoFormState((prev) => ({ ...prev, sortOrder: Number(e.target.value) || 0 }))}
+                    className="w-full px-3.5 py-2 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] font-mono focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+
+              {/* Live Playback Preview */}
+              {videoFormState.src && (
+                <div className="pt-4 border-t border-[#1C2027]">
+                  <label className="block text-xs font-mono text-[#A0A8B5] mb-2">
+                    Live Playback Preview
+                  </label>
+                  <div className="flex justify-center p-4 rounded-xl bg-[#0B0C0E] border border-[#252A33]">
+                    <div className={videoFormState.orientation === "landscape" ? "w-full max-w-xl aspect-video" : "w-64 aspect-[9/16]"}>
+                      <video
+                        src={videoFormState.src}
+                        poster={videoFormState.poster}
+                        controls
+                        playsInline
+                        className="w-full h-full object-cover rounded-lg border border-[#252A33]"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Tools & Tags Section */}
+            <div className="p-5 rounded-xl bg-[#121418] border border-[#252A33] space-y-4 shadow-sm">
+              <h3 className="text-sm font-semibold text-[#F5F7FA] pb-2 border-b border-[#1C2027]">
+                Tools, Software & Curation Tags
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
+                    Tools / Software (comma-separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={(videoFormState.tools || []).join(", ")}
+                    onChange={(e) =>
+                      setVideoFormState((prev) => ({
+                        ...prev,
+                        tools: e.target.value.split(",").map((s) => s.trim()).filter(Boolean)
+                      }))
+                    }
+                    placeholder="e.g. Premiere Pro, After Effects, Runway Gen-3, Midjourney"
+                    className="w-full px-3.5 py-2 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-mono text-[#A0A8B5] mb-1.5">
+                    General Tags (comma-separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={(videoFormState.tags || []).join(", ")}
+                    onChange={(e) =>
+                      setVideoFormState((prev) => ({
+                        ...prev,
+                        tags: e.target.value.split(",").map((s) => s.trim()).filter(Boolean)
+                      }))
+                    }
+                    placeholder="e.g. motion, reels, 3d, ai-video"
+                    className="w-full px-3.5 py-2 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA] focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Revisions & Rollback Section */}
+            {videoFormState.id && videoRevisions.length > 0 && (
+              <div className="p-5 rounded-xl bg-[#121418] border border-[#252A33] space-y-3 shadow-sm">
+                <h3 className="text-sm font-semibold text-[#F5F7FA]">
+                  Revision History ({videoRevisions.length})
+                </h3>
+                <div className="divide-y divide-[#1C2027] border border-[#252A33] rounded-lg overflow-hidden">
+                  {videoRevisions.map((rev) => (
+                    <div key={rev.id} className="p-3 bg-[#15181F] flex items-center justify-between text-xs">
+                      <div>
+                        <span className="font-mono text-indigo-400 font-semibold mr-2">
+                          #{rev.revisionNumber}
+                        </span>
+                        <span className="text-[#F5F7FA] mr-2">{rev.action}</span>
+                        <span className="text-[11px] font-mono text-[#64748B]">
+                          by {rev.actorEmail} at {new Date(rev.createdAt).toLocaleString()}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRollbackVideo(rev.revisionNumber)}
+                        className="px-2.5 py-1 rounded bg-[#181B22] hover:bg-[#1E222A] border border-[#252A33] text-[11px] font-mono text-indigo-300 hover:text-indigo-200 transition-colors cursor-pointer"
+                      >
+                        Restore Revision
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ======================================================
             4. MEDIA LIBRARY (R2) TAB
            ====================================================== */}
         {activeTab === "media" && (
@@ -2208,8 +3637,8 @@ export function AdminDashboardClient({
                 </p>
                 <p className="text-[#A0A8B5]">
                   Cloudflare R2 Storage:{" "}
-                  <span className={`font-mono text-[11px] ${systemInfo.d1Health.r2Connected !== false ? "text-emerald-300" : "text-amber-400"}`}>
-                    {systemInfo.d1Health.r2Connected !== false
+                  <span className={`font-mono text-[11px] ${systemInfo.d1Health.r2Connected === true ? "text-emerald-300" : "text-amber-400"}`}>
+                    {systemInfo.d1Health.r2Connected === true
                       ? "Bucket Configured & Bound (R2 API Connected)"
                       : "Unverified / Disconnected"}
                   </span>
@@ -2291,6 +3720,104 @@ export function AdminDashboardClient({
         )}
         </div>
       </main>
+
+      {/* Video Safe Delete Modal */}
+      {videoDeleteConfirm && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-2xl bg-[#121418] border border-red-500/30 p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 text-red-400">
+              <div className="w-10 h-10 rounded-full bg-red-500/15 border border-red-500/30 flex items-center justify-center shrink-0">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-[#F5F7FA]">Confirm Deletion</h3>
+                <p className="text-xs text-[#A0A8B5]">This action cannot be undone.</p>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-lg bg-[#181B22] border border-[#252A33] text-xs font-mono space-y-1">
+              <p className="text-[#F5F7FA] font-semibold">{videoDeleteConfirm.titleEN}</p>
+              <p className="text-[#64748B]">Slug: /{videoDeleteConfirm.slug}</p>
+              <p className="text-[#64748B]">Orientation: {videoDeleteConfirm.orientation} • Status: {videoDeleteConfirm.cmsStatus}</p>
+            </div>
+
+            <p className="text-xs text-[#A0A8B5]">
+              Are you sure you want to permanently delete this video, its translations, and asset references from D1?
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setVideoDeleteConfirm(null)}
+                className="px-4 py-2 rounded-lg bg-[#181B22] hover:bg-[#1E222A] border border-[#252A33] text-xs font-semibold text-[#A0A8B5] hover:text-[#F5F7FA] transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                data-testid="confirm-delete-video-btn"
+                onClick={() => handleDeleteVideo(videoDeleteConfirm)}
+                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-xs font-semibold text-white shadow-sm shadow-red-600/30 transition-all cursor-pointer"
+              >
+                Permanently Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Video Interactive Preview Modal */}
+      {videoPreviewTarget && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-2xl rounded-2xl bg-[#121418] border border-[#252A33] overflow-hidden shadow-2xl space-y-4 p-5">
+            <div className="flex items-center justify-between pb-3 border-b border-[#1C2027]">
+              <div>
+                <h3 className="text-sm font-semibold text-[#F5F7FA]">{videoPreviewTarget.titleEN}</h3>
+                <p className="text-xs text-[#A0A8B5] font-mono">
+                  {videoPreviewTarget.orientation === "portrait" ? "9:16 Portrait Reel" : "16:9 Landscape Video"} • {videoPreviewTarget.duration}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setVideoPreviewTarget(null)}
+                className="p-1.5 rounded-lg bg-[#181B22] hover:bg-[#1E222A] text-[#A0A8B5] hover:text-[#F5F7FA] border border-[#252A33] transition-colors cursor-pointer"
+              >
+                ✕ Close
+              </button>
+            </div>
+
+            <div className="flex justify-center bg-[#0B0C0E] rounded-xl p-3 border border-[#252A33] overflow-hidden">
+              <div className={videoPreviewTarget.orientation === "landscape" ? "w-full aspect-video" : "w-72 aspect-[9/16]"}>
+                <video
+                  src={videoPreviewTarget.src}
+                  poster={videoPreviewTarget.poster}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="w-full h-full object-cover rounded-lg"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between text-xs text-[#64748B] pt-2 border-t border-[#1C2027]">
+              <span className="font-mono">URL: {videoPreviewTarget.src}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  const target = videoPreviewTarget;
+                  setVideoPreviewTarget(null);
+                  handleOpenVideoEditor(target);
+                }}
+                className="text-indigo-400 hover:text-indigo-300 font-semibold cursor-pointer"
+              >
+                Open in Full Editor →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

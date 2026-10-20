@@ -6,13 +6,19 @@ import {
   projectsData,
   type DesktopThumbnailConfig,
   type ProjectCategoryId,
-  type ProjectContentBlock,
+  ProjectContentBlock,
   type ProjectExternalLink,
   type ProjectMediaItem,
   type ProjectMediaLayout,
   type ProjectStatus,
   type WorkspaceId
 } from "@/data/projects";
+import {
+  videosData,
+  type VideoType,
+  type VideoOrientation,
+  type ProductionMethod
+} from "@/data/videos";
 import {
   CmsStorageUnavailableError,
   type CmsAuditLogRecord,
@@ -24,6 +30,10 @@ import {
   type CmsRevisionRecord,
   type CmsStorageMode,
   type UpsertProjectInput,
+  type CmsVideoRecord,
+  type CmsVideoAssetRecord,
+  type CmsVideoRevisionRecord,
+  type UpsertVideoInput,
   normalizeSlug,
   validateMediaFileSignature
 } from "./types";
@@ -102,9 +112,12 @@ export function getCmsDataSource(): CmsDataSource {
   return "cloudflare";
 }
 
-export function assertLocalSimulationAllowed(operation: string): void {
+export function assertLocalSimulationAllowed(operation: string, allowStagingFallback = false): void {
   const mode = getCmsStorageMode();
   if (mode !== "local") {
+    if (allowStagingFallback && mode === "staging") {
+      return;
+    }
     throw new CmsStorageUnavailableError(
       `[CMS Fail-Closed] Operation "${operation}" blocked: local SQLite/R2 simulation is strictly disabled when CMS_STORAGE_MODE="${mode}". Configure CLOUDFLARE_CMS_API_URL and CLOUDFLARE_API_SERVICE_TOKEN.`
     );
@@ -283,13 +296,84 @@ CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_created ON admin_audit_logs(crea
 CREATE INDEX IF NOT EXISTS idx_admin_sessions_actor_active ON admin_sessions(actor_email, revoked_at, expires_at);
 CREATE INDEX IF NOT EXISTS idx_admin_sessions_expires ON admin_sessions(expires_at);
 CREATE INDEX IF NOT EXISTS idx_admin_rate_limits_updated ON admin_rate_limits(updated_at);
+
+-- Videos & Reels Schema (Additive)
+CREATE TABLE IF NOT EXISTS portfolio_videos (
+  id TEXT PRIMARY KEY,
+  slug TEXT NOT NULL UNIQUE,
+  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'published', 'archived')),
+  orientation TEXT NOT NULL DEFAULT 'portrait' CHECK (orientation IN ('portrait', 'landscape')),
+  video_type TEXT NOT NULL DEFAULT 'reel' CHECK (video_type IN ('ai-reel', 'reel', 'video')),
+  production_method TEXT NOT NULL DEFAULT 'traditional' CHECK (production_method IN ('traditional', 'ai-assisted', 'hybrid')),
+  ai_assisted INTEGER NOT NULL DEFAULT 0 CHECK (ai_assisted IN (0, 1)),
+  client_name TEXT NOT NULL DEFAULT '',
+  year INTEGER NOT NULL DEFAULT 2026,
+  duration TEXT NOT NULL DEFAULT '',
+  aspect_ratio TEXT NOT NULL DEFAULT '9:16',
+  featured INTEGER NOT NULL DEFAULT 0 CHECK (featured IN (0, 1)),
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  autoplay_preview INTEGER NOT NULL DEFAULT 1 CHECK (autoplay_preview IN (0, 1)),
+  external_url TEXT,
+  project_slug TEXT,
+  tools_json TEXT NOT NULL DEFAULT '[]',
+  tags_json TEXT NOT NULL DEFAULT '[]',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  published_at TEXT,
+  archived_at TEXT
+);
+CREATE TABLE IF NOT EXISTS portfolio_video_translations (
+  id TEXT PRIMARY KEY,
+  video_id TEXT NOT NULL REFERENCES portfolio_videos(id) ON DELETE CASCADE,
+  locale TEXT NOT NULL CHECK (locale IN ('tr', 'en')),
+  title TEXT NOT NULL DEFAULT '',
+  short_title TEXT NOT NULL DEFAULT '',
+  description TEXT NOT NULL DEFAULT '',
+  full_description TEXT NOT NULL DEFAULT '',
+  services_json TEXT NOT NULL DEFAULT '[]',
+  updated_at TEXT NOT NULL,
+  UNIQUE(video_id, locale)
+);
+CREATE TABLE IF NOT EXISTS portfolio_video_assets (
+  id TEXT PRIMARY KEY,
+  video_id TEXT NOT NULL REFERENCES portfolio_videos(id) ON DELETE CASCADE,
+  asset_type TEXT NOT NULL CHECK (asset_type IN ('video', 'poster', 'thumbnail')),
+  storage_mode TEXT NOT NULL DEFAULT 'local_static' CHECK (storage_mode IN ('local_static', 'r2', 'external')),
+  storage_key TEXT NOT NULL,
+  public_url TEXT NOT NULL,
+  mime_type TEXT NOT NULL DEFAULT 'video/mp4',
+  byte_size INTEGER NOT NULL DEFAULT 0,
+  width INTEGER,
+  height INTEGER,
+  duration_seconds REAL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE(video_id, asset_type)
+);
+CREATE TABLE IF NOT EXISTS portfolio_video_revisions (
+  id TEXT PRIMARY KEY,
+  video_id TEXT NOT NULL REFERENCES portfolio_videos(id) ON DELETE CASCADE,
+  revision_number INTEGER NOT NULL,
+  action TEXT NOT NULL,
+  snapshot_json TEXT NOT NULL,
+  actor_email TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_portfolio_videos_slug ON portfolio_videos(slug);
+CREATE INDEX IF NOT EXISTS idx_portfolio_videos_status_sort ON portfolio_videos(status, sort_order ASC, id ASC);
+CREATE INDEX IF NOT EXISTS idx_portfolio_videos_featured ON portfolio_videos(status, featured, sort_order ASC);
+CREATE INDEX IF NOT EXISTS idx_portfolio_videos_orientation ON portfolio_videos(status, orientation);
+CREATE INDEX IF NOT EXISTS idx_portfolio_video_translations_lookup ON portfolio_video_translations(video_id, locale);
+CREATE INDEX IF NOT EXISTS idx_portfolio_video_assets_lookup ON portfolio_video_assets(video_id, asset_type);
+CREATE INDEX IF NOT EXISTS idx_portfolio_video_assets_storage_key ON portfolio_video_assets(storage_key);
+CREATE INDEX IF NOT EXISTS idx_portfolio_video_revisions_lookup ON portfolio_video_revisions(video_id, revision_number DESC);
 `;
 
 let cachedDb: SqliteDatabase | null = null;
 let cachedDbPath: string | null = null;
 
-export function getD1Database(): SqliteDatabase {
-  assertLocalSimulationAllowed("getD1Database");
+export function getD1Database(allowStagingFallback = false): SqliteDatabase {
+  assertLocalSimulationAllowed("getD1Database", allowStagingFallback);
 
   const dbPath = getDbFilePath();
   if (cachedDb && cachedDbPath === dbPath && fs.existsSync(dbPath)) {
@@ -309,22 +393,73 @@ export function getD1Database(): SqliteDatabase {
   db.exec("PRAGMA busy_timeout = 5000;");
   db.exec("PRAGMA foreign_keys = ON;");
 
-  const migrationPath = path.join(
+  const migrationsDir = path.join(
     process.cwd(),
     "cloudflare",
     "portfolio-api",
-    "migrations",
-    "0001_initial_schema.sql"
+    "migrations"
   );
-  const schemaSql = fs.existsSync(migrationPath)
-    ? fs.readFileSync(migrationPath, "utf-8")
-    : SCHEMA_SQL_FALLBACK;
-  db.exec(schemaSql);
+  if (fs.existsSync(migrationsDir)) {
+    const migrationFiles = fs
+      .readdirSync(migrationsDir)
+      .filter((f) => f.endsWith(".sql"))
+      .sort();
+    for (const file of migrationFiles) {
+      const sql = fs.readFileSync(path.join(migrationsDir, file), "utf-8");
+      db.exec(sql);
+    }
+  } else {
+    db.exec(SCHEMA_SQL_FALLBACK);
+  }
 
-  const countRow = db.prepare("SELECT COUNT(*) as count FROM projects").get();
+  // Ensure admin_sessions has actor_email column (in case legacy local DB existed)
+  try {
+    const sessionTableCols = db
+      .prepare("PRAGMA table_info(admin_sessions)")
+      .all() as { name: string }[];
+    const hasActorEmail = sessionTableCols.some((c) => c.name === "actor_email");
+    if (!hasActorEmail && sessionTableCols.length > 0) {
+      db.exec("DROP TABLE admin_sessions;");
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS admin_sessions (
+          jti_hash TEXT PRIMARY KEY,
+          actor_email TEXT NOT NULL,
+          role TEXT NOT NULL DEFAULT 'owner',
+          csrf_token_hash TEXT NOT NULL,
+          issued_at INTEGER NOT NULL,
+          expires_at INTEGER NOT NULL,
+          revoked_at INTEGER,
+          revoked_reason TEXT,
+          ip_hash TEXT,
+          user_agent TEXT,
+          last_seen_at INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_admin_sessions_actor_active ON admin_sessions(actor_email, revoked_at, expires_at);
+        CREATE INDEX IF NOT EXISTS idx_admin_sessions_expires ON admin_sessions(expires_at);
+      `);
+    }
+  } catch {
+    // Ignore if pragma fails
+  }
+
+  const countRow = db.prepare("SELECT COUNT(*) as count FROM projects").get() as
+    | { count: number }
+    | undefined;
   const existingCount = Number(countRow?.count ?? 0);
   if (existingCount === 0) {
     seedCanonicalProjects(db, { upsertExisting: false });
+  }
+
+  // Seed canonical videos if table exists but empty
+  try {
+    const videoCountRow = db
+      .prepare("SELECT COUNT(*) as count FROM portfolio_videos")
+      .get() as { count: number } | undefined;
+    if (Number(videoCountRow?.count ?? 0) === 0) {
+      seedCanonicalVideosInLocalD1(false);
+    }
+  } catch {
+    // portfolio_videos may not exist in minimal environments
   }
 
   cachedDb = db;
@@ -1632,7 +1767,26 @@ export function isMediaKeyPubliclyAccessibleInLocalD1(storageKey: string): boole
     | { id: string; project_id: string; project_status: string }
     | undefined;
 
-  return Boolean(row && row.project_id && row.project_status === "published");
+  if (row && row.project_id && row.project_status === "published") {
+    return true;
+  }
+
+  // Check video assets
+  try {
+    const videoRow = db
+      .prepare(
+        `SELECT pva.id, pv.status as video_status
+         FROM portfolio_video_assets pva
+         INNER JOIN portfolio_videos pv ON pva.video_id = pv.id
+         WHERE pva.storage_key = ?
+         LIMIT 1`
+      )
+      .get(storageKey) as { id: string; video_status: string } | undefined;
+
+    return Boolean(videoRow && videoRow.video_status === "published");
+  } catch {
+    return false;
+  }
 }
 
 export function listMediaFromD1(projectId?: string): CmsMediaRecord[] {
@@ -1725,7 +1879,14 @@ export function getD1HealthAndStats() {
         archived: 0,
         featuredPublished: 0,
         mediaItems: 0,
-        translations: 0
+        translations: 0,
+        totalVideos: 0,
+        publishedVideos: 0,
+        draftVideos: 0,
+        archivedVideos: 0,
+        portraitVideos: 0,
+        landscapeVideos: 0,
+        aiAssistedVideos: 0
       },
       workspaceBreakdown: []
     };
@@ -1751,6 +1912,39 @@ export function getD1HealthAndStats() {
     statusMap[String(r.status)] = Number(r.count);
   }
 
+  const videoCounts = {
+    totalVideos: 0,
+    publishedVideos: 0,
+    draftVideos: 0,
+    archivedVideos: 0,
+    portraitVideos: 0,
+    landscapeVideos: 0,
+    aiAssistedVideos: 0
+  };
+
+  try {
+    const videoStatusRows = db
+      .prepare(
+        `SELECT status, orientation, ai_assisted, COUNT(*) as count
+         FROM portfolio_videos
+         GROUP BY status, orientation, ai_assisted`
+      )
+      .all() as { status: string; orientation: string; ai_assisted: number; count: number }[];
+
+    for (const r of videoStatusRows) {
+      const c = Number(r.count || 0);
+      videoCounts.totalVideos += c;
+      if (r.status === "published") videoCounts.publishedVideos += c;
+      if (r.status === "draft") videoCounts.draftVideos += c;
+      if (r.status === "archived") videoCounts.archivedVideos += c;
+      if (r.orientation === "portrait") videoCounts.portraitVideos += c;
+      if (r.orientation === "landscape") videoCounts.landscapeVideos += c;
+      if (Number(r.ai_assisted) === 1) videoCounts.aiAssistedVideos += c;
+    }
+  } catch {
+    // portfolio_videos table not yet created
+  }
+
   return {
     ok: true,
     mode: remoteConfigured ? "cloudflare-worker-local" : "local-d1-sqlite",
@@ -1769,7 +1963,8 @@ export function getD1HealthAndStats() {
       archived: statusMap.archived,
       featuredPublished: Number(featuredRow?.count || 0),
       mediaItems: Number(mediaRow?.count || 0),
-      translations: Number(translationRow?.count || 0)
+      translations: Number(translationRow?.count || 0),
+      ...videoCounts
     },
     workspaceBreakdown: workspaceRows.map((r) => ({
       workspace: String(r.workspace),
@@ -1896,6 +2091,103 @@ export function reconcileCanonicalProjectsWithD1() {
   }
   const d1Projects = listAllProjectsForAdminFromD1();
   return reconcileProjectsListWithCanonical(d1Projects);
+}
+
+export function reconcileVideosListWithCanonical(d1Videos: CmsVideoRecord[]) {
+  const bySlug = new Map(d1Videos.map((v) => [v.slug, v]));
+  const canonicalSlugSet = new Set(videosData.map((v) => v.slug));
+  const missingSlugs: string[] = [];
+  const nonCanonicalSlugs = d1Videos
+    .filter((v) => !canonicalSlugSet.has(v.slug))
+    .map((v) => v.slug);
+  const fieldMismatches: {
+    slug: string;
+    field: string;
+    expected: unknown;
+    actual: unknown;
+  }[] = [];
+
+  for (const canonical of videosData) {
+    const found = bySlug.get(canonical.slug);
+    if (!found) {
+      missingSlugs.push(canonical.slug);
+      continue;
+    }
+
+    const check = (field: string, expected: unknown, actual: unknown) => {
+      if (JSON.stringify(expected) !== JSON.stringify(actual)) {
+        fieldMismatches.push({
+          slug: canonical.slug,
+          field,
+          expected,
+          actual
+        });
+      }
+    };
+
+    check("id", canonical.id, found.id);
+    check("slug", canonical.slug, found.slug);
+    check("type", canonical.type, found.type);
+    check("orientation", canonical.orientation || "portrait", found.orientation);
+    check("aiAssisted", Boolean(canonical.aiAssisted), Boolean(found.aiAssisted));
+    check("productionMethod", canonical.productionMethod || "traditional", found.productionMethod);
+    check("client", canonical.client || "", found.client || "");
+    check("year", canonical.year || 2026, found.year || 2026);
+    check("titleTR", canonical.titleTR, found.titleTR);
+    check("titleEN", canonical.titleEN, found.titleEN);
+    check("shortTitleTR", canonical.shortTitleTR, found.shortTitleTR);
+    check("shortTitleEN", canonical.shortTitleEN, found.shortTitleEN);
+    check("descriptionTR", canonical.descriptionTR, found.descriptionTR);
+    check("descriptionEN", canonical.descriptionEN, found.descriptionEN);
+    check("fullDescriptionTR", canonical.fullDescriptionTR, found.fullDescriptionTR);
+    check("fullDescriptionEN", canonical.fullDescriptionEN, found.fullDescriptionEN);
+    check("servicesTR", canonical.servicesTR, found.servicesTR);
+    check("servicesEN", canonical.servicesEN, found.servicesEN);
+    check("poster", canonical.poster, found.poster);
+    check("src", canonical.src || `/videos/${canonical.slug}/video.mp4`, found.src);
+    check("duration", canonical.duration, found.duration);
+    check("featured", Boolean(canonical.featured), Boolean(found.featured));
+    check("sortOrder", canonical.sortOrder, found.sortOrder);
+  }
+
+  const status: "verified" | "modified" | "mismatch" | "error" =
+    missingSlugs.length > 0
+      ? "error"
+      : fieldMismatches.length > 0
+      ? "modified"
+      : "verified";
+
+  return {
+    checkCompleted: true,
+    status,
+    canonicalCount: videosData.length,
+    d1TotalCount: d1Videos.length,
+    missingSlugs,
+    nonCanonicalSlugs,
+    fieldMismatches,
+    reconciled:
+      missingSlugs.length === 0 &&
+      nonCanonicalSlugs.length === 0 &&
+      fieldMismatches.length === 0
+  };
+}
+
+export function reconcileCanonicalVideosWithD1() {
+  if (getCmsStorageMode() !== "local") {
+    return {
+      checkCompleted: false,
+      status: "unexecuted" as const,
+      canonicalCount: videosData.length,
+      d1TotalCount: 0,
+      missingSlugs: [],
+      nonCanonicalSlugs: [],
+      fieldMismatches: [],
+      reconciled: false,
+      error: "Remote video reconciliation must be performed through repository.reconcileCanonicalVideosWithD1()"
+    };
+  }
+  const d1Videos = listAllVideosForAdminFromD1();
+  return reconcileVideosListWithCanonical(d1Videos);
 }
 
 // ============================================================
@@ -2185,4 +2477,676 @@ export function clearDurableLoginRateLimitInLocalD1(scopeKeys: string[]): void {
   for (const key of scopeKeys) {
     db.prepare(`DELETE FROM admin_rate_limits WHERE scope_key = ?`).run(key);
   }
+}
+
+// ============================================================
+// VIDEOS & REELS CMS ENGINE (LOCAL SQLITE D1)
+// ============================================================
+
+export function mapRowsToCmsVideos(
+  videoRows: Record<string, unknown>[],
+  translationRows: Record<string, unknown>[],
+  assetRows: Record<string, unknown>[]
+): CmsVideoRecord[] {
+  const trMap = new Map<string, Record<string, unknown>>();
+  const enMap = new Map<string, Record<string, unknown>>();
+
+  for (const row of translationRows) {
+    const vid = String(row.video_id);
+    if (row.locale === "tr") trMap.set(vid, row);
+    if (row.locale === "en") enMap.set(vid, row);
+  }
+
+  const assetsByVideo = new Map<string, CmsVideoAssetRecord[]>();
+  for (const row of assetRows) {
+    const vid = String(row.video_id);
+    if (!assetsByVideo.has(vid)) assetsByVideo.set(vid, []);
+    assetsByVideo.get(vid)!.push({
+      id: String(row.id),
+      videoId: vid,
+      assetType: String(row.asset_type) as "video" | "poster" | "thumbnail",
+      storageMode: String(row.storage_mode) as "local_static" | "r2" | "external",
+      storageKey: String(row.storage_key),
+      publicUrl: String(row.public_url),
+      mimeType: String(row.mime_type || "video/mp4"),
+      byteSize: Number(row.byte_size || 0),
+      width: row.width !== null && row.width !== undefined ? Number(row.width) : null,
+      height: row.height !== null && row.height !== undefined ? Number(row.height) : null,
+      durationSeconds: row.duration_seconds !== null && row.duration_seconds !== undefined ? Number(row.duration_seconds) : null,
+      createdAt: String(row.created_at),
+      updatedAt: String(row.updated_at)
+    });
+  }
+
+  return videoRows.map((row) => {
+    const id = String(row.id);
+    const tr = trMap.get(id) || {};
+    const en = enMap.get(id) || {};
+    const assets = assetsByVideo.get(id) || [];
+
+    const videoAsset = assets.find((a) => a.assetType === "video");
+    const posterAsset = assets.find((a) => a.assetType === "poster");
+    const thumbAsset = assets.find((a) => a.assetType === "thumbnail");
+
+    const tools = parseJsonSafe<string[]>(row.tools_json, []);
+    const tags = parseJsonSafe<string[]>(row.tags_json, []);
+    const servicesTR = parseJsonSafe<string[]>(tr.services_json, []);
+    const servicesEN = parseJsonSafe<string[]>(en.services_json, []);
+
+    const orientation = (row.orientation as VideoOrientation) || "portrait";
+    const videoType = (row.video_type as VideoType) || "reel";
+    const productionMethod = (row.production_method as ProductionMethod) || "traditional";
+
+    const record: CmsVideoRecord = {
+      id,
+      slug: String(row.slug),
+      type: videoType,
+      orientation,
+      aiAssisted: Boolean(row.ai_assisted),
+      productionMethod,
+      titleTR: String(tr.title || ""),
+      titleEN: String(en.title || ""),
+      shortTitleTR: tr.short_title ? String(tr.short_title) : undefined,
+      shortTitleEN: en.short_title ? String(en.short_title) : undefined,
+      descriptionTR: tr.description ? String(tr.description) : undefined,
+      descriptionEN: en.description ? String(en.description) : undefined,
+      fullDescriptionTR: tr.full_description ? String(tr.full_description) : undefined,
+      fullDescriptionEN: en.full_description ? String(en.full_description) : undefined,
+      client: row.client_name ? String(row.client_name) : undefined,
+      year: row.year ? Number(row.year) : undefined,
+      poster: posterAsset?.publicUrl || `/videos/${row.slug}/poster.webp`,
+      thumbnail: thumbAsset?.publicUrl,
+      src: videoAsset?.publicUrl || `/videos/${row.slug}/video.mp4`,
+      duration: row.duration ? String(row.duration) : undefined,
+      aspectRatio: String(row.aspect_ratio || (orientation === "portrait" ? "9:16" : "16:9")),
+      servicesTR: servicesTR.length > 0 ? servicesTR : undefined,
+      servicesEN: servicesEN.length > 0 ? servicesEN : undefined,
+      services: servicesTR.length > 0 ? servicesTR : undefined,
+      tools: tools.length > 0 ? tools : undefined,
+      tags: tags.length > 0 ? tags : undefined,
+      autoplayPreview: row.autoplay_preview !== null ? Boolean(row.autoplay_preview) : true,
+      externalUrl: row.external_url ? String(row.external_url) : undefined,
+      projectSlug: row.project_slug ? String(row.project_slug) : undefined,
+      featured: Boolean(row.featured),
+      sortOrder: Number(row.sort_order || 0),
+      cmsStatus: (row.status as CmsPublishStatus) || "draft",
+      createdAt: String(row.created_at),
+      updatedAt: String(row.updated_at),
+      publishedAt: row.published_at ? String(row.published_at) : null,
+      archivedAt: row.archived_at ? String(row.archived_at) : null,
+      assets
+    };
+
+    return record;
+  });
+}
+
+export function listAllVideosForAdminFromD1(): CmsVideoRecord[] {
+  assertLocalSimulationAllowed("listAllVideosForAdminFromD1", true);
+  const db = getD1Database(true);
+  const videoRows = db
+    .prepare(`SELECT * FROM portfolio_videos ORDER BY sort_order ASC, id ASC`)
+    .all();
+  if (videoRows.length === 0) return [];
+
+  const videoIds = videoRows.map((r) => String(r.id));
+  const placeholders = videoIds.map(() => "?").join(",");
+
+  const translationRows = db
+    .prepare(`SELECT * FROM portfolio_video_translations WHERE video_id IN (${placeholders})`)
+    .all(...videoIds);
+  const assetRows = db
+    .prepare(`SELECT * FROM portfolio_video_assets WHERE video_id IN (${placeholders})`)
+    .all(...videoIds);
+
+  return mapRowsToCmsVideos(videoRows, translationRows, assetRows);
+}
+
+export function listPublishedVideosFromD1(): CmsVideoRecord[] {
+  assertLocalSimulationAllowed("listPublishedVideosFromD1", true);
+  const db = getD1Database(true);
+  const videoRows = db
+    .prepare(
+      `SELECT * FROM portfolio_videos WHERE status = 'published' ORDER BY sort_order ASC, id ASC`
+    )
+    .all();
+  if (videoRows.length === 0) return [];
+
+  const videoIds = videoRows.map((r) => String(r.id));
+  const placeholders = videoIds.map(() => "?").join(",");
+
+  const translationRows = db
+    .prepare(`SELECT * FROM portfolio_video_translations WHERE video_id IN (${placeholders})`)
+    .all(...videoIds);
+  const assetRows = db
+    .prepare(`SELECT * FROM portfolio_video_assets WHERE video_id IN (${placeholders})`)
+    .all(...videoIds);
+
+  return mapRowsToCmsVideos(videoRows, translationRows, assetRows);
+}
+
+export function getVideoByIdFromD1(id: string): CmsVideoRecord | null {
+  assertLocalSimulationAllowed("getVideoByIdFromD1", true);
+  const db = getD1Database(true);
+  const row = db.prepare(`SELECT * FROM portfolio_videos WHERE id = ? LIMIT 1`).get(id);
+  if (!row) return null;
+
+  const translationRows = db
+    .prepare(`SELECT * FROM portfolio_video_translations WHERE video_id = ?`)
+    .all(id);
+  const assetRows = db
+    .prepare(`SELECT * FROM portfolio_video_assets WHERE video_id = ?`)
+    .all(id);
+
+  const mapped = mapRowsToCmsVideos([row], translationRows, assetRows);
+  return mapped[0] || null;
+}
+
+export function getVideoBySlugFromD1(slug: string): CmsVideoRecord | null {
+  assertLocalSimulationAllowed("getVideoBySlugFromD1", true);
+  const db = getD1Database(true);
+  const row = db.prepare(`SELECT * FROM portfolio_videos WHERE slug = ? LIMIT 1`).get(slug);
+  if (!row) return null;
+
+  const videoId = String(row.id);
+  const translationRows = db
+    .prepare(`SELECT * FROM portfolio_video_translations WHERE video_id = ?`)
+    .all(videoId);
+  const assetRows = db
+    .prepare(`SELECT * FROM portfolio_video_assets WHERE video_id = ?`)
+    .all(videoId);
+
+  const mapped = mapRowsToCmsVideos([row], translationRows, assetRows);
+  return mapped[0] || null;
+}
+
+export function upsertVideoInD1(
+  input: UpsertVideoInput & { status?: string },
+  actorEmail: string,
+  actionLabel = "update"
+): CmsVideoRecord {
+  assertLocalSimulationAllowed("upsertVideoInD1", true);
+  const db = getD1Database(true);
+  const cleanSlug = normalizeSlug(input.slug || input.titleEN || input.titleTR);
+  if (!cleanSlug) {
+    throw new Error("Video slug is required.");
+  }
+
+  const existingById = input.id
+    ? db.prepare(`SELECT * FROM portfolio_videos WHERE id = ?`).get(input.id)
+    : undefined;
+  const existingBySlug = db.prepare(`SELECT * FROM portfolio_videos WHERE slug = ?`).get(cleanSlug);
+
+  if (existingBySlug && existingById && String(existingBySlug.id) !== String(existingById.id)) {
+    throw new Error(`Slug "${cleanSlug}" is already in use by another video.`);
+  }
+  if (existingBySlug && !existingById && actionLabel === "create") {
+    throw new Error(`Slug "${cleanSlug}" is already in use.`);
+  }
+
+  const existing = existingById || existingBySlug;
+  const videoId = existing ? String(existing.id) : input.id || cleanSlug;
+  const now = new Date().toISOString();
+
+  const prevStatus = existing ? (String(existing.status) as CmsPublishStatus) : null;
+  const rawRequestedStatus = input.cmsStatus || (input.status as CmsPublishStatus | undefined);
+  const nextStatus: CmsPublishStatus =
+    rawRequestedStatus && ["draft", "published", "archived"].includes(rawRequestedStatus)
+      ? rawRequestedStatus
+      : prevStatus || "draft";
+
+  if (nextStatus === "published") {
+    if (!input.titleTR?.trim() || !input.titleEN?.trim()) {
+      throw new Error("Both Turkish and English titles are required before publishing.");
+    }
+    if (
+      !(input.descriptionTR?.trim() || input.fullDescriptionTR?.trim()) ||
+      !(input.descriptionEN?.trim() || input.fullDescriptionEN?.trim())
+    ) {
+      throw new Error("Both Turkish and English descriptions are required before publishing.");
+    }
+    if (!input.poster?.trim() || !input.src?.trim()) {
+      throw new Error("Both poster image and video source are required before publishing.");
+    }
+  }
+
+  const maxSortRow = db
+    .prepare(`SELECT COALESCE(MAX(sort_order), 0) as maxSort FROM portfolio_videos`)
+    .get();
+  const sortOrder =
+    input.sortOrder !== undefined
+      ? Number(input.sortOrder)
+      : existing
+      ? Number(existing.sort_order || 0)
+      : Number(maxSortRow?.maxSort || 0) + 1;
+
+  const orientation = input.orientation || (existing?.orientation as VideoOrientation) || "portrait";
+  const videoType = input.type || (existing?.video_type as VideoType) || "reel";
+  const productionMethod = input.productionMethod || (existing?.production_method as ProductionMethod) || "traditional";
+  const aiAssisted = input.aiAssisted !== undefined ? (input.aiAssisted ? 1 : 0) : existing ? Number(existing.ai_assisted) : 0;
+  const clientName = input.client !== undefined ? input.client : existing?.client_name ? String(existing.client_name) : "";
+  const year = input.year !== undefined ? Number(input.year) : existing?.year ? Number(existing.year) : 2026;
+  const duration = input.duration !== undefined ? input.duration : existing?.duration ? String(existing.duration) : "";
+  const aspectRatio = input.aspectRatio || (existing?.aspect_ratio ? String(existing.aspect_ratio) : orientation === "portrait" ? "9:16" : "16:9");
+  const featured = input.featured !== undefined ? (input.featured ? 1 : 0) : existing ? Number(existing.featured) : 0;
+  const autoplayPreview = input.autoplayPreview !== undefined ? (input.autoplayPreview ? 1 : 0) : existing ? Number(existing.autoplay_preview) : 1;
+  const externalUrl = input.externalUrl !== undefined ? input.externalUrl : existing?.external_url ? String(existing.external_url) : null;
+  const projectSlug = input.projectSlug !== undefined ? input.projectSlug : existing?.project_slug ? String(existing.project_slug) : null;
+  const toolsJson = JSON.stringify(input.tools || (existing?.tools_json ? JSON.parse(String(existing.tools_json)) : []));
+  const tagsJson = JSON.stringify(input.tags || (existing?.tags_json ? JSON.parse(String(existing.tags_json)) : []));
+
+  const createdAt = existing ? String(existing.created_at) : now;
+  const publishedAt =
+    nextStatus === "published"
+      ? existing?.published_at
+        ? String(existing.published_at)
+        : now
+      : existing?.published_at
+      ? String(existing.published_at)
+      : null;
+  const archivedAt =
+    nextStatus === "archived"
+      ? existing?.archived_at
+        ? String(existing.archived_at)
+        : now
+      : null;
+
+  // Save revision snapshot before mutating if existing
+  if (existing) {
+    const prevFull = getVideoByIdFromD1(videoId);
+    if (prevFull) {
+      const maxRevRow = db
+        .prepare(`SELECT COALESCE(MAX(revision_number), 0) as maxRev FROM portfolio_video_revisions WHERE video_id = ?`)
+        .get(videoId);
+      const nextRev = Number(maxRevRow?.maxRev || 0) + 1;
+      db.prepare(
+        `INSERT INTO portfolio_video_revisions (id, video_id, revision_number, action, snapshot_json, actor_email, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`
+      ).run(
+        `vrev-${crypto.randomUUID()}`,
+        videoId,
+        nextRev,
+        actionLabel,
+        JSON.stringify(prevFull),
+        actorEmail,
+        now
+      );
+    }
+  }
+
+  // Upsert portfolio_videos
+  db.prepare(
+    `INSERT INTO portfolio_videos (
+      id, slug, status, orientation, video_type, production_method, ai_assisted,
+      client_name, year, duration, aspect_ratio, featured, sort_order,
+      autoplay_preview, external_url, project_slug, tools_json, tags_json,
+      created_at, updated_at, published_at, archived_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      slug = excluded.slug,
+      status = excluded.status,
+      orientation = excluded.orientation,
+      video_type = excluded.video_type,
+      production_method = excluded.production_method,
+      ai_assisted = excluded.ai_assisted,
+      client_name = excluded.client_name,
+      year = excluded.year,
+      duration = excluded.duration,
+      aspect_ratio = excluded.aspect_ratio,
+      featured = excluded.featured,
+      sort_order = excluded.sort_order,
+      autoplay_preview = excluded.autoplay_preview,
+      external_url = excluded.external_url,
+      project_slug = excluded.project_slug,
+      tools_json = excluded.tools_json,
+      tags_json = excluded.tags_json,
+      updated_at = excluded.updated_at,
+      published_at = excluded.published_at,
+      archived_at = excluded.archived_at`
+  ).run(
+    videoId,
+    cleanSlug,
+    nextStatus,
+    orientation,
+    videoType,
+    productionMethod,
+    aiAssisted,
+    clientName,
+    year,
+    duration,
+    aspectRatio,
+    featured,
+    sortOrder,
+    autoplayPreview,
+    externalUrl,
+    projectSlug,
+    toolsJson,
+    tagsJson,
+    createdAt,
+    now,
+    publishedAt,
+    archivedAt
+  );
+
+  // Upsert translations
+  const servicesTRJson = JSON.stringify(input.servicesTR || input.services || []);
+  const servicesENJson = JSON.stringify(input.servicesEN || input.services || []);
+
+  db.prepare(
+    `INSERT INTO portfolio_video_translations (
+      id, video_id, locale, title, short_title, description, full_description, services_json, updated_at
+    ) VALUES (?, ?, 'tr', ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(video_id, locale) DO UPDATE SET
+      title = excluded.title,
+      short_title = excluded.short_title,
+      description = excluded.description,
+      full_description = excluded.full_description,
+      services_json = excluded.services_json,
+      updated_at = excluded.updated_at`
+  ).run(
+    `vtr-${videoId}-tr`,
+    videoId,
+    input.titleTR || "",
+    input.shortTitleTR || "",
+    input.descriptionTR || "",
+    input.fullDescriptionTR || "",
+    servicesTRJson,
+    now
+  );
+
+  db.prepare(
+    `INSERT INTO portfolio_video_translations (
+      id, video_id, locale, title, short_title, description, full_description, services_json, updated_at
+    ) VALUES (?, ?, 'en', ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(video_id, locale) DO UPDATE SET
+      title = excluded.title,
+      short_title = excluded.short_title,
+      description = excluded.description,
+      full_description = excluded.full_description,
+      services_json = excluded.services_json,
+      updated_at = excluded.updated_at`
+  ).run(
+    `vtr-${videoId}-en`,
+    videoId,
+    input.titleEN || "",
+    input.shortTitleEN || "",
+    input.descriptionEN || "",
+    input.fullDescriptionEN || "",
+    servicesENJson,
+    now
+  );
+
+  // Upsert assets if provided
+  if (input.poster) {
+    const isLocal = input.poster.startsWith("/videos/");
+    const storageMode = isLocal ? "local_static" : input.poster.startsWith("/api/media/") ? "r2" : "external";
+    const storageKey = isLocal
+      ? input.poster.replace(/^\//, "")
+      : input.poster.replace(/^\/api\/media\//, "");
+
+    db.prepare(
+      `INSERT INTO portfolio_video_assets (
+        id, video_id, asset_type, storage_mode, storage_key, public_url, mime_type, byte_size, created_at, updated_at
+      ) VALUES (?, ?, 'poster', ?, ?, ?, 'image/webp', 0, ?, ?)
+      ON CONFLICT(video_id, asset_type) DO UPDATE SET
+        storage_mode = excluded.storage_mode,
+        storage_key = excluded.storage_key,
+        public_url = excluded.public_url,
+        updated_at = excluded.updated_at`
+    ).run(
+      `vast-${videoId}-poster`,
+      videoId,
+      storageMode,
+      storageKey,
+      input.poster,
+      now,
+      now
+    );
+  }
+
+  if (input.src) {
+    const isLocal = input.src.startsWith("/videos/");
+    const storageMode = isLocal ? "local_static" : input.src.startsWith("/api/media/") ? "r2" : "external";
+    const storageKey = isLocal
+      ? input.src.replace(/^\//, "")
+      : input.src.replace(/^\/api\/media\//, "");
+
+    db.prepare(
+      `INSERT INTO portfolio_video_assets (
+        id, video_id, asset_type, storage_mode, storage_key, public_url, mime_type, byte_size, created_at, updated_at
+      ) VALUES (?, ?, 'video', ?, ?, ?, 'video/mp4', 0, ?, ?)
+      ON CONFLICT(video_id, asset_type) DO UPDATE SET
+        storage_mode = excluded.storage_mode,
+        storage_key = excluded.storage_key,
+        public_url = excluded.public_url,
+        updated_at = excluded.updated_at`
+    ).run(
+      `vast-${videoId}-video`,
+      videoId,
+      storageMode,
+      storageKey,
+      input.src,
+      now,
+      now
+    );
+  }
+
+  if (input.thumbnail) {
+    const isLocal = input.thumbnail.startsWith("/videos/");
+    const storageMode = isLocal ? "local_static" : input.thumbnail.startsWith("/api/media/") ? "r2" : "external";
+    const storageKey = isLocal
+      ? input.thumbnail.replace(/^\//, "")
+      : input.thumbnail.replace(/^\/api\/media\//, "");
+
+    db.prepare(
+      `INSERT INTO portfolio_video_assets (
+        id, video_id, asset_type, storage_mode, storage_key, public_url, mime_type, byte_size, created_at, updated_at
+      ) VALUES (?, ?, 'thumbnail', ?, ?, ?, 'image/webp', 0, ?, ?)
+      ON CONFLICT(video_id, asset_type) DO UPDATE SET
+        storage_mode = excluded.storage_mode,
+        storage_key = excluded.storage_key,
+        public_url = excluded.public_url,
+        updated_at = excluded.updated_at`
+    ).run(
+      `vast-${videoId}-thumb`,
+      videoId,
+      storageMode,
+      storageKey,
+      input.thumbnail,
+      now,
+      now
+    );
+  }
+
+  // Audit log entry
+  db.prepare(
+    `INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+     VALUES (?, ?, ?, 'portfolio_video', ?, ?, ?)`
+  ).run(
+    `audit-${crypto.randomUUID()}`,
+    actorEmail,
+    actionLabel === "create" ? "video_create" : `video_${actionLabel}`,
+    videoId,
+    JSON.stringify({ slug: cleanSlug, status: nextStatus, titleTR: input.titleTR }),
+    now
+  );
+
+  const updated = getVideoByIdFromD1(videoId);
+  if (!updated) {
+    throw new Error(`Failed to retrieve video "${videoId}" after upsert.`);
+  }
+  return updated;
+}
+
+export function deleteVideoFromD1(id: string, actorEmail: string): { deletedId: string } {
+  assertLocalSimulationAllowed("deleteVideoFromD1", true);
+  const db = getD1Database(true);
+  const existing = getVideoByIdFromD1(id);
+  if (!existing) {
+    throw new Error(`Video with id "${id}" not found.`);
+  }
+
+  const now = new Date().toISOString();
+  db.prepare(`DELETE FROM portfolio_videos WHERE id = ?`).run(id);
+
+  db.prepare(
+    `INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+     VALUES (?, ?, 'video_delete', 'portfolio_video', ?, ?, ?)`
+  ).run(
+    `audit-${crypto.randomUUID()}`,
+    actorEmail,
+    id,
+    JSON.stringify({ slug: existing.slug, titleTR: existing.titleTR }),
+    now
+  );
+
+  return { deletedId: id };
+}
+
+export function updateVideoOrderingInD1(
+  orderings: { id: string; sortOrder: number }[],
+  actorEmail: string
+): { updatedCount: number } {
+  assertLocalSimulationAllowed("updateVideoOrderingInD1", true);
+  const db = getD1Database(true);
+  const now = new Date().toISOString();
+  let count = 0;
+
+  for (const item of orderings) {
+    const res = db
+      .prepare(`UPDATE portfolio_videos SET sort_order = ?, updated_at = ? WHERE id = ?`)
+      .run(Number(item.sortOrder), now, String(item.id));
+    if (Number(res.changes) > 0) count++;
+  }
+
+  db.prepare(
+    `INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+     VALUES (?, ?, 'videos_reorder', 'portfolio_videos', 'bulk', ?, ?)`
+  ).run(`audit-${crypto.randomUUID()}`, actorEmail, JSON.stringify({ updatedCount: count }), now);
+
+  return { updatedCount: count };
+}
+
+export function listVideoRevisionsFromD1(videoId: string): CmsVideoRevisionRecord[] {
+  assertLocalSimulationAllowed("listVideoRevisionsFromD1", true);
+  const db = getD1Database(true);
+  const rows = db
+    .prepare(
+      `SELECT * FROM portfolio_video_revisions WHERE video_id = ? ORDER BY revision_number DESC LIMIT 50`
+    )
+    .all(videoId);
+
+  return rows.map((r) => ({
+    id: String(r.id),
+    videoId: String(r.video_id),
+    revisionNumber: Number(r.revision_number),
+    action: String(r.action),
+    snapshotJson: String(r.snapshot_json),
+    actorEmail: String(r.actor_email),
+    createdAt: String(r.created_at)
+  }));
+}
+
+export function rollbackVideoRevisionInD1(
+  videoId: string,
+  revisionNumber: number,
+  actorEmail: string
+): CmsVideoRecord {
+  assertLocalSimulationAllowed("rollbackVideoRevisionInD1", true);
+  const db = getD1Database(true);
+  const row = db
+    .prepare(
+      `SELECT * FROM portfolio_video_revisions WHERE video_id = ? AND revision_number = ? LIMIT 1`
+    )
+    .get(videoId, revisionNumber);
+
+  if (!row) {
+    throw new Error(`Revision #${revisionNumber} for video "${videoId}" not found.`);
+  }
+
+  const snapshot = parseJsonSafe<CmsVideoRecord | null>(row.snapshot_json, null);
+  if (!snapshot) {
+    throw new Error(`Failed to parse snapshot for revision #${revisionNumber}.`);
+  }
+
+  return upsertVideoInD1(
+    {
+      ...snapshot,
+      id: snapshot.id,
+      slug: snapshot.slug,
+      cmsStatus: snapshot.cmsStatus,
+      poster: snapshot.poster,
+      src: snapshot.src,
+      thumbnail: snapshot.thumbnail
+    },
+    actorEmail,
+    `rollback_rev_${revisionNumber}`
+  );
+}
+
+export function seedCanonicalVideosInLocalD1(force = false): {
+  insertedCount: number;
+  skippedCount: number;
+  totalVideos: number;
+} {
+  assertLocalSimulationAllowed("seedCanonicalVideosInLocalD1", true);
+  const db = getD1Database(true);
+  let insertedCount = 0;
+  let skippedCount = 0;
+
+  for (let idx = 0; idx < videosData.length; idx++) {
+    const v = videosData[idx];
+    const existing = db.prepare(`SELECT id FROM portfolio_videos WHERE id = ?`).get(v.id);
+
+    if (existing && !force) {
+      skippedCount++;
+      continue;
+    }
+
+    upsertVideoInD1(
+      {
+        id: v.id,
+        slug: v.slug,
+        cmsStatus: "published",
+        type: v.type,
+        orientation: v.orientation || "portrait",
+        aiAssisted: v.aiAssisted,
+        productionMethod: v.productionMethod || "traditional",
+        titleTR: v.titleTR,
+        titleEN: v.titleEN,
+        shortTitleTR: v.shortTitleTR,
+        shortTitleEN: v.shortTitleEN,
+        descriptionTR: v.descriptionTR,
+        descriptionEN: v.descriptionEN,
+        fullDescriptionTR: v.fullDescriptionTR,
+        fullDescriptionEN: v.fullDescriptionEN,
+        client: v.client,
+        year: v.year,
+        poster: v.poster,
+        thumbnail: v.thumbnail,
+        src: v.src || `/videos/${v.slug}/video.mp4`,
+        duration: v.duration,
+        aspectRatio: v.orientation === "landscape" ? "16:9" : "9:16",
+        servicesTR: v.servicesTR,
+        servicesEN: v.servicesEN,
+        services: v.services,
+        tools: v.tools,
+        tags: v.tags,
+        autoplayPreview: v.autoplayPreview,
+        externalUrl: v.externalUrl,
+        projectSlug: v.projectSlug,
+        featured: v.featured,
+        sortOrder: v.sortOrder || idx + 1
+      },
+      "system-seed@keremmihci.com",
+      "canonical_seed"
+    );
+    insertedCount++;
+  }
+
+  return {
+    insertedCount,
+    skippedCount,
+    totalVideos: videosData.length
+  };
 }

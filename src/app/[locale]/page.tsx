@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { siteConfig } from "@/lib/siteConfig";
 import { generatePersonJsonLd, generateWebSiteJsonLd } from "@/lib/seo";
 import { isValidLocale } from "@/lib/i18n";
-import { getPublishedProjects } from "@/lib/portfolio/repository";
+import { getPublishedProjects, getPublishedVideos } from "@/lib/portfolio/repository";
 import { ClientLocalePage } from "./ClientLocalePage";
 
 export const dynamic = "force-dynamic";
@@ -69,7 +69,10 @@ export default async function LocaleDesktopPage({
     notFound();
   }
 
-  const publishedProjects = await getPublishedProjects();
+  const [publishedProjects, publishedVideos] = await Promise.all([
+    getPublishedProjects(),
+    getPublishedVideos()
+  ]);
   const personJsonLd = generatePersonJsonLd(locale);
   const websiteJsonLd = generateWebSiteJsonLd(locale);
 
@@ -83,7 +86,10 @@ export default async function LocaleDesktopPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
       />
-      <ClientLocalePage initialProjects={publishedProjects} />
+      <ClientLocalePage
+        initialProjects={publishedProjects}
+        initialVideos={publishedVideos}
+      />
     </>
   );
 }

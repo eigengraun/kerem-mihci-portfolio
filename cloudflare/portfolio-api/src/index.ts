@@ -567,6 +567,33 @@ async function getWorkerD1Health(db: D1Database, r2Available: boolean) {
     statusMap[String(r.status)] = Number(r.count);
   }
 
+  const videoCounts = {
+    total: 0,
+    published: 0,
+    draft: 0,
+    archived: 0,
+    portrait: 0,
+    landscape: 0,
+    aiAssisted: 0
+  };
+  try {
+    const videoStatusRes = await db
+      .prepare(`SELECT status, orientation, ai_assisted, COUNT(*) as count FROM portfolio_videos GROUP BY status, orientation, ai_assisted`)
+      .all<{ status: string; orientation: string; ai_assisted: number; count: number }>();
+    for (const r of videoStatusRes.results || []) {
+      const count = Number(r.count);
+      videoCounts.total += count;
+      if (r.status === "published") videoCounts.published += count;
+      else if (r.status === "draft") videoCounts.draft += count;
+      else if (r.status === "archived") videoCounts.archived += count;
+      if (r.orientation === "portrait") videoCounts.portrait += count;
+      else if (r.orientation === "landscape") videoCounts.landscape += count;
+      if (Number(r.ai_assisted) === 1) videoCounts.aiAssisted += count;
+    }
+  } catch {
+    // portfolio_videos table not yet present before migration
+  }
+
   return {
     ok: true,
     mode: "cloudflare-worker-d1-r2",
@@ -579,7 +606,14 @@ async function getWorkerD1Health(db: D1Database, r2Available: boolean) {
       archived: statusMap.archived,
       featuredPublished: Number(featuredRow?.count || 0),
       mediaItems: Number(mediaRow?.count || 0),
-      translations: Number(translationRow?.count || 0)
+      translations: Number(translationRow?.count || 0),
+      totalVideos: videoCounts.total,
+      publishedVideos: videoCounts.published,
+      draftVideos: videoCounts.draft,
+      archivedVideos: videoCounts.archived,
+      portraitVideos: videoCounts.portrait,
+      landscapeVideos: videoCounts.landscape,
+      aiAssistedVideos: videoCounts.aiAssisted
     },
     workspaceBreakdown: (workspaceRes.results || []).map((r) => ({
       workspace: String(r.workspace),
@@ -1162,6 +1196,477 @@ async function upsertProjectInWorkerD1(
   return { status: existing ? 200 : 201, project: hydrated[0] };
 }
 
+function mapWorkerRowsToCmsVideos(
+  videoRows: Record<string, unknown>[],
+  translationRows: Record<string, unknown>[],
+  assetRows: Record<string, unknown>[]
+) {
+  const transMap = new Map<string, { tr?: Record<string, unknown>; en?: Record<string, unknown> }>();
+  for (const t of translationRows) {
+    const vid = String(t.video_id);
+    if (!transMap.has(vid)) transMap.set(vid, {});
+    const entry = transMap.get(vid)!;
+    if (t.locale === "tr") entry.tr = t;
+    else if (t.locale === "en") entry.en = t;
+  }
+
+  const assetMap = new Map<string, { poster?: Record<string, unknown>; video?: Record<string, unknown>; thumbnail?: Record<string, unknown> }>();
+  for (const a of assetRows) {
+    const vid = String(a.video_id);
+    if (!assetMap.has(vid)) assetMap.set(vid, {});
+    const entry = assetMap.get(vid)!;
+    if (a.asset_type === "poster") entry.poster = a;
+    else if (a.asset_type === "video") entry.video = a;
+    else if (a.asset_type === "thumbnail") entry.thumbnail = a;
+  }
+
+  return videoRows.map((row) => {
+    const vid = String(row.id);
+    const tr = transMap.get(vid)?.tr || {};
+    const en = transMap.get(vid)?.en || {};
+    const assets = assetMap.get(vid) || {};
+
+    let tools: string[] = [];
+    try {
+      if (row.tools_json) tools = JSON.parse(String(row.tools_json));
+    } catch {}
+
+    let tags: string[] = [];
+    try {
+      if (row.tags_json) tags = JSON.parse(String(row.tags_json));
+    } catch {}
+
+    let servicesTR: string[] = [];
+    try {
+      if (tr.services_json) servicesTR = JSON.parse(String(tr.services_json));
+    } catch {}
+
+    let servicesEN: string[] = [];
+    try {
+      if (en.services_json) servicesEN = JSON.parse(String(en.services_json));
+    } catch {}
+
+    return {
+      id: vid,
+      slug: String(row.slug),
+      type: (row.video_type as string) || "reel",
+      orientation: (row.orientation as string) || "portrait",
+      productionMethod: (row.production_method as string) || "traditional",
+      aiAssisted: Number(row.ai_assisted) === 1,
+      titleTR: String(tr.title || row.slug),
+      titleEN: String(en.title || tr.title || row.slug),
+      shortTitleTR: tr.short_title ? String(tr.short_title) : undefined,
+      shortTitleEN: en.short_title ? String(en.short_title) : undefined,
+      descriptionTR: String(tr.description || ""),
+      descriptionEN: String(en.description || ""),
+      fullDescriptionTR: tr.full_description ? String(tr.full_description) : undefined,
+      fullDescriptionEN: en.full_description ? String(en.full_description) : undefined,
+      client: String(row.client_name || ""),
+      year: Number(row.year || 2026),
+      poster: String(assets.poster?.public_url || ""),
+      src: String(assets.video?.public_url || ""),
+      thumbnail: assets.thumbnail?.public_url ? String(assets.thumbnail.public_url) : undefined,
+      duration: String(row.duration || "0:30"),
+      aspectRatio: String(row.aspect_ratio || (row.orientation === "landscape" ? "16:9" : "9:16")),
+      featured: Number(row.featured) === 1,
+      sortOrder: Number(row.sort_order || 0),
+      autoplayPreview: Number(row.autoplay_preview ?? 1) === 1,
+      externalUrl: row.external_url ? String(row.external_url) : undefined,
+      projectSlug: row.project_slug ? String(row.project_slug) : undefined,
+      services: servicesEN.length > 0 ? servicesEN : servicesTR,
+      servicesTR,
+      servicesEN,
+      tools,
+      tags,
+      cmsStatus: (row.status as string) || "draft",
+      createdAt: String(row.created_at),
+      updatedAt: String(row.updated_at),
+      publishedAt: row.published_at ? String(row.published_at) : null,
+      archivedAt: row.archived_at ? String(row.archived_at) : null
+    };
+  });
+}
+
+async function queryCmsVideosFromWorkerD1(
+  db: D1Database,
+  whereClause: string,
+  params: unknown[]
+): Promise<Record<string, unknown>[]> {
+  try {
+    const stmt = db
+      .prepare(`SELECT * FROM portfolio_videos ${whereClause} ORDER BY sort_order ASC, created_at DESC`)
+      .bind(...params);
+    const { results: videoRows } = await stmt.all<Record<string, unknown>>();
+    if (!videoRows || videoRows.length === 0) return [];
+
+    const { results: translationRows } = await db
+      .prepare(`SELECT * FROM portfolio_video_translations`)
+      .all<Record<string, unknown>>();
+    const { results: assetRows } = await db
+      .prepare(`SELECT * FROM portfolio_video_assets`)
+      .all<Record<string, unknown>>();
+
+    return mapWorkerRowsToCmsVideos(videoRows, translationRows || [], assetRows || []);
+  } catch {
+    return [];
+  }
+}
+
+async function listVideoRevisionsInWorkerD1(db: D1Database, videoId: string) {
+  try {
+    const { results } = await db
+      .prepare(`SELECT * FROM portfolio_video_revisions WHERE video_id = ? ORDER BY revision_number DESC LIMIT 50`)
+      .bind(videoId)
+      .all<Record<string, unknown>>();
+    return (results || []).map((r) => ({
+      id: String(r.id),
+      videoId: String(r.video_id),
+      revisionNumber: Number(r.revision_number),
+      action: String(r.action),
+      snapshotJson: String(r.snapshot_json),
+      actorEmail: String(r.actor_email),
+      createdAt: String(r.created_at)
+    }));
+  } catch {
+    return [];
+  }
+}
+
+async function upsertVideoInWorkerD1(
+  db: D1Database,
+  input: Record<string, unknown>,
+  actorEmail: string,
+  actionLabel = "update"
+): Promise<{ status: number; video?: Record<string, unknown>; error?: string }> {
+  const cleanSlug = normalizeSlug(String(input.slug || input.titleEN || input.titleTR || ""));
+  if (!cleanSlug) {
+    return { status: 400, error: "Video slug is required." };
+  }
+
+  const inputId = input.id ? String(input.id) : "";
+  const existingById = inputId
+    ? await db.prepare(`SELECT * FROM portfolio_videos WHERE id = ?`).bind(inputId).first<Record<string, unknown>>()
+    : null;
+  const existingBySlug = await db
+    .prepare(`SELECT * FROM portfolio_videos WHERE slug = ?`)
+    .bind(cleanSlug)
+    .first<Record<string, unknown>>();
+
+  if (existingBySlug && existingById && String(existingBySlug.id) !== String(existingById.id)) {
+    return { status: 409, error: `Slug "${cleanSlug}" is already in use by another video.` };
+  }
+  if (existingBySlug && !existingById && actionLabel === "create") {
+    return { status: 409, error: `Slug "${cleanSlug}" is already in use.` };
+  }
+
+  const existing = existingById || existingBySlug;
+  const videoId = existing ? String(existing.id) : inputId || cleanSlug;
+  const now = new Date().toISOString();
+
+  const prevStatus = existing ? String(existing.status) : null;
+  const rawRequestedStatus = String(input.cmsStatus || input.status || "");
+  const nextStatus = ["draft", "published", "archived"].includes(rawRequestedStatus)
+    ? rawRequestedStatus
+    : prevStatus || "draft";
+
+  const titleTR = String(input.titleTR || "").trim();
+  const titleEN = String(input.titleEN || "").trim();
+  const descTR = String(input.descriptionTR || input.fullDescriptionTR || "").trim();
+  const descEN = String(input.descriptionEN || input.fullDescriptionEN || "").trim();
+  const poster = String(input.poster || "").trim();
+  const src = String(input.src || "").trim();
+
+  if (nextStatus === "published") {
+    if (!titleTR || !titleEN) {
+      return { status: 400, error: "Both Turkish and English titles are required before publishing." };
+    }
+    if (!descTR || !descEN) {
+      return { status: 400, error: "Both Turkish and English descriptions are required before publishing." };
+    }
+    if (!poster || !src) {
+      return { status: 400, error: "Both poster image and video source are required before publishing." };
+    }
+  }
+
+  const maxSortRow = await db
+    .prepare(`SELECT COALESCE(MAX(sort_order), 0) as maxSort FROM portfolio_videos`)
+    .first<{ maxSort: number }>();
+  const sortOrder =
+    typeof input.sortOrder === "number"
+      ? input.sortOrder
+      : existing
+      ? Number(existing.sort_order || 0)
+      : Number(maxSortRow?.maxSort || 0) + 1;
+
+  const orientation = String(input.orientation || existing?.orientation || "portrait");
+  const videoType = String(input.type || existing?.video_type || "reel");
+  const productionMethod = String(input.productionMethod || existing?.production_method || "traditional");
+  const aiAssisted = input.aiAssisted !== undefined ? (input.aiAssisted ? 1 : 0) : existing ? Number(existing.ai_assisted) : 0;
+  const clientName = input.client !== undefined ? String(input.client) : existing?.client_name ? String(existing.client_name) : "";
+  const year = input.year !== undefined ? Number(input.year) : existing?.year ? Number(existing.year) : 2026;
+  const duration = input.duration !== undefined ? String(input.duration) : existing?.duration ? String(existing.duration) : "0:30";
+  const aspectRatio = String(input.aspectRatio || existing?.aspect_ratio || (orientation === "landscape" ? "16:9" : "9:16"));
+  const featured = input.featured !== undefined ? (input.featured ? 1 : 0) : existing ? Number(existing.featured) : 0;
+  const autoplayPreview = input.autoplayPreview !== undefined ? (input.autoplayPreview ? 1 : 0) : existing ? Number(existing.autoplay_preview) : 1;
+  const externalUrl = input.externalUrl !== undefined ? (input.externalUrl ? String(input.externalUrl) : null) : existing?.external_url ? String(existing.external_url) : null;
+  const projectSlug = input.projectSlug !== undefined ? (input.projectSlug ? String(input.projectSlug) : null) : existing?.project_slug ? String(existing.project_slug) : null;
+  const toolsJson = JSON.stringify(input.tools || (existing?.tools_json ? JSON.parse(String(existing.tools_json)) : []));
+  const tagsJson = JSON.stringify(input.tags || (existing?.tags_json ? JSON.parse(String(existing.tags_json)) : []));
+
+  const createdAt = existing ? String(existing.created_at) : now;
+  const publishedAt =
+    nextStatus === "published"
+      ? existing?.published_at
+        ? String(existing.published_at)
+        : now
+      : existing?.published_at
+      ? String(existing.published_at)
+      : null;
+  const archivedAt =
+    nextStatus === "archived"
+      ? existing?.archived_at
+        ? String(existing.archived_at)
+        : now
+      : null;
+
+  const statements: D1PreparedStatement[] = [];
+
+  if (existing) {
+    const prevList = await queryCmsVideosFromWorkerD1(db, "WHERE id = ?", [videoId]);
+    if (prevList[0]) {
+      const maxRevRow = await db
+        .prepare(`SELECT COALESCE(MAX(revision_number), 0) as maxRev FROM portfolio_video_revisions WHERE video_id = ?`)
+        .bind(videoId)
+        .first<{ maxRev: number }>();
+      const nextRev = Number(maxRevRow?.maxRev || 0) + 1;
+      statements.push(
+        db
+          .prepare(
+            `INSERT INTO portfolio_video_revisions (id, video_id, revision_number, action, snapshot_json, actor_email, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`
+          )
+          .bind(`vrev-${crypto.randomUUID()}`, videoId, nextRev, actionLabel, JSON.stringify(prevList[0]), actorEmail, now)
+      );
+    }
+  }
+
+  statements.push(
+    db
+      .prepare(
+        `INSERT INTO portfolio_videos (
+          id, slug, status, orientation, video_type, production_method, ai_assisted,
+          client_name, year, duration, aspect_ratio, featured, sort_order,
+          autoplay_preview, external_url, project_slug, tools_json, tags_json,
+          created_at, updated_at, published_at, archived_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+          slug = excluded.slug,
+          status = excluded.status,
+          orientation = excluded.orientation,
+          video_type = excluded.video_type,
+          production_method = excluded.production_method,
+          ai_assisted = excluded.ai_assisted,
+          client_name = excluded.client_name,
+          year = excluded.year,
+          duration = excluded.duration,
+          aspect_ratio = excluded.aspect_ratio,
+          featured = excluded.featured,
+          sort_order = excluded.sort_order,
+          autoplay_preview = excluded.autoplay_preview,
+          external_url = excluded.external_url,
+          project_slug = excluded.project_slug,
+          tools_json = excluded.tools_json,
+          tags_json = excluded.tags_json,
+          updated_at = excluded.updated_at,
+          published_at = excluded.published_at,
+          archived_at = excluded.archived_at`
+      )
+      .bind(
+        videoId,
+        cleanSlug,
+        nextStatus,
+        orientation,
+        videoType,
+        productionMethod,
+        aiAssisted,
+        clientName,
+        year,
+        duration,
+        aspectRatio,
+        featured,
+        sortOrder,
+        autoplayPreview,
+        externalUrl,
+        projectSlug,
+        toolsJson,
+        tagsJson,
+        createdAt,
+        now,
+        publishedAt,
+        archivedAt
+      )
+  );
+
+  const servicesTRJson = JSON.stringify(input.servicesTR || input.services || []);
+  const servicesENJson = JSON.stringify(input.servicesEN || input.services || []);
+
+  statements.push(
+    db
+      .prepare(
+        `INSERT INTO portfolio_video_translations (
+          id, video_id, locale, title, short_title, description, full_description, services_json, updated_at
+        ) VALUES (?, ?, 'tr', ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(video_id, locale) DO UPDATE SET
+          title = excluded.title,
+          short_title = excluded.short_title,
+          description = excluded.description,
+          full_description = excluded.full_description,
+          services_json = excluded.services_json,
+          updated_at = excluded.updated_at`
+      )
+      .bind(
+        `vtr-${videoId}-tr`,
+        videoId,
+        String(input.titleTR || ""),
+        input.shortTitleTR ? String(input.shortTitleTR) : "",
+        String(input.descriptionTR || ""),
+        input.fullDescriptionTR ? String(input.fullDescriptionTR) : "",
+        servicesTRJson,
+        now
+      )
+  );
+
+  statements.push(
+    db
+      .prepare(
+        `INSERT INTO portfolio_video_translations (
+          id, video_id, locale, title, short_title, description, full_description, services_json, updated_at
+        ) VALUES (?, ?, 'en', ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(video_id, locale) DO UPDATE SET
+          title = excluded.title,
+          short_title = excluded.short_title,
+          description = excluded.description,
+          full_description = excluded.full_description,
+          services_json = excluded.services_json,
+          updated_at = excluded.updated_at`
+      )
+      .bind(
+        `vtr-${videoId}-en`,
+        videoId,
+        String(input.titleEN || ""),
+        input.shortTitleEN ? String(input.shortTitleEN) : "",
+        String(input.descriptionEN || ""),
+        input.fullDescriptionEN ? String(input.fullDescriptionEN) : "",
+        servicesENJson,
+        now
+      )
+  );
+
+  if (poster) {
+    const isLocal = poster.startsWith("/videos/");
+    const storageMode = isLocal ? "local_static" : poster.startsWith("/api/media/") ? "r2" : "external";
+    const storageKey = isLocal ? poster.replace(/^\//, "") : poster.replace(/^\/api\/media\//, "");
+    statements.push(
+      db
+        .prepare(
+          `INSERT INTO portfolio_video_assets (
+            id, video_id, asset_type, storage_mode, storage_key, public_url, mime_type, byte_size, created_at, updated_at
+          ) VALUES (?, ?, 'poster', ?, ?, ?, 'image/webp', 0, ?, ?)
+          ON CONFLICT(video_id, asset_type) DO UPDATE SET
+            storage_mode = excluded.storage_mode,
+            storage_key = excluded.storage_key,
+            public_url = excluded.public_url,
+            updated_at = excluded.updated_at`
+        )
+        .bind(`vast-${videoId}-poster`, videoId, storageMode, storageKey, poster, now, now)
+    );
+  }
+
+  if (src) {
+    const isLocal = src.startsWith("/videos/");
+    const storageMode = isLocal ? "local_static" : src.startsWith("/api/media/") ? "r2" : "external";
+    const storageKey = isLocal ? src.replace(/^\//, "") : src.replace(/^\/api\/media\//, "");
+    statements.push(
+      db
+        .prepare(
+          `INSERT INTO portfolio_video_assets (
+            id, video_id, asset_type, storage_mode, storage_key, public_url, mime_type, byte_size, created_at, updated_at
+          ) VALUES (?, ?, 'video', ?, ?, ?, 'video/mp4', 0, ?, ?)
+          ON CONFLICT(video_id, asset_type) DO UPDATE SET
+            storage_mode = excluded.storage_mode,
+            storage_key = excluded.storage_key,
+            public_url = excluded.public_url,
+            updated_at = excluded.updated_at`
+        )
+        .bind(`vast-${videoId}-video`, videoId, storageMode, storageKey, src, now, now)
+    );
+  }
+
+  if (input.thumbnail) {
+    const thumbStr = String(input.thumbnail);
+    const isLocal = thumbStr.startsWith("/videos/");
+    const storageMode = isLocal ? "local_static" : thumbStr.startsWith("/api/media/") ? "r2" : "external";
+    const storageKey = isLocal ? thumbStr.replace(/^\//, "") : thumbStr.replace(/^\/api\/media\//, "");
+    statements.push(
+      db
+        .prepare(
+          `INSERT INTO portfolio_video_assets (
+            id, video_id, asset_type, storage_mode, storage_key, public_url, mime_type, byte_size, created_at, updated_at
+          ) VALUES (?, ?, 'thumbnail', ?, ?, ?, 'image/webp', 0, ?, ?)
+          ON CONFLICT(video_id, asset_type) DO UPDATE SET
+            storage_mode = excluded.storage_mode,
+            storage_key = excluded.storage_key,
+            public_url = excluded.public_url,
+            updated_at = excluded.updated_at`
+        )
+        .bind(`vast-${videoId}-thumbnail`, videoId, storageMode, storageKey, thumbStr, now, now)
+    );
+  }
+
+  statements.push(
+    db
+      .prepare(
+        `INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+         VALUES (?, ?, ?, 'video', ?, ?, ?)`
+      )
+      .bind(
+        `audit-${crypto.randomUUID()}`,
+        actorEmail,
+        existing ? `video_${actionLabel}` : "video_create",
+        videoId,
+        JSON.stringify({ slug: cleanSlug, status: nextStatus, orientation }),
+        now
+      )
+  );
+
+  await db.batch(statements);
+
+  const hydrated = await queryCmsVideosFromWorkerD1(db, "WHERE id = ?", [videoId]);
+  if (!hydrated[0]) {
+    return { status: 500, error: "Failed to load video after D1 batch write." };
+  }
+  return { status: existing ? 200 : 201, video: hydrated[0] };
+}
+
+async function rollbackVideoRevisionInWorkerD1(
+  db: D1Database,
+  videoId: string,
+  revisionNumber: number,
+  actorEmail: string
+): Promise<{ status: number; video?: Record<string, unknown>; error?: string }> {
+  const rev = await db
+    .prepare(`SELECT * FROM portfolio_video_revisions WHERE video_id = ? AND revision_number = ?`)
+    .bind(videoId, revisionNumber)
+    .first<Record<string, unknown>>();
+
+  if (!rev || !rev.snapshot_json) {
+    return { status: 404, error: "Revision not found." };
+  }
+
+  const snapshot = JSON.parse(String(rev.snapshot_json)) as Record<string, unknown>;
+  return upsertVideoInWorkerD1(db, snapshot, actorEmail, `rollback_rev_${revisionNumber}`);
+}
+
 const worker = {
   async fetch(request: Request, env: Env): Promise<Response> {
     const origin = env.PUBLIC_SITE_ORIGIN || "https://keremmihci.com";
@@ -1229,6 +1734,34 @@ const worker = {
         );
       }
 
+      if (pathname === "/api/v1/public/videos" && request.method === "GET") {
+        const videos = await queryCmsVideosFromWorkerD1(db, "WHERE status = ?", ["published"]);
+        return jsonResponse(
+          { ok: true, count: videos.length, videos },
+          200,
+          origin,
+          "public, max-age=60, s-maxage=300, stale-while-revalidate=600"
+        );
+      }
+
+      if (pathname.startsWith("/api/v1/public/videos/") && request.method === "GET") {
+        const slug = decodeURIComponent(pathname.replace("/api/v1/public/videos/", ""));
+        const videos = await queryCmsVideosFromWorkerD1(
+          db,
+          "WHERE slug = ? AND status = ?",
+          [slug, "published"]
+        );
+        if (videos.length === 0) {
+          return jsonResponse({ ok: false, error: "Video not found" }, 404, origin);
+        }
+        return jsonResponse(
+          { ok: true, video: videos[0] },
+          200,
+          origin,
+          "public, max-age=60, s-maxage=300, stale-while-revalidate=600"
+        );
+      }
+
       if (pathname.startsWith("/api/v1/public/media/") && request.method === "GET") {
         const key = decodeURIComponent(pathname.replace("/api/v1/public/media/", ""));
         if (!key || key.includes("..") || key.startsWith("/")) {
@@ -1261,11 +1794,32 @@ const worker = {
             project_slug: string;
           }>();
 
-        const isAuthorized = Boolean(
+        let isAuthorized = Boolean(
           mediaAssoc &&
           mediaAssoc.project_id &&
           mediaAssoc.project_status === "published"
         );
+
+        if (!isAuthorized) {
+          try {
+            const videoAsset = await db
+              .prepare(
+                `SELECT pva.id, pv.status as video_status
+                 FROM portfolio_video_assets pva
+                 INNER JOIN portfolio_videos pv ON pva.video_id = pv.id
+                 WHERE (pva.storage_key = ? OR pva.public_url = ?) AND pv.status = 'published'
+                 LIMIT 1`
+              )
+              .bind(key, `/api/media/${key}`)
+              .first<{ id: string; video_status: string }>();
+
+            if (videoAsset && videoAsset.video_status === "published") {
+              isAuthorized = true;
+            }
+          } catch {
+            // portfolio_video_assets might not exist yet before migration
+          }
+        }
 
         if (!isAuthorized) {
           return jsonResponse(
@@ -1976,6 +2530,195 @@ const worker = {
               200,
               origin
             );
+          }
+        }
+
+        if (pathname === "/api/v1/admin/videos" && request.method === "GET") {
+          const videos = await queryCmsVideosFromWorkerD1(db, "", []);
+          const health = await getWorkerD1Health(db, Boolean(bucket));
+          return jsonResponse({ ok: true, videos, health }, 200, origin);
+        }
+
+        if (pathname === "/api/v1/admin/videos" && request.method === "POST") {
+          let body: Record<string, unknown>;
+          try {
+            body = (await request.json()) as Record<string, unknown>;
+          } catch {
+            return jsonResponse({ ok: false, error: "Invalid JSON payload" }, 400, origin);
+          }
+
+          if (body.actionType === "reorder" && Array.isArray(body.orderings)) {
+            const items = body.orderings as { id: string; sortOrder: number }[];
+            const now = new Date().toISOString();
+            const stmts: D1PreparedStatement[] = items.map((item) =>
+              db
+                .prepare(`UPDATE portfolio_videos SET sort_order = ?, updated_at = ? WHERE id = ?`)
+                .bind(item.sortOrder, now, item.id)
+            );
+            stmts.push(
+              db
+                .prepare(
+                  `INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+                   VALUES (?, ?, 'video_order_update', 'video', 'bulk', ?, ?)`
+                )
+                .bind(`audit-${crypto.randomUUID()}`, actorEmail, JSON.stringify({ count: items.length }), now)
+            );
+            await db.batch(stmts);
+            const updated = await queryCmsVideosFromWorkerD1(db, "", []);
+            return jsonResponse({ ok: true, videos: updated, updatedCount: items.length }, 200, origin);
+          }
+
+          const res = await upsertVideoInWorkerD1(
+            db,
+            body,
+            actorEmail,
+            String(body.actionType || (body.id ? "update" : "create"))
+          );
+          if (res.error || !res.video) {
+            return jsonResponse({ ok: false, error: res.error }, res.status, origin);
+          }
+          return jsonResponse({ ok: true, video: res.video }, 201, origin);
+        }
+
+        if (pathname === "/api/v1/admin/videos/reorder" && request.method === "POST") {
+          let body: { orderings?: { id: string; sortOrder: number }[] };
+          try {
+            body = (await request.json()) as typeof body;
+          } catch {
+            return jsonResponse({ ok: false, error: "Invalid JSON payload" }, 400, origin);
+          }
+          if (!Array.isArray(body.orderings)) {
+            return jsonResponse({ ok: false, error: "Missing or invalid 'orderings' array" }, 400, origin);
+          }
+          const now = new Date().toISOString();
+          const stmts: D1PreparedStatement[] = body.orderings.map((item) =>
+            db
+              .prepare(`UPDATE portfolio_videos SET sort_order = ?, updated_at = ? WHERE id = ?`)
+              .bind(item.sortOrder, now, item.id)
+          );
+          stmts.push(
+            db
+              .prepare(
+                `INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+                 VALUES (?, ?, 'video_order_update', 'video', 'bulk', ?, ?)`
+              )
+              .bind(`audit-${crypto.randomUUID()}`, actorEmail, JSON.stringify({ count: body.orderings.length }), now)
+          );
+          await db.batch(stmts);
+          return jsonResponse({ ok: true, updatedCount: body.orderings.length }, 200, origin);
+        }
+
+        if (pathname.startsWith("/api/v1/admin/videos/")) {
+          const rest = pathname.replace("/api/v1/admin/videos/", "");
+          const isRevisions = rest.endsWith("/revisions");
+          const idOrSlug = decodeURIComponent(isRevisions ? rest.replace(/\/revisions$/, "") : rest);
+
+          if (!idOrSlug) {
+            return jsonResponse({ ok: false, error: "Missing video identifier" }, 400, origin);
+          }
+
+          if (isRevisions) {
+            if (request.method === "GET") {
+              const revisions = await listVideoRevisionsInWorkerD1(db, idOrSlug);
+              return jsonResponse({ ok: true, revisions }, 200, origin);
+            }
+            if (request.method === "POST") {
+              let body: { revisionNumber?: number };
+              try {
+                body = (await request.json()) as typeof body;
+              } catch {
+                return jsonResponse({ ok: false, error: "Invalid JSON payload" }, 400, origin);
+              }
+              if (typeof body.revisionNumber !== "number") {
+                return jsonResponse({ ok: false, error: "Missing revisionNumber" }, 400, origin);
+              }
+              const res = await rollbackVideoRevisionInWorkerD1(db, idOrSlug, body.revisionNumber, actorEmail);
+              if (res.error || !res.video) {
+                return jsonResponse({ ok: false, error: res.error }, res.status, origin);
+              }
+              const revisions = await listVideoRevisionsInWorkerD1(db, idOrSlug);
+              return jsonResponse({ ok: true, video: res.video, revisions }, 200, origin);
+            }
+          }
+
+          if (request.method === "GET") {
+            const found = await queryCmsVideosFromWorkerD1(db, "WHERE id = ? OR slug = ?", [idOrSlug, idOrSlug]);
+            if (!found[0]) {
+              return jsonResponse({ ok: false, error: "Video not found" }, 404, origin);
+            }
+            const revisions = await listVideoRevisionsInWorkerD1(db, String(found[0].id));
+            return jsonResponse({ ok: true, video: found[0], revisions }, 200, origin);
+          }
+
+          if (request.method === "PUT") {
+            let body: Record<string, unknown>;
+            try {
+              body = (await request.json()) as Record<string, unknown>;
+            } catch {
+              return jsonResponse({ ok: false, error: "Invalid JSON payload" }, 400, origin);
+            }
+            const res = await upsertVideoInWorkerD1(
+              db,
+              { ...body, id: body.id || idOrSlug },
+              actorEmail,
+              "update"
+            );
+            if (res.error || !res.video) {
+              return jsonResponse({ ok: false, error: res.error }, res.status, origin);
+            }
+            const revisions = await listVideoRevisionsInWorkerD1(db, String(res.video.id));
+            return jsonResponse({ ok: true, video: res.video, revisions }, 200, origin);
+          }
+
+          if (request.method === "PATCH") {
+            let body: Record<string, unknown>;
+            try {
+              body = (await request.json()) as Record<string, unknown>;
+            } catch {
+              return jsonResponse({ ok: false, error: "Invalid JSON payload" }, 400, origin);
+            }
+            const found = await queryCmsVideosFromWorkerD1(db, "WHERE id = ? OR slug = ?", [idOrSlug, idOrSlug]);
+            if (!found[0]) {
+              return jsonResponse({ ok: false, error: "Video not found" }, 404, origin);
+            }
+            const desiredStatus = body.cmsStatus || body.status;
+            if (!desiredStatus || !["draft", "published", "archived"].includes(String(desiredStatus))) {
+              return jsonResponse({ ok: false, error: "Invalid status" }, 400, origin);
+            }
+            const res = await upsertVideoInWorkerD1(
+              db,
+              { ...found[0], cmsStatus: desiredStatus },
+              actorEmail,
+              "status_change"
+            );
+            if (res.error || !res.video) {
+              return jsonResponse({ ok: false, error: res.error }, res.status, origin);
+            }
+            const revisions = await listVideoRevisionsInWorkerD1(db, String(res.video.id));
+            return jsonResponse({ ok: true, video: res.video, revisions }, 200, origin);
+          }
+
+          if (request.method === "DELETE") {
+            const existing = await db
+              .prepare(`SELECT id, slug FROM portfolio_videos WHERE id = ? OR slug = ?`)
+              .bind(idOrSlug, idOrSlug)
+              .first<{ id: string; slug: string }>();
+            if (!existing) {
+              return jsonResponse({ ok: false, error: "Video not found" }, 404, origin);
+            }
+            const now = new Date().toISOString();
+            await db.batch([
+              db.prepare(`DELETE FROM portfolio_videos WHERE id = ?`).bind(existing.id),
+              db.prepare(`DELETE FROM portfolio_video_translations WHERE video_id = ?`).bind(existing.id),
+              db.prepare(`DELETE FROM portfolio_video_assets WHERE video_id = ?`).bind(existing.id),
+              db
+                .prepare(
+                  `INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+                   VALUES (?, ?, 'video_delete', 'video', ?, ?, ?)`
+                )
+                .bind(`audit-${crypto.randomUUID()}`, actorEmail, existing.id, JSON.stringify({ slug: existing.slug }), now)
+            ]);
+            return jsonResponse({ ok: true, deletedId: existing.id, slug: existing.slug }, 200, origin);
           }
         }
 

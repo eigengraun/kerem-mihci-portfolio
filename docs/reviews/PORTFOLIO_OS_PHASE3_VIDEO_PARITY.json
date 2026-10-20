@@ -1,0 +1,474 @@
+{
+  "generatedAt": "2026-10-20T12:00:28.867Z",
+  "canonicalCount": 21,
+  "d1Count": 21,
+  "portraitCount": 19,
+  "landscapeCount": 2,
+  "items": [
+    {
+      "id": "ai-moda-kombin-reels",
+      "slug": "ai-moda-kombin-reels",
+      "titleTR": "AI Moda Kombin Reels Videosu",
+      "titleEN": "AI Fashion Outfit Reel",
+      "orientation": "portrait",
+      "type": "ai-reel",
+      "sortOrder": 1,
+      "files": {
+        "video": {
+          "path": "/videos/ai-moda-kombin-reels/video.mp4",
+          "exists": true,
+          "bytes": 6657395
+        },
+        "poster": {
+          "path": "/videos/ai-moda-kombin-reels/poster.webp",
+          "exists": true,
+          "bytes": 120124
+        }
+      },
+      "fieldDiffs": []
+    },
+    {
+      "id": "la-ruota-pizza-artigianale-reels",
+      "slug": "la-ruota-pizza-artigianale-reels",
+      "titleTR": "La Ruota Pizza Artigianale Reels Videosu",
+      "titleEN": "La Ruota Pizza Artigianale Reel",
+      "orientation": "portrait",
+      "type": "ai-reel",
+      "sortOrder": 2,
+      "files": {
+        "video": {
+          "path": "/videos/la-ruota-pizza-artigianale-reels/video.mp4",
+          "exists": true,
+          "bytes": 5449324
+        },
+        "poster": {
+          "path": "/videos/la-ruota-pizza-artigianale-reels/poster.webp",
+          "exists": true,
+          "bytes": 83704
+        }
+      },
+      "fieldDiffs": []
+    },
+    {
+      "id": "la-ruota-pizza-yapim-reels",
+      "slug": "la-ruota-pizza-yapim-reels",
+      "titleTR": "La Ruota Pizza Yapım Reels Videosu",
+      "titleEN": "La Ruota Pizza-Making Reel",
+      "orientation": "portrait",
+      "type": "ai-reel",
+      "sortOrder": 3,
+      "files": {
+        "video": {
+          "path": "/videos/la-ruota-pizza-yapim-reels/video.mp4",
+          "exists": true,
+          "bytes": 18777698
+        },
+        "poster": {
+          "path": "/videos/la-ruota-pizza-yapim-reels/poster.webp",
+          "exists": true,
+          "bytes": 202120
+        }
+      },
+      "fieldDiffs": []
+    },
+    {
+      "id": "it-works-alum-stick-roll-on-reels",
+      "slug": "it-works-alum-stick-roll-on-reels",
+      "titleTR": "IT WORKS Alum Stick Roll-On Reels Videosu",
+      "titleEN": "IT WORKS Alum Stick Roll-On Reel",
+      "orientation": "portrait",
+      "type": "reel",
+      "sortOrder": 4,
+      "files": {
+        "video": {
+          "path": "/videos/it-works-alum-stick-roll-on-reels/video.mp4",
+          "exists": true,
+          "bytes": 58451752
+        },
+        "poster": {
+          "path": "/videos/it-works-alum-stick-roll-on-reels/poster.webp",
+          "exists": true,
+          "bytes": 102924
+        }
+      },
+      "fieldDiffs": []
+    },
+    {
+      "id": "liorwell-kadin-streetwear-ai-reels",
+      "slug": "liorwell-kadin-streetwear-ai-reels",
+      "titleTR": "LIORWELL Kadın Streetwear AI Reels Videosu",
+      "titleEN": "LIORWELL Women’s Streetwear AI Reel",
+      "orientation": "portrait",
+      "type": "ai-reel",
+      "sortOrder": 5,
+      "files": {
+        "video": {
+          "path": "/videos/liorwell-kadin-streetwear-ai-reels/video.mp4",
+          "exists": true,
+          "bytes": 3393715
+        },
+        "poster": {
+          "path": "/videos/liorwell-kadin-streetwear-ai-reels/poster.webp",
+          "exists": true,
+          "bytes": 63212
+        }
+      },
+      "fieldDiffs": []
+    },
+    {
+      "id": "yavrumsa-cocuk-giyim-ai-reels",
+      "slug": "yavrumsa-cocuk-giyim-ai-reels",
+      "titleTR": "Yavrumsa Çocuk Giyim AI Reels Videosu",
+      "titleEN": "Yavrumsa Kidswear AI Reel",
+      "orientation": "portrait",
+      "type": "ai-reel",
+      "sortOrder": 6,
+      "files": {
+        "video": {
+          "path": "/videos/yavrumsa-cocuk-giyim-ai-reels/video.mp4",
+          "exists": true,
+          "bytes": 3675041
+        },
+        "poster": {
+          "path": "/videos/yavrumsa-cocuk-giyim-ai-reels/poster.webp",
+          "exists": true,
+          "bytes": 77008
+        }
+      },
+      "fieldDiffs": []
+    },
+    {
+      "id": "bosnak-dilek-boregi-uretim-reels",
+      "slug": "bosnak-dilek-boregi-uretim-reels",
+      "titleTR": "Boşnak Dilek Böreği Üretim Reels Videosu",
+      "titleEN": "Boşnak Dilek Böreği Production AI Reel",
+      "orientation": "portrait",
+      "type": "ai-reel",
+      "sortOrder": 7,
+      "files": {
+        "video": {
+          "path": "/videos/bosnak-dilek-boregi-uretim-reels/video.mp4",
+          "exists": true,
+          "bytes": 5127239
+        },
+        "poster": {
+          "path": "/videos/bosnak-dilek-boregi-uretim-reels/poster.webp",
+          "exists": true,
+          "bytes": 78708
+        }
+      },
+      "fieldDiffs": []
+    },
+    {
+      "id": "liorwell-ai-streetwear-reels",
+      "slug": "liorwell-ai-streetwear-reels",
+      "titleTR": "LIORWELL AI Streetwear Reels Videosu",
+      "titleEN": "LIORWELL AI Streetwear Reel",
+      "orientation": "portrait",
+      "type": "ai-reel",
+      "sortOrder": 8,
+      "files": {
+        "video": {
+          "path": "/videos/liorwell-ai-streetwear-reels/video.mp4",
+          "exists": true,
+          "bytes": 2798177
+        },
+        "poster": {
+          "path": "/videos/liorwell-ai-streetwear-reels/poster.webp",
+          "exists": true,
+          "bytes": 66130
+        }
+      },
+      "fieldDiffs": []
+    },
+    {
+      "id": "ai-oversize-tshirt-reels",
+      "slug": "ai-oversize-tshirt-reels",
+      "titleTR": "AI Oversize T-Shirt Reels Videosu",
+      "titleEN": "AI Oversized T-Shirt Reel",
+      "orientation": "portrait",
+      "type": "ai-reel",
+      "sortOrder": 9,
+      "files": {
+        "video": {
+          "path": "/videos/ai-oversize-tshirt-reels/video.mp4",
+          "exists": true,
+          "bytes": 4179355
+        },
+        "poster": {
+          "path": "/videos/ai-oversize-tshirt-reels/poster.webp",
+          "exists": true,
+          "bytes": 80178
+        }
+      },
+      "fieldDiffs": []
+    },
+    {
+      "id": "elara-skincare-ai-urun-reels",
+      "slug": "elara-skincare-ai-urun-reels",
+      "titleTR": "ELARA Skincare AI Ürün Reels Videosu",
+      "titleEN": "ELARA Skincare AI Product Reel",
+      "orientation": "landscape",
+      "type": "ai-reel",
+      "sortOrder": 10,
+      "files": {
+        "video": {
+          "path": "/videos/elara-skincare-ai-urun-reels/video.mp4",
+          "exists": true,
+          "bytes": 2114862
+        },
+        "poster": {
+          "path": "/videos/elara-skincare-ai-urun-reels/poster.webp",
+          "exists": true,
+          "bytes": 31860
+        }
+      },
+      "fieldDiffs": []
+    },
+    {
+      "id": "thg-yapi-kurumsal-reels",
+      "slug": "thg-yapi-kurumsal-reels",
+      "titleTR": "THG Yapı Kurumsal Reels Videosu",
+      "titleEN": "THG Yapı Corporate Reel",
+      "orientation": "portrait",
+      "type": "reel",
+      "sortOrder": 11,
+      "files": {
+        "video": {
+          "path": "/videos/thg-yapi-kurumsal-reels/video.mp4",
+          "exists": true,
+          "bytes": 6093569
+        },
+        "poster": {
+          "path": "/videos/thg-yapi-kurumsal-reels/poster.webp",
+          "exists": true,
+          "bytes": 199154
+        }
+      },
+      "fieldDiffs": []
+    },
+    {
+      "id": "chofee-kahve-yapim-reels",
+      "slug": "chofee-kahve-yapim-reels",
+      "titleTR": "CHOFEE Kahve Yapım Reels Videosu",
+      "titleEN": "CHOFEE Coffee-Making AI Reel",
+      "orientation": "portrait",
+      "type": "ai-reel",
+      "sortOrder": 12,
+      "files": {
+        "video": {
+          "path": "/videos/chofee-kahve-yapim-reels/video.mp4",
+          "exists": true,
+          "bytes": 18165934
+        },
+        "poster": {
+          "path": "/videos/chofee-kahve-yapim-reels/poster.webp",
+          "exists": true,
+          "bytes": 137966
+        }
+      },
+      "fieldDiffs": []
+    },
+    {
+      "id": "ai-moda-urun-reels",
+      "slug": "ai-moda-urun-reels",
+      "titleTR": "AI Moda Ürün Reels Videosu",
+      "titleEN": "AI Fashion Product Reel",
+      "orientation": "landscape",
+      "type": "ai-reel",
+      "sortOrder": 13,
+      "files": {
+        "video": {
+          "path": "/videos/ai-moda-urun-reels/video.mp4",
+          "exists": true,
+          "bytes": 3263877
+        },
+        "poster": {
+          "path": "/videos/ai-moda-urun-reels/poster.webp",
+          "exists": true,
+          "bytes": 58214
+        }
+      },
+      "fieldDiffs": []
+    },
+    {
+      "id": "mythic-bastion-ai-game-ad",
+      "slug": "mythic-bastion-ai-game-ad",
+      "titleTR": "Mythic Bastion AI Oyun Reklam Videosu",
+      "titleEN": "Mythic Bastion AI Game Advertising Video",
+      "orientation": "portrait",
+      "type": "ai-reel",
+      "sortOrder": 14,
+      "files": {
+        "video": {
+          "path": "/videos/mythic-bastion-ai-game-ad/video.mp4",
+          "exists": true,
+          "bytes": 33909561
+        },
+        "poster": {
+          "path": "/videos/mythic-bastion-ai-game-ad/poster.webp",
+          "exists": true,
+          "bytes": 134546
+        }
+      },
+      "fieldDiffs": []
+    },
+    {
+      "id": "cupistan-ai-tatli-urun-reels",
+      "slug": "cupistan-ai-tatli-urun-reels",
+      "titleTR": "Cupistan AI Tatlı Ürün Reels Videosu",
+      "titleEN": "Cupistan AI Dessert Product Reel",
+      "orientation": "portrait",
+      "type": "ai-reel",
+      "sortOrder": 15,
+      "files": {
+        "video": {
+          "path": "/videos/cupistan-ai-tatli-urun-reels/video.mp4",
+          "exists": true,
+          "bytes": 10976512
+        },
+        "poster": {
+          "path": "/videos/cupistan-ai-tatli-urun-reels/poster.webp",
+          "exists": true,
+          "bytes": 142180
+        }
+      },
+      "fieldDiffs": []
+    },
+    {
+      "id": "emix-creative-website-design-ad-reels",
+      "slug": "emix-creative-website-design-ad-reels",
+      "titleTR": "eMix Creative Kurumsal Website Tasarım Reklam Reels Videosu",
+      "titleEN": "eMix Creative Corporate Website Design Advertising Reel",
+      "orientation": "portrait",
+      "type": "reel",
+      "sortOrder": 16,
+      "files": {
+        "video": {
+          "path": "/videos/emix-creative-website-design-ad-reels/video.mp4",
+          "exists": true,
+          "bytes": 44072598
+        },
+        "poster": {
+          "path": "/videos/emix-creative-website-design-ad-reels/poster.webp",
+          "exists": true,
+          "bytes": 125684
+        }
+      },
+      "fieldDiffs": []
+    },
+    {
+      "id": "emix-creative-ai-content-transformation-ad",
+      "slug": "emix-creative-ai-content-transformation-ad",
+      "titleTR": "eMix Creative AI İçerik Dönüşüm Reklam Reels Videosu",
+      "titleEN": "eMix Creative AI Content Transformation Advertising Reel",
+      "orientation": "portrait",
+      "type": "reel",
+      "sortOrder": 17,
+      "files": {
+        "video": {
+          "path": "/videos/emix-creative-ai-content-transformation-ad/video.mp4",
+          "exists": true,
+          "bytes": 54760549
+        },
+        "poster": {
+          "path": "/videos/emix-creative-ai-content-transformation-ad/poster.webp",
+          "exists": true,
+          "bytes": 150246
+        }
+      },
+      "fieldDiffs": []
+    },
+    {
+      "id": "chofee-ai-lifestyle-icecek-reels",
+      "slug": "chofee-ai-lifestyle-icecek-reels",
+      "titleTR": "CHOFEE AI Lifestyle İçecek Reels Videosu",
+      "titleEN": "CHOFEE AI Lifestyle Beverage Reel",
+      "orientation": "portrait",
+      "type": "ai-reel",
+      "sortOrder": 18,
+      "files": {
+        "video": {
+          "path": "/videos/chofee-ai-lifestyle-icecek-reels/video.mp4",
+          "exists": true,
+          "bytes": 13414215
+        },
+        "poster": {
+          "path": "/videos/chofee-ai-lifestyle-icecek-reels/poster.webp",
+          "exists": true,
+          "bytes": 140956
+        }
+      },
+      "fieldDiffs": []
+    },
+    {
+      "id": "cupistan-ai-ekler-urun-reels",
+      "slug": "cupistan-ai-ekler-urun-reels",
+      "titleTR": "Cupistan AI Ekler Ürün Reels Videosu",
+      "titleEN": "Cupistan AI Éclair Product Reel",
+      "orientation": "portrait",
+      "type": "ai-reel",
+      "sortOrder": 19,
+      "files": {
+        "video": {
+          "path": "/videos/cupistan-ai-ekler-urun-reels/video.mp4",
+          "exists": true,
+          "bytes": 10494702
+        },
+        "poster": {
+          "path": "/videos/cupistan-ai-ekler-urun-reels/poster.webp",
+          "exists": true,
+          "bytes": 137368
+        }
+      },
+      "fieldDiffs": []
+    },
+    {
+      "id": "cupistan-ai-tart-tatli-urun-reels",
+      "slug": "cupistan-ai-tart-tatli-urun-reels",
+      "titleTR": "Cupistan AI Tart ve Tatlı Ürün Reels Videosu",
+      "titleEN": "Cupistan AI Tart & Dessert Product Reel",
+      "orientation": "portrait",
+      "type": "ai-reel",
+      "sortOrder": 20,
+      "files": {
+        "video": {
+          "path": "/videos/cupistan-ai-tart-tatli-urun-reels/video.mp4",
+          "exists": true,
+          "bytes": 12134438
+        },
+        "poster": {
+          "path": "/videos/cupistan-ai-tart-tatli-urun-reels/poster.webp",
+          "exists": true,
+          "bytes": 78736
+        }
+      },
+      "fieldDiffs": []
+    },
+    {
+      "id": "cupistan-ai-lifestyle-tatli-reels",
+      "slug": "cupistan-ai-lifestyle-tatli-reels",
+      "titleTR": "Cupistan AI Lifestyle Tatlı Reels Videosu",
+      "titleEN": "Cupistan AI Dessert Lifestyle Reel",
+      "orientation": "portrait",
+      "type": "ai-reel",
+      "sortOrder": 21,
+      "files": {
+        "video": {
+          "path": "/videos/cupistan-ai-lifestyle-tatli-reels/video.mp4",
+          "exists": true,
+          "bytes": 12257066
+        },
+        "poster": {
+          "path": "/videos/cupistan-ai-lifestyle-tatli-reels/poster.webp",
+          "exists": true,
+          "bytes": 145640
+        }
+      },
+      "fieldDiffs": []
+    }
+  ],
+  "allFilesPresentOnDisk": true,
+  "parityPassed": true,
+  "mismatches": []
+}

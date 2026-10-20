@@ -7,22 +7,31 @@ import { useDesktopStore } from "@/store/desktopStore";
 import { useSessionStore } from "@/store/sessionStore";
 import { Locale } from "@/data/translations";
 import type { Project } from "@/data/projects";
+import type { PortfolioVideo } from "@/data/videos";
 
 interface ClientLocalePageProps {
   initialProjects?: Project[];
+  initialVideos?: PortfolioVideo[];
 }
 
-export function ClientLocalePage({ initialProjects }: ClientLocalePageProps) {
+export function ClientLocalePage({ initialProjects, initialVideos }: ClientLocalePageProps) {
   const params = useParams();
   const locale = (params?.locale as Locale) || "tr";
   const { setLocale } = useDesktopStore();
   const hydrateProjects = useSessionStore((s) => s.hydrateProjects);
+  const hydrateVideos = useSessionStore((s) => s.hydrateVideos);
 
   useEffect(() => {
     if (Array.isArray(initialProjects) && initialProjects.length > 0) {
       hydrateProjects(initialProjects);
     }
   }, [initialProjects, hydrateProjects]);
+
+  useEffect(() => {
+    if (Array.isArray(initialVideos) && initialVideos.length > 0) {
+      hydrateVideos(initialVideos);
+    }
+  }, [initialVideos, hydrateVideos]);
 
   useEffect(() => {
     if (locale === "tr" || locale === "en") {

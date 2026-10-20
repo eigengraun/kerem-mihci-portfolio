@@ -54,6 +54,7 @@ interface SystemPayload {
     canonicalCount: number;
     d1TotalCount: number;
     missingSlugs: string[];
+    nonCanonicalSlugs?: string[];
     fieldMismatches: { slug: string; field: string; expected: unknown; actual: unknown }[];
     reconciled: boolean;
   };
@@ -527,8 +528,8 @@ export function AdminDashboardClient({
   // ==========================================================
   if (!session) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 bg-[#0B0C10]">
-        <div className="w-full max-w-md rounded-2xl border border-white/15 bg-[#12141C] p-8 shadow-2xl">
+      <div className="h-full w-full overflow-y-auto flex items-center justify-center p-4 sm:p-6 bg-[#0B0C10]">
+        <div className="w-full max-w-md my-auto rounded-2xl border border-white/15 bg-[#12141C] p-6 sm:p-8 shadow-2xl">
           <div className="flex items-center justify-between mb-6">
             <div>
               <span className="text-[11px] font-mono uppercase tracking-widest text-blue-400">
@@ -649,16 +650,16 @@ export function AdminDashboardClient({
     {
       id: "featured",
       label: "Featured Manager",
-      badge: health?.counts.featuredPublished ?? 0
+      badge: projects.filter((p) => p.cmsStatus === "published" && p.featured).length
     },
     { id: "system", label: "System & Cloudflare" },
     { id: "settings", label: "Settings" }
   ];
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neutral-100 overflow-x-hidden">
+    <div className="h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-neutral-100 overflow-hidden">
       {/* Sidebar Navigation */}
-      <aside className="w-full lg:w-64 bg-[#10121A] border-b lg:border-b-0 lg:border-r border-white/10 flex flex-col justify-between p-4 flex-shrink-0">
+      <aside className="w-full lg:w-64 bg-[#10121A] border-b lg:border-b-0 lg:border-r border-white/10 flex flex-col justify-between p-4 flex-shrink-0 lg:h-full lg:overflow-y-auto">
         <div>
           <div className="px-2 py-2 mb-4 border-b border-white/10">
             <div className="flex items-center justify-between">
@@ -733,8 +734,9 @@ export function AdminDashboardClient({
       </aside>
 
       {/* Main Content Stage */}
-      <main className="flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-hidden max-w-7xl mx-auto w-full space-y-6">
-        {/* Top Action Bar */}
+      <main className="flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-hidden w-full">
+        <div className="max-w-7xl mx-auto space-y-6 pb-20">
+          {/* Top Action Bar */}
         <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-white/10">
           <div>
             <h1 className="text-xl font-bold text-white">
@@ -796,14 +798,14 @@ export function AdminDashboardClient({
                 </p>
               </div>
               <div className="p-4 rounded-xl bg-[#131620] border border-blue-500/30">
-                <span className="text-[11px] font-mono text-blue-400">Featured Desktop</span>
-                <p className="text-2xl font-bold text-blue-300 mt-1">
-                  {health?.counts.featuredPublished ?? 0}
+                <span className="text-[11px] font-mono text-blue-400">Featured Desktop (Live)</span>
+                <p className="text-2xl font-bold text-blue-300 mt-1" data-testid="stat-featured-live">
+                  {projects.filter((p) => p.cmsStatus === "published" && p.featured).length}
                 </p>
               </div>
               <div className="p-4 rounded-xl bg-[#131620] border border-purple-500/30">
-                <span className="text-[11px] font-mono text-purple-400">R2 Media Items</span>
-                <p className="text-2xl font-bold text-purple-300 mt-1">
+                <span className="text-[11px] font-mono text-purple-400">Media Records (D1)</span>
+                <p className="text-2xl font-bold text-purple-300 mt-1" data-testid="stat-media-records">
                   {health?.counts.mediaItems ?? mediaList.length}
                 </p>
               </div>
@@ -822,11 +824,16 @@ export function AdminDashboardClient({
                   Mode: <code className="text-neutral-200">{health?.mode || "local-d1-sqlite"}</code>
                 </p>
                 <p className="text-xs text-neutral-400">
-                  Canonical Reconciliation:{" "}
+                  Canonical Baseline:{" "}
                   <span className="text-emerald-300 font-mono">
-                    {systemInfo?.reconciliation.reconciled
-                      ? `${systemInfo.reconciliation.canonicalCount}/${systemInfo.reconciliation.canonicalCount} Verified`
-                      : "Pending"}
+                    {systemInfo?.reconciliation.missingSlugs.length === 0 &&
+                    systemInfo?.reconciliation.fieldMismatches.length === 0
+                      ? `${systemInfo.reconciliation.canonicalCount}/${systemInfo.reconciliation.canonicalCount} Baseline Reconciled${
+                          (systemInfo.reconciliation.nonCanonicalSlugs?.length || 0) > 0
+                            ? ` (+${systemInfo.reconciliation.nonCanonicalSlugs?.length || 0} CMS)`
+                            : ""
+                        }`
+                      : "Pending Mismatch"}
                   </span>
                 </p>
               </div>
@@ -878,7 +885,7 @@ export function AdminDashboardClient({
                     onClick={() => setActiveTab("featured")}
                     className="w-full px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-medium text-neutral-300 cursor-pointer text-center"
                   >
-                    Manage Featured ({health?.counts.featuredPublished ?? 0})
+                    Manage Featured ({projects.filter((p) => p.cmsStatus === "published" && p.featured).length})
                   </button>
                 </div>
               </div>
@@ -1743,46 +1750,71 @@ export function AdminDashboardClient({
             </div>
 
             <div className="p-5 rounded-xl bg-[#131620] border border-white/10 space-y-3">
-              <p className="text-xs text-neutral-400">
-                Toggle featured desktop icons for the <strong>{featuredWorkspace}</strong> workspace.
-                Featured published projects spawn automatically on the Portfolio OS desktop without
-                overlapping.
-              </p>
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-3">
+                <p className="text-xs text-neutral-400">
+                  Manage featured desktop icons for the <strong className="text-white">{featuredWorkspace}</strong> workspace.
+                  Only <strong>published</strong> projects with the featured flag appear on the live Portfolio OS desktop.
+                </p>
+                <div className="text-[11px] font-mono text-neutral-300">
+                  Live Featured: <span className="text-blue-400 font-bold">{projects.filter((p) => p.workspace === featuredWorkspace && p.cmsStatus === "published" && p.featured).length}</span> published
+                </div>
+              </div>
               <div className="divide-y divide-white/5">
                 {projects
                   .filter((p) => p.workspace === featuredWorkspace)
-                  .map((p) => (
-                    <div key={p.id} className="py-3 flex items-center justify-between gap-4 text-xs">
-                      <div>
-                        <span className="font-semibold text-white">{p.titleTR}</span>{" "}
-                        <span className="text-neutral-400">({p.titleEN})</span>
-                        <span className="ml-2 px-2 py-0.5 rounded text-[10px] font-mono bg-white/5 text-neutral-400">
-                          {p.cmsStatus}
-                        </span>
+                  .map((p) => {
+                    const isPublished = p.cmsStatus === "published";
+                    const isLiveFeatured = isPublished && p.featured;
+                    return (
+                      <div key={p.id} className="py-3 flex items-center justify-between gap-4 text-xs">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-white">{p.titleTR}</span>{" "}
+                          <span className="text-neutral-400">({p.titleEN})</span>
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-mono border ${
+                              isPublished
+                                ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/20"
+                                : "bg-amber-500/10 text-amber-300 border-amber-500/20"
+                            }`}
+                          >
+                            {isPublished ? "PUBLISHED" : "DRAFT / NOT PUBLIC"}
+                          </span>
+                          {p.featured && !isPublished && (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-blue-500/10 text-blue-300 border border-blue-500/20">
+                              Staged for Feature
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            await fetch(`/api/admin/projects/${encodeURIComponent(p.id)}`, {
+                              method: "PUT",
+                              headers: {
+                                "Content-Type": "application/json",
+                                ...csrfHeaders
+                              },
+                              body: JSON.stringify({ ...p, featured: !p.featured })
+                            });
+                            await loadCoreData();
+                          }}
+                          className={`px-3 py-1.5 rounded-lg font-mono text-xs cursor-pointer border ${
+                            isLiveFeatured
+                              ? "bg-blue-600/20 text-blue-300 border-blue-500/40 font-semibold"
+                              : p.featured
+                                ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                                : "bg-white/5 text-neutral-400 border-white/10 hover:text-white"
+                          }`}
+                        >
+                          {isLiveFeatured
+                            ? "★ Live on Desktop"
+                            : p.featured
+                              ? "★ Staged (Draft)"
+                              : "Set Featured"}
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          await fetch(`/api/admin/projects/${encodeURIComponent(p.id)}`, {
-                            method: "PUT",
-                            headers: {
-                              "Content-Type": "application/json",
-                              ...csrfHeaders
-                            },
-                            body: JSON.stringify({ ...p, featured: !p.featured })
-                          });
-                          await loadCoreData();
-                        }}
-                        className={`px-3 py-1.5 rounded-lg font-mono text-xs cursor-pointer border ${
-                          p.featured
-                            ? "bg-blue-600/20 text-blue-300 border-blue-500/40"
-                            : "bg-white/5 text-neutral-400 border-white/10"
-                        }`}
-                      >
-                        {p.featured ? "★ Featured on Desktop" : "Set Featured"}
-                      </button>
-                    </div>
-                  ))}
+                    );
+                  })}
               </div>
             </div>
           </div>
@@ -1801,8 +1833,20 @@ export function AdminDashboardClient({
                 </p>
                 <p className="text-neutral-400">
                   Canonical 30-Project Reconciliation:{" "}
-                  <strong className="text-emerald-400">
-                    {systemInfo.reconciliation.reconciled ? "100% RECONCILED" : "MISMATCH"}
+                  <strong
+                    className={
+                      systemInfo.reconciliation.missingSlugs.length === 0 &&
+                      systemInfo.reconciliation.fieldMismatches.length === 0
+                        ? "text-emerald-400"
+                        : "text-amber-400"
+                    }
+                  >
+                    {systemInfo.reconciliation.missingSlugs.length === 0 &&
+                    systemInfo.reconciliation.fieldMismatches.length === 0
+                      ? systemInfo.reconciliation.reconciled
+                        ? "100% RECONCILED (30/30)"
+                        : `BASELINE RECONCILED (30/30) • ${systemInfo.reconciliation.nonCanonicalSlugs?.length || 0} ADDITIONAL CMS RECORD(S)`
+                      : "MISMATCH DETECTED"}
                   </strong>
                 </p>
                 <p className="text-neutral-400">
@@ -1841,7 +1885,7 @@ export function AdminDashboardClient({
               <h3 className="text-sm font-semibold text-white mb-3">
                 Admin Security & Mutation Audit Logs
               </h3>
-              <div className="overflow-x-auto max-h-96">
+              <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
                     <tr className="border-b border-white/10 text-neutral-400 font-mono">
@@ -1903,6 +1947,7 @@ export function AdminDashboardClient({
             </div>
           </div>
         )}
+        </div>
       </main>
     </div>
   );

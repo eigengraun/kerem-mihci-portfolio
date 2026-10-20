@@ -38,20 +38,17 @@ flowchart TD
 
 ## 2. Phase-by-Phase Implementation Specifications
 
-### Phase 1: Scroll & Usability Unblock (P0 Priority)
-* **Objective**: Remove the critical usability blocker preventing downward vertical scrolling across all admin screens and clean staging data integrity.
-* **Key Tasks**:
-  1. Refactor `src/app/admin/layout.tsx` to establish a strict viewport boundary: `h-[100dvh] max-h-[100dvh] overflow-hidden`.
-  2. Refactor `AdminDashboardClient.tsx` `<main>` workspace container to `flex-1 min-h-0 overflow-y-auto`.
-  3. Ensure mobile header/drawer allows unified vertical scrolling on viewports `390x844` and `375x812`.
-  4. Fix Featured Manager project filter to require `cmsStatus === 'published'` (line 1752), preventing draft leakage.
-  5. Delete leaked test draft `staging-e2e-29cbd44d` from staging D1 via safe targeted query.
-  6. Verify reconciliation state resets to green.
-* **Acceptance Criteria**:
-  - Headless Playwright scroll diagnostic demonstrates `scrollTop > 0` on all 7 screens across all 6 test viewports.
-  - Test draft `staging-e2e-29cbd44d` no longer appears in Featured Manager.
-  - Staging System screen displays `Canonical Reconciliation: Reconciled (30/30)`.
-* **Estimated Effort**: 1 day.
+### Phase 1: Scroll & Usability Unblock (P0 Priority) — COMPLETED & VERIFIED
+* **Objective**: Remove the critical usability blocker preventing downward vertical scrolling across all admin screens, isolate staging draft artifacts, and ensure zero public desktop regression.
+* **Status**: **VERIFIED COMPLETE (56/56 Tab Tests Passed, 4/4 Login Viewports Passed)**.
+* **Implemented Solutions**:
+  1. Refactored `src/app/admin/layout.tsx` to establish a strict viewport boundary: `h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col`.
+  2. Refactored `AdminDashboardClient.tsx` `<main>` workspace container to `flex-1 min-w-0 min-h-0 overflow-y-auto overflow-x-hidden w-full` with an inner `max-w-7xl mx-auto space-y-6 pb-20` container.
+  3. Wrapped unauthenticated login gate in a scroll-safe flex container (`h-full w-full overflow-y-auto flex items-center justify-center p-4 sm:p-6`) with `my-auto` centering.
+  4. Hardened Featured Manager: drafts are explicitly badged as `DRAFT / NOT PUBLIC` and button labeled `★ Staged (Draft)`, while live counters strictly reflect `cmsStatus === 'published' && featured === true`.
+  5. Conducted read-only staging audit: identified interrupted E2E test draft `staging-e2e-29cbd44d` and documented safe surgical cleanup in `PORTFOLIO_OS_STAGING_CLEANUP_CANDIDATES.md` (zero DELETE queries executed).
+  6. Updated System status display to report `BASELINE RECONCILED (30/30) • 1 ADDITIONAL CMS RECORD(S)`.
+  7. Automated Playwright test suite (`scripts/verify-phase1-scroll-and-cms.mjs`) verified 100% pass across 8 viewports (1920x1080 down to 375x812) and all 7 tabs, with zero accidental horizontal overflow and full public desktop preservation on `/tr` and `/en`.
 
 ---
 

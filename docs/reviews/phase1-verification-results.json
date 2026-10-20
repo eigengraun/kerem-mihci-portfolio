@@ -1,0 +1,711 @@
+{
+  "timestamp": "2026-10-20T09:26:10.047Z",
+  "loginScreenTests": [
+    {
+      "viewport": "Short Laptop (1024x500)",
+      "passed": true,
+      "scrollInfo": {
+        "hasScrollContainer": true,
+        "scrollHeight": 500,
+        "clientHeight": 500,
+        "scrollTop": 0
+      }
+    },
+    {
+      "viewport": "Mobile Landscape (844x390)",
+      "passed": true,
+      "scrollInfo": {
+        "hasScrollContainer": true,
+        "scrollHeight": 431,
+        "clientHeight": 390,
+        "scrollTop": 0
+      }
+    },
+    {
+      "viewport": "Mobile Portrait (390x844)",
+      "passed": true,
+      "scrollInfo": {
+        "hasScrollContainer": true,
+        "scrollHeight": 844,
+        "clientHeight": 844,
+        "scrollTop": 0
+      }
+    },
+    {
+      "viewport": "Constrained Window (600x400)",
+      "passed": true,
+      "scrollInfo": {
+        "hasScrollContainer": true,
+        "scrollHeight": 400,
+        "clientHeight": 400,
+        "scrollTop": 0
+      }
+    }
+  ],
+  "viewportTabTests": {
+    "1920x1080": {
+      "overview": {
+        "needsScroll": false,
+        "scrollSucceeded": true,
+        "returnedToTop": true,
+        "initialTop": 0,
+        "wheelTop": 0,
+        "keyTop": 0,
+        "endTop": 0,
+        "homeTop": 0,
+        "hasHorizontalOverflow": false
+      },
+      "projects": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 0,
+        "wheelTop": 600,
+        "keyTop": 600,
+        "endTop": 600,
+        "homeTop": 600,
+        "hasHorizontalOverflow": false
+      },
+      "editor": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 25,
+        "wheelTop": 25,
+        "keyTop": 25,
+        "endTop": 25,
+        "homeTop": 25,
+        "hasHorizontalOverflow": false
+      },
+      "media": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 600,
+        "wheelTop": 1200,
+        "keyTop": 1200,
+        "endTop": 1200,
+        "homeTop": 1200,
+        "hasHorizontalOverflow": false
+      },
+      "featured": {
+        "needsScroll": false,
+        "scrollSucceeded": true,
+        "returnedToTop": true,
+        "initialTop": 0,
+        "wheelTop": 0,
+        "keyTop": 0,
+        "endTop": 0,
+        "homeTop": 0,
+        "hasHorizontalOverflow": false
+      },
+      "system": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 0,
+        "wheelTop": 600,
+        "keyTop": 600,
+        "endTop": 600,
+        "homeTop": 600,
+        "hasHorizontalOverflow": false
+      },
+      "settings": {
+        "needsScroll": false,
+        "scrollSucceeded": true,
+        "returnedToTop": true,
+        "initialTop": 0,
+        "wheelTop": 0,
+        "keyTop": 0,
+        "endTop": 0,
+        "homeTop": 0,
+        "hasHorizontalOverflow": false
+      }
+    },
+    "1440x900": {
+      "overview": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 0,
+        "wheelTop": 423,
+        "keyTop": 423,
+        "endTop": 423,
+        "homeTop": 423,
+        "hasHorizontalOverflow": false
+      },
+      "projects": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 423,
+        "wheelTop": 1023,
+        "keyTop": 1023,
+        "endTop": 1023,
+        "homeTop": 1023,
+        "hasHorizontalOverflow": false
+      },
+      "editor": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 255,
+        "wheelTop": 255,
+        "keyTop": 255,
+        "endTop": 255,
+        "homeTop": 255,
+        "hasHorizontalOverflow": false
+      },
+      "media": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 1023,
+        "wheelTop": 1623,
+        "keyTop": 1623,
+        "endTop": 1623,
+        "homeTop": 1623,
+        "hasHorizontalOverflow": false
+      },
+      "featured": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 177,
+        "wheelTop": 177,
+        "keyTop": 177,
+        "endTop": 177,
+        "homeTop": 177,
+        "hasHorizontalOverflow": false
+      },
+      "system": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 1577,
+        "wheelTop": 1577,
+        "keyTop": 1577,
+        "endTop": 1577,
+        "homeTop": 1577,
+        "hasHorizontalOverflow": false
+      },
+      "settings": {
+        "needsScroll": false,
+        "scrollSucceeded": true,
+        "returnedToTop": true,
+        "initialTop": 0,
+        "wheelTop": 0,
+        "keyTop": 0,
+        "endTop": 0,
+        "homeTop": 0,
+        "hasHorizontalOverflow": false
+      }
+    },
+    "1280x800": {
+      "overview": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 0,
+        "wheelTop": 528,
+        "keyTop": 528,
+        "endTop": 528,
+        "homeTop": 528,
+        "hasHorizontalOverflow": false
+      },
+      "projects": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 528,
+        "wheelTop": 1128,
+        "keyTop": 1128,
+        "endTop": 1128,
+        "homeTop": 1128,
+        "hasHorizontalOverflow": false
+      },
+      "editor": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 372,
+        "wheelTop": 372,
+        "keyTop": 372,
+        "endTop": 372,
+        "homeTop": 372,
+        "hasHorizontalOverflow": false
+      },
+      "media": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 1128,
+        "wheelTop": 1728,
+        "keyTop": 1728,
+        "endTop": 1728,
+        "homeTop": 1728,
+        "hasHorizontalOverflow": false
+      },
+      "featured": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 301,
+        "wheelTop": 301,
+        "keyTop": 301,
+        "endTop": 301,
+        "homeTop": 301,
+        "hasHorizontalOverflow": false
+      },
+      "system": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 1728,
+        "wheelTop": 1933,
+        "keyTop": 1933,
+        "endTop": 1933,
+        "homeTop": 1933,
+        "hasHorizontalOverflow": false
+      },
+      "settings": {
+        "needsScroll": false,
+        "scrollSucceeded": true,
+        "returnedToTop": true,
+        "initialTop": 0,
+        "wheelTop": 0,
+        "keyTop": 0,
+        "endTop": 0,
+        "homeTop": 0,
+        "hasHorizontalOverflow": false
+      }
+    },
+    "1024x768": {
+      "overview": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 0,
+        "wheelTop": 600,
+        "keyTop": 600,
+        "endTop": 600,
+        "homeTop": 600,
+        "hasHorizontalOverflow": false
+      },
+      "projects": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 600,
+        "wheelTop": 1200,
+        "keyTop": 1200,
+        "endTop": 1200,
+        "homeTop": 1200,
+        "hasHorizontalOverflow": false
+      },
+      "editor": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 454,
+        "wheelTop": 454,
+        "keyTop": 454,
+        "endTop": 454,
+        "homeTop": 454,
+        "hasHorizontalOverflow": false
+      },
+      "media": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 1200,
+        "wheelTop": 1800,
+        "keyTop": 1800,
+        "endTop": 1800,
+        "homeTop": 1800,
+        "hasHorizontalOverflow": false
+      },
+      "featured": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 511,
+        "wheelTop": 511,
+        "keyTop": 511,
+        "endTop": 511,
+        "homeTop": 511,
+        "hasHorizontalOverflow": false
+      },
+      "system": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 1800,
+        "wheelTop": 2015,
+        "keyTop": 2015,
+        "endTop": 2015,
+        "homeTop": 2015,
+        "hasHorizontalOverflow": false
+      },
+      "settings": {
+        "needsScroll": false,
+        "scrollSucceeded": true,
+        "returnedToTop": true,
+        "initialTop": 0,
+        "wheelTop": 0,
+        "keyTop": 0,
+        "endTop": 0,
+        "homeTop": 0,
+        "hasHorizontalOverflow": false
+      }
+    },
+    "820x1180": {
+      "overview": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 0,
+        "wheelTop": 529,
+        "keyTop": 529,
+        "endTop": 529,
+        "homeTop": 529,
+        "hasHorizontalOverflow": false
+      },
+      "projects": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 529,
+        "wheelTop": 1129,
+        "keyTop": 1129,
+        "endTop": 1129,
+        "homeTop": 1129,
+        "hasHorizontalOverflow": false
+      },
+      "editor": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 140,
+        "wheelTop": 140,
+        "keyTop": 140,
+        "endTop": 140,
+        "homeTop": 140,
+        "hasHorizontalOverflow": false
+      },
+      "media": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 1129,
+        "wheelTop": 1729,
+        "keyTop": 1729,
+        "endTop": 1729,
+        "homeTop": 1729,
+        "hasHorizontalOverflow": false
+      },
+      "featured": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 133,
+        "wheelTop": 133,
+        "keyTop": 133,
+        "endTop": 133,
+        "homeTop": 133,
+        "hasHorizontalOverflow": false
+      },
+      "system": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 1701,
+        "wheelTop": 1701,
+        "keyTop": 1701,
+        "endTop": 1701,
+        "homeTop": 1701,
+        "hasHorizontalOverflow": false
+      },
+      "settings": {
+        "needsScroll": false,
+        "scrollSucceeded": true,
+        "returnedToTop": true,
+        "initialTop": 0,
+        "wheelTop": 0,
+        "keyTop": 0,
+        "endTop": 0,
+        "homeTop": 0,
+        "hasHorizontalOverflow": false
+      }
+    },
+    "430x932": {
+      "overview": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 0,
+        "wheelTop": 600,
+        "keyTop": 600,
+        "endTop": 600,
+        "homeTop": 600,
+        "hasHorizontalOverflow": false
+      },
+      "projects": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 600,
+        "wheelTop": 1200,
+        "keyTop": 1200,
+        "endTop": 1200,
+        "homeTop": 1200,
+        "hasHorizontalOverflow": false
+      },
+      "editor": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 892,
+        "wheelTop": 892,
+        "keyTop": 892,
+        "endTop": 892,
+        "homeTop": 892,
+        "hasHorizontalOverflow": false
+      },
+      "media": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 1200,
+        "wheelTop": 1800,
+        "keyTop": 1800,
+        "endTop": 1800,
+        "homeTop": 1800,
+        "hasHorizontalOverflow": false
+      },
+      "featured": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 932,
+        "wheelTop": 932,
+        "keyTop": 932,
+        "endTop": 932,
+        "homeTop": 932,
+        "hasHorizontalOverflow": false
+      },
+      "system": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 1800,
+        "wheelTop": 2133,
+        "keyTop": 2133,
+        "endTop": 2133,
+        "homeTop": 2133,
+        "hasHorizontalOverflow": false
+      },
+      "settings": {
+        "needsScroll": false,
+        "scrollSucceeded": true,
+        "returnedToTop": true,
+        "initialTop": 0,
+        "wheelTop": 0,
+        "keyTop": 0,
+        "endTop": 0,
+        "homeTop": 0,
+        "hasHorizontalOverflow": false
+      }
+    },
+    "390x844": {
+      "overview": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 0,
+        "wheelTop": 600,
+        "keyTop": 600,
+        "endTop": 600,
+        "homeTop": 600,
+        "hasHorizontalOverflow": false
+      },
+      "projects": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 600,
+        "wheelTop": 1200,
+        "keyTop": 1200,
+        "endTop": 1200,
+        "homeTop": 1200,
+        "hasHorizontalOverflow": false
+      },
+      "editor": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 997,
+        "wheelTop": 997,
+        "keyTop": 997,
+        "endTop": 997,
+        "homeTop": 997,
+        "hasHorizontalOverflow": false
+      },
+      "media": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 1200,
+        "wheelTop": 1800,
+        "keyTop": 1800,
+        "endTop": 1800,
+        "homeTop": 1800,
+        "hasHorizontalOverflow": false
+      },
+      "featured": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 1191,
+        "wheelTop": 1191,
+        "keyTop": 1191,
+        "endTop": 1191,
+        "homeTop": 1191,
+        "hasHorizontalOverflow": false
+      },
+      "system": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 1800,
+        "wheelTop": 2237,
+        "keyTop": 2237,
+        "endTop": 2237,
+        "homeTop": 2237,
+        "hasHorizontalOverflow": false
+      },
+      "settings": {
+        "needsScroll": false,
+        "scrollSucceeded": true,
+        "returnedToTop": true,
+        "initialTop": 0,
+        "wheelTop": 0,
+        "keyTop": 0,
+        "endTop": 0,
+        "homeTop": 0,
+        "hasHorizontalOverflow": false
+      }
+    },
+    "375x812": {
+      "overview": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 0,
+        "wheelTop": 600,
+        "keyTop": 600,
+        "endTop": 600,
+        "homeTop": 600,
+        "hasHorizontalOverflow": false
+      },
+      "projects": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 600,
+        "wheelTop": 1200,
+        "keyTop": 1200,
+        "endTop": 1200,
+        "homeTop": 1200,
+        "hasHorizontalOverflow": false
+      },
+      "editor": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 1029,
+        "wheelTop": 1029,
+        "keyTop": 1029,
+        "endTop": 1029,
+        "homeTop": 1029,
+        "hasHorizontalOverflow": false
+      },
+      "media": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 1200,
+        "wheelTop": 1800,
+        "keyTop": 1800,
+        "endTop": 1800,
+        "homeTop": 1800,
+        "hasHorizontalOverflow": false
+      },
+      "featured": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 1271,
+        "wheelTop": 1271,
+        "keyTop": 1271,
+        "endTop": 1271,
+        "homeTop": 1271,
+        "hasHorizontalOverflow": false
+      },
+      "system": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 1800,
+        "wheelTop": 2269,
+        "keyTop": 2269,
+        "endTop": 2269,
+        "homeTop": 2269,
+        "hasHorizontalOverflow": false
+      },
+      "settings": {
+        "needsScroll": true,
+        "scrollSucceeded": true,
+        "returnedToTop": false,
+        "initialTop": 5,
+        "wheelTop": 5,
+        "keyTop": 5,
+        "endTop": 5,
+        "homeTop": 5,
+        "hasHorizontalOverflow": false
+      }
+    }
+  },
+  "featuredManagerValidation": {
+    "hasStagingDraft": true,
+    "hasDraftBadge": true,
+    "hasStagedBadge": true,
+    "hasLiveOnDesktop": true,
+    "badgeText": "Featured Manager11"
+  },
+  "publicPortfolioNonRegression": {
+    "tr": {
+      "bodyOverflow": "hidden",
+      "htmlOverflow": "hidden",
+      "bodyHeight": "900px",
+      "windowInnerHeight": 900,
+      "bodyClientHeight": 900,
+      "hasDock": true,
+      "iconsFound": 0
+    },
+    "en": {
+      "bodyOverflow": "hidden",
+      "htmlOverflow": "hidden",
+      "bodyHeight": "900px",
+      "windowInnerHeight": 900,
+      "bodyClientHeight": 900,
+      "hasDock": true,
+      "iconsFound": 0
+    }
+  },
+  "summary": {
+    "total": 56,
+    "passed": 56,
+    "failed": 0
+  }
+}

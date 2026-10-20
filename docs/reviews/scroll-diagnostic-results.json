@@ -24,7 +24,7 @@
           "tagName": "BODY",
           "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
           "clientHeight": 1080,
-          "scrollHeight": 1219,
+          "scrollHeight": 1080,
           "offsetHeight": 1080,
           "scrollTop": 0,
           "overflowY": "hidden",
@@ -37,51 +37,51 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
-          "clientHeight": 1219,
-          "scrollHeight": 1219,
-          "offsetHeight": 1219,
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
+          "clientHeight": 1080,
+          "scrollHeight": 1080,
+          "offsetHeight": 1080,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
-          "height": "1218.94px",
-          "maxHeight": "none",
-          "minHeight": "1080px"
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "1080px",
+          "maxHeight": "1080px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
-          "clientHeight": 1219,
-          "scrollHeight": 1219,
-          "offsetHeight": 1219,
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
+          "clientHeight": 1080,
+          "scrollHeight": 1080,
+          "offsetHeight": 1080,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
-          "height": "1218.94px",
+          "height": "1080px",
           "maxHeight": "none",
-          "minHeight": "1080px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
-          "clientHeight": 1219,
-          "scrollHeight": 1219,
-          "offsetHeight": 1219,
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
+          "clientHeight": 1080,
+          "scrollHeight": 1299,
+          "offsetHeight": 1080,
           "scrollTop": 0,
           "overflowY": "auto",
           "overflowX": "hidden",
-          "height": "1218.94px",
+          "height": "1080px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": true,
-      "canScrollWheel": false,
-      "canScrollKey": false,
+      "canScrollWheel": true,
+      "canScrollKey": true,
       "initialScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
@@ -92,13 +92,13 @@
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 219
       },
       "afterKeyScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 219
       }
     },
     "projects": {
@@ -125,7 +125,7 @@
           "tagName": "BODY",
           "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
           "clientHeight": 1080,
-          "scrollHeight": 2605,
+          "scrollHeight": 1080,
           "offsetHeight": 1080,
           "scrollTop": 0,
           "overflowY": "hidden",
@@ -138,51 +138,51 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
-          "clientHeight": 2605,
-          "scrollHeight": 2605,
-          "offsetHeight": 2605,
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
+          "clientHeight": 1080,
+          "scrollHeight": 1080,
+          "offsetHeight": 1080,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
-          "height": "2604.66px",
-          "maxHeight": "none",
-          "minHeight": "1080px"
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "1080px",
+          "maxHeight": "1080px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
-          "clientHeight": 2605,
-          "scrollHeight": 2605,
-          "offsetHeight": 2605,
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
+          "clientHeight": 1080,
+          "scrollHeight": 1080,
+          "offsetHeight": 1080,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
-          "height": "2604.66px",
+          "height": "1080px",
           "maxHeight": "none",
-          "minHeight": "1080px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
-          "clientHeight": 2605,
-          "scrollHeight": 2605,
-          "offsetHeight": 2605,
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
+          "clientHeight": 1080,
+          "scrollHeight": 2639,
+          "offsetHeight": 1080,
           "scrollTop": 0,
           "overflowY": "auto",
           "overflowX": "hidden",
-          "height": "2604.66px",
+          "height": "1080px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": true,
-      "canScrollWheel": false,
-      "canScrollKey": false,
+      "canScrollWheel": true,
+      "canScrollKey": true,
       "initialScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
@@ -193,13 +193,13 @@
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       },
       "afterKeyScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       }
     },
     "editor": {
@@ -239,51 +239,51 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
           "clientHeight": 1080,
           "scrollHeight": 1080,
           "offsetHeight": 1080,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
+          "overflowY": "hidden",
+          "overflowX": "hidden",
           "height": "1080px",
-          "maxHeight": "none",
-          "minHeight": "1080px"
+          "maxHeight": "1080px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
           "clientHeight": 1080,
           "scrollHeight": 1080,
           "offsetHeight": 1080,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
           "height": "1080px",
           "maxHeight": "none",
-          "minHeight": "1080px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
           "clientHeight": 1080,
-          "scrollHeight": 1080,
+          "scrollHeight": 1105,
           "offsetHeight": 1080,
           "scrollTop": 0,
           "overflowY": "auto",
           "overflowX": "hidden",
           "height": "1080px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
-      "needsScroll": false,
-      "canScrollWheel": false,
-      "canScrollKey": false,
+      "needsScroll": true,
+      "canScrollWheel": true,
+      "canScrollKey": true,
       "initialScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
@@ -294,13 +294,13 @@
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 25
       },
       "afterKeyScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 25
       }
     },
     "media": {
@@ -327,7 +327,7 @@
           "tagName": "BODY",
           "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
           "clientHeight": 1080,
-          "scrollHeight": 2711,
+          "scrollHeight": 1080,
           "offsetHeight": 1080,
           "scrollTop": 0,
           "overflowY": "hidden",
@@ -340,51 +340,51 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
-          "clientHeight": 2711,
-          "scrollHeight": 2711,
-          "offsetHeight": 2711,
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
+          "clientHeight": 1080,
+          "scrollHeight": 1080,
+          "offsetHeight": 1080,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
-          "height": "2711px",
-          "maxHeight": "none",
-          "minHeight": "1080px"
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "1080px",
+          "maxHeight": "1080px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
-          "clientHeight": 2711,
-          "scrollHeight": 2711,
-          "offsetHeight": 2711,
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
+          "clientHeight": 1080,
+          "scrollHeight": 1080,
+          "offsetHeight": 1080,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
-          "height": "2711px",
+          "height": "1080px",
           "maxHeight": "none",
-          "minHeight": "1080px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
-          "clientHeight": 2711,
-          "scrollHeight": 2711,
-          "offsetHeight": 2711,
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
+          "clientHeight": 1080,
+          "scrollHeight": 2791,
+          "offsetHeight": 1080,
           "scrollTop": 0,
           "overflowY": "auto",
           "overflowX": "hidden",
-          "height": "2711px",
+          "height": "1080px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": true,
-      "canScrollWheel": false,
-      "canScrollKey": false,
+      "canScrollWheel": true,
+      "canScrollKey": true,
       "initialScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
@@ -395,13 +395,13 @@
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       },
       "afterKeyScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       }
     },
     "featured": {
@@ -441,37 +441,37 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
           "clientHeight": 1080,
           "scrollHeight": 1080,
           "offsetHeight": 1080,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
+          "overflowY": "hidden",
+          "overflowX": "hidden",
           "height": "1080px",
-          "maxHeight": "none",
-          "minHeight": "1080px"
+          "maxHeight": "1080px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
           "clientHeight": 1080,
           "scrollHeight": 1080,
           "offsetHeight": 1080,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
           "height": "1080px",
           "maxHeight": "none",
-          "minHeight": "1080px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
           "clientHeight": 1080,
           "scrollHeight": 1080,
           "offsetHeight": 1080,
@@ -480,7 +480,7 @@
           "overflowX": "hidden",
           "height": "1080px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": false,
@@ -542,37 +542,37 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
           "clientHeight": 1080,
           "scrollHeight": 1080,
           "offsetHeight": 1080,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
+          "overflowY": "hidden",
+          "overflowX": "hidden",
           "height": "1080px",
-          "maxHeight": "none",
-          "minHeight": "1080px"
+          "maxHeight": "1080px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
           "clientHeight": 1080,
           "scrollHeight": 1080,
           "offsetHeight": 1080,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
           "height": "1080px",
           "maxHeight": "none",
-          "minHeight": "1080px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
           "clientHeight": 1080,
           "scrollHeight": 1080,
           "offsetHeight": 1080,
@@ -581,7 +581,7 @@
           "overflowX": "hidden",
           "height": "1080px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": false,
@@ -643,37 +643,37 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
           "clientHeight": 1080,
           "scrollHeight": 1080,
           "offsetHeight": 1080,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
+          "overflowY": "hidden",
+          "overflowX": "hidden",
           "height": "1080px",
-          "maxHeight": "none",
-          "minHeight": "1080px"
+          "maxHeight": "1080px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
           "clientHeight": 1080,
           "scrollHeight": 1080,
           "offsetHeight": 1080,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
           "height": "1080px",
           "maxHeight": "none",
-          "minHeight": "1080px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
           "clientHeight": 1080,
           "scrollHeight": 1080,
           "offsetHeight": 1080,
@@ -682,7 +682,7 @@
           "overflowX": "hidden",
           "height": "1080px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": false,
@@ -733,7 +733,7 @@
           "tagName": "BODY",
           "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
           "clientHeight": 900,
-          "scrollHeight": 1219,
+          "scrollHeight": 900,
           "offsetHeight": 900,
           "scrollTop": 0,
           "overflowY": "hidden",
@@ -746,51 +746,51 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
-          "clientHeight": 1219,
-          "scrollHeight": 1219,
-          "offsetHeight": 1219,
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
+          "clientHeight": 900,
+          "scrollHeight": 900,
+          "offsetHeight": 900,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
-          "height": "1218.94px",
-          "maxHeight": "none",
-          "minHeight": "900px"
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "900px",
+          "maxHeight": "900px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
-          "clientHeight": 1219,
-          "scrollHeight": 1219,
-          "offsetHeight": 1219,
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
+          "clientHeight": 900,
+          "scrollHeight": 900,
+          "offsetHeight": 900,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
-          "height": "1218.94px",
+          "height": "900px",
           "maxHeight": "none",
-          "minHeight": "900px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
-          "clientHeight": 1219,
-          "scrollHeight": 1219,
-          "offsetHeight": 1219,
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
+          "clientHeight": 900,
+          "scrollHeight": 1323,
+          "offsetHeight": 900,
           "scrollTop": 0,
           "overflowY": "auto",
           "overflowX": "hidden",
-          "height": "1218.94px",
+          "height": "900px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": true,
-      "canScrollWheel": false,
-      "canScrollKey": false,
+      "canScrollWheel": true,
+      "canScrollKey": true,
       "initialScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
@@ -801,13 +801,13 @@
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 423
       },
       "afterKeyScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 423
       }
     },
     "projects": {
@@ -834,7 +834,7 @@
           "tagName": "BODY",
           "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
           "clientHeight": 900,
-          "scrollHeight": 2707,
+          "scrollHeight": 900,
           "offsetHeight": 900,
           "scrollTop": 0,
           "overflowY": "hidden",
@@ -847,51 +847,51 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
-          "clientHeight": 2707,
-          "scrollHeight": 2707,
-          "offsetHeight": 2707,
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
+          "clientHeight": 900,
+          "scrollHeight": 900,
+          "offsetHeight": 900,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
-          "height": "2707.25px",
-          "maxHeight": "none",
-          "minHeight": "900px"
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "900px",
+          "maxHeight": "900px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
-          "clientHeight": 2707,
-          "scrollHeight": 2707,
-          "offsetHeight": 2707,
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
+          "clientHeight": 900,
+          "scrollHeight": 900,
+          "offsetHeight": 900,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
-          "height": "2707.25px",
+          "height": "900px",
           "maxHeight": "none",
-          "minHeight": "900px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
-          "clientHeight": 2707,
-          "scrollHeight": 2707,
-          "offsetHeight": 2707,
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
+          "clientHeight": 900,
+          "scrollHeight": 2787,
+          "offsetHeight": 900,
           "scrollTop": 0,
           "overflowY": "auto",
           "overflowX": "hidden",
-          "height": "2707.25px",
+          "height": "900px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": true,
-      "canScrollWheel": false,
-      "canScrollKey": false,
+      "canScrollWheel": true,
+      "canScrollKey": true,
       "initialScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
@@ -902,13 +902,13 @@
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       },
       "afterKeyScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       }
     },
     "editor": {
@@ -935,7 +935,7 @@
           "tagName": "BODY",
           "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
           "clientHeight": 900,
-          "scrollHeight": 1075,
+          "scrollHeight": 900,
           "offsetHeight": 900,
           "scrollTop": 0,
           "overflowY": "hidden",
@@ -948,51 +948,51 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
-          "clientHeight": 1075,
-          "scrollHeight": 1075,
-          "offsetHeight": 1075,
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
+          "clientHeight": 900,
+          "scrollHeight": 900,
+          "offsetHeight": 900,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
-          "height": "1075px",
-          "maxHeight": "none",
-          "minHeight": "900px"
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "900px",
+          "maxHeight": "900px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
-          "clientHeight": 1075,
-          "scrollHeight": 1075,
-          "offsetHeight": 1075,
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
+          "clientHeight": 900,
+          "scrollHeight": 900,
+          "offsetHeight": 900,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
-          "height": "1075px",
+          "height": "900px",
           "maxHeight": "none",
-          "minHeight": "900px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
-          "clientHeight": 1075,
-          "scrollHeight": 1075,
-          "offsetHeight": 1075,
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
+          "clientHeight": 900,
+          "scrollHeight": 1155,
+          "offsetHeight": 900,
           "scrollTop": 0,
           "overflowY": "auto",
           "overflowX": "hidden",
-          "height": "1075px",
+          "height": "900px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": true,
-      "canScrollWheel": false,
-      "canScrollKey": false,
+      "canScrollWheel": true,
+      "canScrollKey": true,
       "initialScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
@@ -1003,13 +1003,13 @@
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 255
       },
       "afterKeyScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 255
       }
     },
     "media": {
@@ -1036,7 +1036,7 @@
           "tagName": "BODY",
           "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
           "clientHeight": 900,
-          "scrollHeight": 2711,
+          "scrollHeight": 900,
           "offsetHeight": 900,
           "scrollTop": 0,
           "overflowY": "hidden",
@@ -1049,51 +1049,51 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
-          "clientHeight": 2711,
-          "scrollHeight": 2711,
-          "offsetHeight": 2711,
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
+          "clientHeight": 900,
+          "scrollHeight": 900,
+          "offsetHeight": 900,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
-          "height": "2711px",
-          "maxHeight": "none",
-          "minHeight": "900px"
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "900px",
+          "maxHeight": "900px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
-          "clientHeight": 2711,
-          "scrollHeight": 2711,
-          "offsetHeight": 2711,
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
+          "clientHeight": 900,
+          "scrollHeight": 900,
+          "offsetHeight": 900,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
-          "height": "2711px",
+          "height": "900px",
           "maxHeight": "none",
-          "minHeight": "900px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
-          "clientHeight": 2711,
-          "scrollHeight": 2711,
-          "offsetHeight": 2711,
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
+          "clientHeight": 900,
+          "scrollHeight": 2791,
+          "offsetHeight": 900,
           "scrollTop": 0,
           "overflowY": "auto",
           "overflowX": "hidden",
-          "height": "2711px",
+          "height": "900px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": true,
-      "canScrollWheel": false,
-      "canScrollKey": false,
+      "canScrollWheel": true,
+      "canScrollKey": true,
       "initialScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
@@ -1104,13 +1104,13 @@
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       },
       "afterKeyScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       }
     },
     "featured": {
@@ -1137,7 +1137,7 @@
           "tagName": "BODY",
           "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
           "clientHeight": 900,
-          "scrollHeight": 983,
+          "scrollHeight": 900,
           "offsetHeight": 900,
           "scrollTop": 0,
           "overflowY": "hidden",
@@ -1150,51 +1150,51 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
-          "clientHeight": 983,
-          "scrollHeight": 983,
-          "offsetHeight": 983,
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
+          "clientHeight": 900,
+          "scrollHeight": 900,
+          "offsetHeight": 900,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
-          "height": "983px",
-          "maxHeight": "none",
-          "minHeight": "900px"
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "900px",
+          "maxHeight": "900px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
-          "clientHeight": 983,
-          "scrollHeight": 983,
-          "offsetHeight": 983,
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
+          "clientHeight": 900,
+          "scrollHeight": 900,
+          "offsetHeight": 900,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
-          "height": "983px",
+          "height": "900px",
           "maxHeight": "none",
-          "minHeight": "900px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
-          "clientHeight": 983,
-          "scrollHeight": 983,
-          "offsetHeight": 983,
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
+          "clientHeight": 900,
+          "scrollHeight": 1077,
+          "offsetHeight": 900,
           "scrollTop": 0,
           "overflowY": "auto",
           "overflowX": "hidden",
-          "height": "983px",
+          "height": "900px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": true,
-      "canScrollWheel": false,
-      "canScrollKey": false,
+      "canScrollWheel": true,
+      "canScrollKey": true,
       "initialScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
@@ -1205,13 +1205,13 @@
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 177
       },
       "afterKeyScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 177
       }
     },
     "system": {
@@ -1251,37 +1251,37 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
           "clientHeight": 900,
           "scrollHeight": 900,
           "offsetHeight": 900,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
+          "overflowY": "hidden",
+          "overflowX": "hidden",
           "height": "900px",
-          "maxHeight": "none",
-          "minHeight": "900px"
+          "maxHeight": "900px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
           "clientHeight": 900,
           "scrollHeight": 900,
           "offsetHeight": 900,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
           "height": "900px",
           "maxHeight": "none",
-          "minHeight": "900px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
           "clientHeight": 900,
           "scrollHeight": 900,
           "offsetHeight": 900,
@@ -1290,7 +1290,7 @@
           "overflowX": "hidden",
           "height": "900px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": false,
@@ -1352,37 +1352,37 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
           "clientHeight": 900,
           "scrollHeight": 900,
           "offsetHeight": 900,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
+          "overflowY": "hidden",
+          "overflowX": "hidden",
           "height": "900px",
-          "maxHeight": "none",
-          "minHeight": "900px"
+          "maxHeight": "900px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
           "clientHeight": 900,
           "scrollHeight": 900,
           "offsetHeight": 900,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
           "height": "900px",
           "maxHeight": "none",
-          "minHeight": "900px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
           "clientHeight": 900,
           "scrollHeight": 900,
           "offsetHeight": 900,
@@ -1391,7 +1391,7 @@
           "overflowX": "hidden",
           "height": "900px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": false,
@@ -1442,7 +1442,7 @@
           "tagName": "BODY",
           "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
           "clientHeight": 800,
-          "scrollHeight": 1224,
+          "scrollHeight": 800,
           "offsetHeight": 800,
           "scrollTop": 0,
           "overflowY": "hidden",
@@ -1455,51 +1455,51 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
-          "clientHeight": 1224,
-          "scrollHeight": 1224,
-          "offsetHeight": 1224,
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
+          "clientHeight": 800,
+          "scrollHeight": 800,
+          "offsetHeight": 800,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
-          "height": "1223.94px",
-          "maxHeight": "none",
-          "minHeight": "800px"
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "800px",
+          "maxHeight": "800px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
-          "clientHeight": 1224,
-          "scrollHeight": 1224,
-          "offsetHeight": 1224,
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
+          "clientHeight": 800,
+          "scrollHeight": 800,
+          "offsetHeight": 800,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
-          "height": "1223.94px",
+          "height": "800px",
           "maxHeight": "none",
-          "minHeight": "800px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
-          "clientHeight": 1224,
-          "scrollHeight": 1224,
-          "offsetHeight": 1224,
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
+          "clientHeight": 800,
+          "scrollHeight": 1328,
+          "offsetHeight": 800,
           "scrollTop": 0,
           "overflowY": "auto",
           "overflowX": "hidden",
-          "height": "1223.94px",
+          "height": "800px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": true,
-      "canScrollWheel": false,
-      "canScrollKey": false,
+      "canScrollWheel": true,
+      "canScrollKey": true,
       "initialScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
@@ -1510,13 +1510,13 @@
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       },
       "afterKeyScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       }
     },
     "projects": {
@@ -1543,7 +1543,7 @@
           "tagName": "BODY",
           "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
           "clientHeight": 800,
-          "scrollHeight": 3566,
+          "scrollHeight": 800,
           "offsetHeight": 800,
           "scrollTop": 0,
           "overflowY": "hidden",
@@ -1556,51 +1556,51 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
-          "clientHeight": 3566,
-          "scrollHeight": 3566,
-          "offsetHeight": 3566,
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
+          "clientHeight": 800,
+          "scrollHeight": 800,
+          "offsetHeight": 800,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
-          "height": "3565.62px",
-          "maxHeight": "none",
-          "minHeight": "800px"
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "800px",
+          "maxHeight": "800px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
-          "clientHeight": 3566,
-          "scrollHeight": 3566,
-          "offsetHeight": 3566,
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
+          "clientHeight": 800,
+          "scrollHeight": 800,
+          "offsetHeight": 800,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
-          "height": "3565.62px",
+          "height": "800px",
           "maxHeight": "none",
-          "minHeight": "800px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
-          "clientHeight": 3566,
-          "scrollHeight": 3566,
-          "offsetHeight": 3566,
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
+          "clientHeight": 800,
+          "scrollHeight": 3646,
+          "offsetHeight": 800,
           "scrollTop": 0,
           "overflowY": "auto",
           "overflowX": "hidden",
-          "height": "3565.62px",
+          "height": "800px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": true,
-      "canScrollWheel": false,
-      "canScrollKey": false,
+      "canScrollWheel": true,
+      "canScrollKey": true,
       "initialScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
@@ -1611,13 +1611,13 @@
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       },
       "afterKeyScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       }
     },
     "editor": {
@@ -1644,7 +1644,7 @@
           "tagName": "BODY",
           "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
           "clientHeight": 800,
-          "scrollHeight": 1092,
+          "scrollHeight": 800,
           "offsetHeight": 800,
           "scrollTop": 0,
           "overflowY": "hidden",
@@ -1657,51 +1657,51 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
-          "clientHeight": 1092,
-          "scrollHeight": 1092,
-          "offsetHeight": 1092,
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
+          "clientHeight": 800,
+          "scrollHeight": 800,
+          "offsetHeight": 800,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
-          "height": "1091.5px",
-          "maxHeight": "none",
-          "minHeight": "800px"
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "800px",
+          "maxHeight": "800px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
-          "clientHeight": 1092,
-          "scrollHeight": 1092,
-          "offsetHeight": 1092,
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
+          "clientHeight": 800,
+          "scrollHeight": 800,
+          "offsetHeight": 800,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
-          "height": "1091.5px",
+          "height": "800px",
           "maxHeight": "none",
-          "minHeight": "800px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
-          "clientHeight": 1092,
-          "scrollHeight": 1092,
-          "offsetHeight": 1092,
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
+          "clientHeight": 800,
+          "scrollHeight": 1172,
+          "offsetHeight": 800,
           "scrollTop": 0,
           "overflowY": "auto",
           "overflowX": "hidden",
-          "height": "1091.5px",
+          "height": "800px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": true,
-      "canScrollWheel": false,
-      "canScrollKey": false,
+      "canScrollWheel": true,
+      "canScrollKey": true,
       "initialScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
@@ -1712,13 +1712,13 @@
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 372
       },
       "afterKeyScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 372
       }
     },
     "media": {
@@ -1745,7 +1745,7 @@
           "tagName": "BODY",
           "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
           "clientHeight": 800,
-          "scrollHeight": 2711,
+          "scrollHeight": 800,
           "offsetHeight": 800,
           "scrollTop": 0,
           "overflowY": "hidden",
@@ -1758,51 +1758,51 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
-          "clientHeight": 2711,
-          "scrollHeight": 2711,
-          "offsetHeight": 2711,
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
+          "clientHeight": 800,
+          "scrollHeight": 800,
+          "offsetHeight": 800,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
-          "height": "2711px",
-          "maxHeight": "none",
-          "minHeight": "800px"
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "800px",
+          "maxHeight": "800px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
-          "clientHeight": 2711,
-          "scrollHeight": 2711,
-          "offsetHeight": 2711,
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
+          "clientHeight": 800,
+          "scrollHeight": 800,
+          "offsetHeight": 800,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
-          "height": "2711px",
+          "height": "800px",
           "maxHeight": "none",
-          "minHeight": "800px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
-          "clientHeight": 2711,
-          "scrollHeight": 2711,
-          "offsetHeight": 2711,
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
+          "clientHeight": 800,
+          "scrollHeight": 2791,
+          "offsetHeight": 800,
           "scrollTop": 0,
           "overflowY": "auto",
           "overflowX": "hidden",
-          "height": "2711px",
+          "height": "800px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": true,
-      "canScrollWheel": false,
-      "canScrollKey": false,
+      "canScrollWheel": true,
+      "canScrollKey": true,
       "initialScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
@@ -1813,13 +1813,13 @@
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       },
       "afterKeyScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       }
     },
     "featured": {
@@ -1846,7 +1846,7 @@
           "tagName": "BODY",
           "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
           "clientHeight": 800,
-          "scrollHeight": 983,
+          "scrollHeight": 800,
           "offsetHeight": 800,
           "scrollTop": 0,
           "overflowY": "hidden",
@@ -1859,51 +1859,51 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
-          "clientHeight": 983,
-          "scrollHeight": 983,
-          "offsetHeight": 983,
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
+          "clientHeight": 800,
+          "scrollHeight": 800,
+          "offsetHeight": 800,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
-          "height": "983px",
-          "maxHeight": "none",
-          "minHeight": "800px"
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "800px",
+          "maxHeight": "800px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
-          "clientHeight": 983,
-          "scrollHeight": 983,
-          "offsetHeight": 983,
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
+          "clientHeight": 800,
+          "scrollHeight": 800,
+          "offsetHeight": 800,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
-          "height": "983px",
+          "height": "800px",
           "maxHeight": "none",
-          "minHeight": "800px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
-          "clientHeight": 983,
-          "scrollHeight": 983,
-          "offsetHeight": 983,
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
+          "clientHeight": 800,
+          "scrollHeight": 1101,
+          "offsetHeight": 800,
           "scrollTop": 0,
           "overflowY": "auto",
           "overflowX": "hidden",
-          "height": "983px",
+          "height": "800px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": true,
-      "canScrollWheel": false,
-      "canScrollKey": false,
+      "canScrollWheel": true,
+      "canScrollKey": true,
       "initialScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
@@ -1914,13 +1914,13 @@
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 301
       },
       "afterKeyScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 301
       }
     },
     "system": {
@@ -1960,49 +1960,49 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
           "clientHeight": 800,
           "scrollHeight": 800,
           "offsetHeight": 800,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
+          "overflowY": "hidden",
+          "overflowX": "hidden",
           "height": "800px",
-          "maxHeight": "none",
-          "minHeight": "800px"
+          "maxHeight": "800px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
           "clientHeight": 800,
           "scrollHeight": 800,
           "offsetHeight": 800,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
           "height": "800px",
           "maxHeight": "none",
-          "minHeight": "800px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
           "clientHeight": 800,
-          "scrollHeight": 800,
+          "scrollHeight": 869,
           "offsetHeight": 800,
           "scrollTop": 0,
           "overflowY": "auto",
           "overflowX": "hidden",
           "height": "800px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
-      "needsScroll": false,
+      "needsScroll": true,
       "canScrollWheel": false,
       "canScrollKey": false,
       "initialScroll": {
@@ -2061,37 +2061,37 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
           "clientHeight": 800,
           "scrollHeight": 800,
           "offsetHeight": 800,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
+          "overflowY": "hidden",
+          "overflowX": "hidden",
           "height": "800px",
-          "maxHeight": "none",
-          "minHeight": "800px"
+          "maxHeight": "800px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
           "clientHeight": 800,
           "scrollHeight": 800,
           "offsetHeight": 800,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
           "height": "800px",
           "maxHeight": "none",
-          "minHeight": "800px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
           "clientHeight": 800,
           "scrollHeight": 800,
           "offsetHeight": 800,
@@ -2100,7 +2100,7 @@
           "overflowX": "hidden",
           "height": "800px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": false,
@@ -2151,7 +2151,7 @@
           "tagName": "BODY",
           "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
           "clientHeight": 1180,
-          "scrollHeight": 1629,
+          "scrollHeight": 1180,
           "offsetHeight": 1180,
           "scrollTop": 0,
           "overflowY": "hidden",
@@ -2164,51 +2164,51 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
-          "clientHeight": 1629,
-          "scrollHeight": 1629,
-          "offsetHeight": 1629,
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
+          "clientHeight": 1180,
+          "scrollHeight": 1180,
+          "offsetHeight": 1180,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
-          "height": "1629.27px",
-          "maxHeight": "none",
-          "minHeight": "1180px"
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "1180px",
+          "maxHeight": "1180px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
-          "clientHeight": 1629,
-          "scrollHeight": 1629,
-          "offsetHeight": 1629,
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
+          "clientHeight": 1180,
+          "scrollHeight": 1180,
+          "offsetHeight": 1180,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
-          "height": "1629.27px",
+          "height": "1180px",
           "maxHeight": "none",
-          "minHeight": "1180px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
-          "clientHeight": 1481,
-          "scrollHeight": 1481,
-          "offsetHeight": 1481,
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
+          "clientHeight": 1032,
+          "scrollHeight": 1561,
+          "offsetHeight": 1032,
           "scrollTop": 0,
           "overflowY": "auto",
           "overflowX": "hidden",
-          "height": "1480.94px",
+          "height": "1031.67px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": true,
-      "canScrollWheel": false,
-      "canScrollKey": false,
+      "canScrollWheel": true,
+      "canScrollKey": true,
       "initialScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
@@ -2219,13 +2219,13 @@
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       },
       "afterKeyScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       }
     },
     "projects": {
@@ -2252,7 +2252,7 @@
           "tagName": "BODY",
           "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
           "clientHeight": 1180,
-          "scrollHeight": 6394,
+          "scrollHeight": 1180,
           "offsetHeight": 1180,
           "scrollTop": 0,
           "overflowY": "hidden",
@@ -2265,51 +2265,51 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
-          "clientHeight": 6394,
-          "scrollHeight": 6394,
-          "offsetHeight": 6394,
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
+          "clientHeight": 1180,
+          "scrollHeight": 1180,
+          "offsetHeight": 1180,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
-          "height": "6394.36px",
-          "maxHeight": "none",
-          "minHeight": "1180px"
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "1180px",
+          "maxHeight": "1180px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
-          "clientHeight": 6394,
-          "scrollHeight": 6394,
-          "offsetHeight": 6394,
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
+          "clientHeight": 1180,
+          "scrollHeight": 1180,
+          "offsetHeight": 1180,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
-          "height": "6394.36px",
+          "height": "1180px",
           "maxHeight": "none",
-          "minHeight": "1180px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
-          "clientHeight": 6246,
-          "scrollHeight": 6246,
-          "offsetHeight": 6246,
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
+          "clientHeight": 1032,
+          "scrollHeight": 6326,
+          "offsetHeight": 1032,
           "scrollTop": 0,
           "overflowY": "auto",
           "overflowX": "hidden",
-          "height": "6246.03px",
+          "height": "1031.67px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": true,
-      "canScrollWheel": false,
-      "canScrollKey": false,
+      "canScrollWheel": true,
+      "canScrollKey": true,
       "initialScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
@@ -2320,13 +2320,13 @@
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       },
       "afterKeyScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       }
     },
     "editor": {
@@ -2353,7 +2353,7 @@
           "tagName": "BODY",
           "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
           "clientHeight": 1180,
-          "scrollHeight": 1240,
+          "scrollHeight": 1180,
           "offsetHeight": 1180,
           "scrollTop": 0,
           "overflowY": "hidden",
@@ -2366,51 +2366,51 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
-          "clientHeight": 1240,
-          "scrollHeight": 1240,
-          "offsetHeight": 1240,
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
+          "clientHeight": 1180,
+          "scrollHeight": 1180,
+          "offsetHeight": 1180,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
-          "height": "1239.83px",
-          "maxHeight": "none",
-          "minHeight": "1180px"
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "1180px",
+          "maxHeight": "1180px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
-          "clientHeight": 1240,
-          "scrollHeight": 1240,
-          "offsetHeight": 1240,
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
+          "clientHeight": 1180,
+          "scrollHeight": 1180,
+          "offsetHeight": 1180,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
-          "height": "1239.83px",
+          "height": "1180px",
           "maxHeight": "none",
-          "minHeight": "1180px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
-          "clientHeight": 1092,
-          "scrollHeight": 1092,
-          "offsetHeight": 1092,
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
+          "clientHeight": 1032,
+          "scrollHeight": 1172,
+          "offsetHeight": 1032,
           "scrollTop": 0,
           "overflowY": "auto",
           "overflowX": "hidden",
-          "height": "1091.5px",
+          "height": "1031.67px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": false,
-      "canScrollWheel": false,
-      "canScrollKey": false,
+      "canScrollWheel": true,
+      "canScrollKey": true,
       "initialScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
@@ -2421,13 +2421,13 @@
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 140
       },
       "afterKeyScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 140
       }
     },
     "media": {
@@ -2454,7 +2454,7 @@
           "tagName": "BODY",
           "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
           "clientHeight": 1180,
-          "scrollHeight": 3480,
+          "scrollHeight": 1180,
           "offsetHeight": 1180,
           "scrollTop": 0,
           "overflowY": "hidden",
@@ -2467,51 +2467,51 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
-          "clientHeight": 3480,
-          "scrollHeight": 3480,
-          "offsetHeight": 3480,
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
+          "clientHeight": 1180,
+          "scrollHeight": 1180,
+          "offsetHeight": 1180,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
-          "height": "3480.33px",
-          "maxHeight": "none",
-          "minHeight": "1180px"
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "1180px",
+          "maxHeight": "1180px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
-          "clientHeight": 3480,
-          "scrollHeight": 3480,
-          "offsetHeight": 3480,
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
+          "clientHeight": 1180,
+          "scrollHeight": 1180,
+          "offsetHeight": 1180,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
-          "height": "3480.33px",
+          "height": "1180px",
           "maxHeight": "none",
-          "minHeight": "1180px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
-          "clientHeight": 3332,
-          "scrollHeight": 3332,
-          "offsetHeight": 3332,
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
+          "clientHeight": 1032,
+          "scrollHeight": 3412,
+          "offsetHeight": 1032,
           "scrollTop": 0,
           "overflowY": "auto",
           "overflowX": "hidden",
-          "height": "3332px",
+          "height": "1031.67px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": true,
-      "canScrollWheel": false,
-      "canScrollKey": false,
+      "canScrollWheel": true,
+      "canScrollKey": true,
       "initialScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
@@ -2522,13 +2522,13 @@
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       },
       "afterKeyScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       }
     },
     "featured": {
@@ -2568,51 +2568,51 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
           "clientHeight": 1180,
           "scrollHeight": 1180,
           "offsetHeight": 1180,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
+          "overflowY": "hidden",
+          "overflowX": "hidden",
           "height": "1180px",
-          "maxHeight": "none",
-          "minHeight": "1180px"
+          "maxHeight": "1180px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
           "clientHeight": 1180,
           "scrollHeight": 1180,
           "offsetHeight": 1180,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
           "height": "1180px",
           "maxHeight": "none",
-          "minHeight": "1180px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
           "clientHeight": 1032,
-          "scrollHeight": 1032,
+          "scrollHeight": 1165,
           "offsetHeight": 1032,
           "scrollTop": 0,
           "overflowY": "auto",
           "overflowX": "hidden",
           "height": "1031.67px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": false,
-      "canScrollWheel": false,
-      "canScrollKey": false,
+      "canScrollWheel": true,
+      "canScrollKey": true,
       "initialScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
@@ -2623,13 +2623,13 @@
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 133
       },
       "afterKeyScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 133
       }
     },
     "system": {
@@ -2669,37 +2669,37 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
           "clientHeight": 1180,
           "scrollHeight": 1180,
           "offsetHeight": 1180,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
+          "overflowY": "hidden",
+          "overflowX": "hidden",
           "height": "1180px",
-          "maxHeight": "none",
-          "minHeight": "1180px"
+          "maxHeight": "1180px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
           "clientHeight": 1180,
           "scrollHeight": 1180,
           "offsetHeight": 1180,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
           "height": "1180px",
           "maxHeight": "none",
-          "minHeight": "1180px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
           "clientHeight": 1032,
           "scrollHeight": 1032,
           "offsetHeight": 1032,
@@ -2708,7 +2708,7 @@
           "overflowX": "hidden",
           "height": "1031.67px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": false,
@@ -2770,37 +2770,37 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
           "clientHeight": 1180,
           "scrollHeight": 1180,
           "offsetHeight": 1180,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
+          "overflowY": "hidden",
+          "overflowX": "hidden",
           "height": "1180px",
-          "maxHeight": "none",
-          "minHeight": "1180px"
+          "maxHeight": "1180px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
           "clientHeight": 1180,
           "scrollHeight": 1180,
           "offsetHeight": 1180,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
           "height": "1180px",
           "maxHeight": "none",
-          "minHeight": "1180px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
           "clientHeight": 1032,
           "scrollHeight": 1032,
           "offsetHeight": 1032,
@@ -2809,7 +2809,7 @@
           "overflowX": "hidden",
           "height": "1031.67px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": false,
@@ -2860,7 +2860,7 @@
           "tagName": "BODY",
           "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
           "clientHeight": 844,
-          "scrollHeight": 2743,
+          "scrollHeight": 844,
           "offsetHeight": 844,
           "scrollTop": 0,
           "overflowY": "hidden",
@@ -2873,51 +2873,51 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
-          "clientHeight": 2743,
-          "scrollHeight": 2743,
-          "offsetHeight": 2743,
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
+          "clientHeight": 844,
+          "scrollHeight": 844,
+          "offsetHeight": 844,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
-          "height": "2742.8px",
-          "maxHeight": "none",
-          "minHeight": "844px"
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "844px",
+          "maxHeight": "844px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
-          "clientHeight": 2743,
-          "scrollHeight": 2743,
-          "offsetHeight": 2743,
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
+          "clientHeight": 844,
+          "scrollHeight": 844,
+          "offsetHeight": 844,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
-          "height": "2742.8px",
+          "height": "844px",
           "maxHeight": "none",
-          "minHeight": "844px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
-          "clientHeight": 2594,
-          "scrollHeight": 2594,
-          "offsetHeight": 2594,
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
+          "clientHeight": 696,
+          "scrollHeight": 2698,
+          "offsetHeight": 696,
           "scrollTop": 0,
           "overflowY": "auto",
           "overflowX": "hidden",
-          "height": "2594.47px",
+          "height": "695.672px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": true,
-      "canScrollWheel": false,
-      "canScrollKey": false,
+      "canScrollWheel": true,
+      "canScrollKey": true,
       "initialScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
@@ -2928,13 +2928,13 @@
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       },
       "afterKeyScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       }
     },
     "projects": {
@@ -2961,7 +2961,7 @@
           "tagName": "BODY",
           "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
           "clientHeight": 844,
-          "scrollHeight": 6474,
+          "scrollHeight": 844,
           "offsetHeight": 844,
           "scrollTop": 0,
           "overflowY": "hidden",
@@ -2974,51 +2974,51 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
-          "clientHeight": 6474,
-          "scrollHeight": 6474,
-          "offsetHeight": 6474,
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
+          "clientHeight": 844,
+          "scrollHeight": 844,
+          "offsetHeight": 844,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
-          "height": "6474.36px",
-          "maxHeight": "none",
-          "minHeight": "844px"
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "844px",
+          "maxHeight": "844px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
-          "clientHeight": 6474,
-          "scrollHeight": 6474,
-          "offsetHeight": 6474,
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
+          "clientHeight": 844,
+          "scrollHeight": 844,
+          "offsetHeight": 844,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
-          "height": "6474.36px",
+          "height": "844px",
           "maxHeight": "none",
-          "minHeight": "844px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
-          "clientHeight": 6326,
-          "scrollHeight": 6326,
-          "offsetHeight": 6326,
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
+          "clientHeight": 696,
+          "scrollHeight": 6406,
+          "offsetHeight": 696,
           "scrollTop": 0,
           "overflowY": "auto",
           "overflowX": "hidden",
-          "height": "6326.03px",
+          "height": "695.672px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": true,
-      "canScrollWheel": false,
-      "canScrollKey": false,
+      "canScrollWheel": true,
+      "canScrollKey": true,
       "initialScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
@@ -3029,13 +3029,13 @@
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       },
       "afterKeyScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       }
     },
     "editor": {
@@ -3062,7 +3062,7 @@
           "tagName": "BODY",
           "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
           "clientHeight": 844,
-          "scrollHeight": 1761,
+          "scrollHeight": 844,
           "offsetHeight": 844,
           "scrollTop": 0,
           "overflowY": "hidden",
@@ -3075,51 +3075,51 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
-          "clientHeight": 1761,
-          "scrollHeight": 1761,
-          "offsetHeight": 1761,
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
+          "clientHeight": 844,
+          "scrollHeight": 844,
+          "offsetHeight": 844,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
-          "height": "1760.83px",
-          "maxHeight": "none",
-          "minHeight": "844px"
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "844px",
+          "maxHeight": "844px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
-          "clientHeight": 1761,
-          "scrollHeight": 1761,
-          "offsetHeight": 1761,
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
+          "clientHeight": 844,
+          "scrollHeight": 844,
+          "offsetHeight": 844,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
-          "height": "1760.83px",
+          "height": "844px",
           "maxHeight": "none",
-          "minHeight": "844px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
-          "clientHeight": 1613,
-          "scrollHeight": 1613,
-          "offsetHeight": 1613,
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
+          "clientHeight": 696,
+          "scrollHeight": 1693,
+          "offsetHeight": 696,
           "scrollTop": 0,
           "overflowY": "auto",
           "overflowX": "hidden",
-          "height": "1612.5px",
+          "height": "695.672px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": true,
-      "canScrollWheel": false,
-      "canScrollKey": false,
+      "canScrollWheel": true,
+      "canScrollKey": true,
       "initialScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
@@ -3130,13 +3130,13 @@
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       },
       "afterKeyScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       }
     },
     "media": {
@@ -3163,7 +3163,7 @@
           "tagName": "BODY",
           "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
           "clientHeight": 844,
-          "scrollHeight": 6683,
+          "scrollHeight": 844,
           "offsetHeight": 844,
           "scrollTop": 0,
           "overflowY": "hidden",
@@ -3176,51 +3176,51 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
-          "clientHeight": 6683,
-          "scrollHeight": 6683,
-          "offsetHeight": 6683,
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
+          "clientHeight": 844,
+          "scrollHeight": 844,
+          "offsetHeight": 844,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
-          "height": "6683.33px",
-          "maxHeight": "none",
-          "minHeight": "844px"
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "844px",
+          "maxHeight": "844px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
-          "clientHeight": 6683,
-          "scrollHeight": 6683,
-          "offsetHeight": 6683,
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
+          "clientHeight": 844,
+          "scrollHeight": 844,
+          "offsetHeight": 844,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
-          "height": "6683.33px",
+          "height": "844px",
           "maxHeight": "none",
-          "minHeight": "844px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
-          "clientHeight": 6535,
-          "scrollHeight": 6535,
-          "offsetHeight": 6535,
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
+          "clientHeight": 696,
+          "scrollHeight": 6615,
+          "offsetHeight": 696,
           "scrollTop": 0,
           "overflowY": "auto",
           "overflowX": "hidden",
-          "height": "6535px",
+          "height": "695.672px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": true,
-      "canScrollWheel": false,
-      "canScrollKey": false,
+      "canScrollWheel": true,
+      "canScrollKey": true,
       "initialScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
@@ -3231,13 +3231,13 @@
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       },
       "afterKeyScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       }
     },
     "featured": {
@@ -3264,7 +3264,7 @@
           "tagName": "BODY",
           "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
           "clientHeight": 844,
-          "scrollHeight": 1673,
+          "scrollHeight": 844,
           "offsetHeight": 844,
           "scrollTop": 0,
           "overflowY": "hidden",
@@ -3277,51 +3277,51 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
-          "clientHeight": 1673,
-          "scrollHeight": 1673,
-          "offsetHeight": 1673,
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
+          "clientHeight": 844,
+          "scrollHeight": 844,
+          "offsetHeight": 844,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
-          "height": "1673.33px",
-          "maxHeight": "none",
-          "minHeight": "844px"
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "844px",
+          "maxHeight": "844px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
-          "clientHeight": 1673,
-          "scrollHeight": 1673,
-          "offsetHeight": 1673,
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
+          "clientHeight": 844,
+          "scrollHeight": 844,
+          "offsetHeight": 844,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
-          "height": "1673.33px",
+          "height": "844px",
           "maxHeight": "none",
-          "minHeight": "844px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
-          "clientHeight": 1525,
-          "scrollHeight": 1525,
-          "offsetHeight": 1525,
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
+          "clientHeight": 696,
+          "scrollHeight": 1887,
+          "offsetHeight": 696,
           "scrollTop": 0,
           "overflowY": "auto",
           "overflowX": "hidden",
-          "height": "1525px",
+          "height": "695.672px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": true,
-      "canScrollWheel": false,
-      "canScrollKey": false,
+      "canScrollWheel": true,
+      "canScrollKey": true,
       "initialScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
@@ -3332,13 +3332,13 @@
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       },
       "afterKeyScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       }
     },
     "system": {
@@ -3365,7 +3365,7 @@
           "tagName": "BODY",
           "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
           "clientHeight": 844,
-          "scrollHeight": 1121,
+          "scrollHeight": 844,
           "offsetHeight": 844,
           "scrollTop": 0,
           "overflowY": "hidden",
@@ -3378,51 +3378,51 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
-          "clientHeight": 1121,
-          "scrollHeight": 1121,
-          "offsetHeight": 1121,
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
+          "clientHeight": 844,
+          "scrollHeight": 844,
+          "offsetHeight": 844,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
-          "height": "1121.33px",
-          "maxHeight": "none",
-          "minHeight": "844px"
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "844px",
+          "maxHeight": "844px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
-          "clientHeight": 1121,
-          "scrollHeight": 1121,
-          "offsetHeight": 1121,
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
+          "clientHeight": 844,
+          "scrollHeight": 844,
+          "offsetHeight": 844,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
-          "height": "1121.33px",
+          "height": "844px",
           "maxHeight": "none",
-          "minHeight": "844px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
-          "clientHeight": 973,
-          "scrollHeight": 973,
-          "offsetHeight": 973,
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
+          "clientHeight": 696,
+          "scrollHeight": 1069,
+          "offsetHeight": 696,
           "scrollTop": 0,
           "overflowY": "auto",
           "overflowX": "hidden",
-          "height": "973px",
+          "height": "695.672px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": true,
-      "canScrollWheel": false,
-      "canScrollKey": false,
+      "canScrollWheel": true,
+      "canScrollKey": true,
       "initialScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
@@ -3433,13 +3433,13 @@
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 373
       },
       "afterKeyScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 373
       }
     },
     "settings": {
@@ -3479,37 +3479,37 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
           "clientHeight": 844,
           "scrollHeight": 844,
           "offsetHeight": 844,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
+          "overflowY": "hidden",
+          "overflowX": "hidden",
           "height": "844px",
-          "maxHeight": "none",
-          "minHeight": "844px"
+          "maxHeight": "844px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
           "clientHeight": 844,
           "scrollHeight": 844,
           "offsetHeight": 844,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
           "height": "844px",
           "maxHeight": "none",
-          "minHeight": "844px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
           "clientHeight": 696,
           "scrollHeight": 696,
           "offsetHeight": 696,
@@ -3518,7 +3518,7 @@
           "overflowX": "hidden",
           "height": "695.672px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": false,
@@ -3569,7 +3569,7 @@
           "tagName": "BODY",
           "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
           "clientHeight": 812,
-          "scrollHeight": 2743,
+          "scrollHeight": 812,
           "offsetHeight": 812,
           "scrollTop": 0,
           "overflowY": "hidden",
@@ -3582,51 +3582,51 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
-          "clientHeight": 2743,
-          "scrollHeight": 2743,
-          "offsetHeight": 2743,
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
+          "clientHeight": 812,
+          "scrollHeight": 812,
+          "offsetHeight": 812,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
-          "height": "2742.8px",
-          "maxHeight": "none",
-          "minHeight": "812px"
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "812px",
+          "maxHeight": "812px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
-          "clientHeight": 2743,
-          "scrollHeight": 2743,
-          "offsetHeight": 2743,
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
+          "clientHeight": 812,
+          "scrollHeight": 812,
+          "offsetHeight": 812,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
-          "height": "2742.8px",
+          "height": "812px",
           "maxHeight": "none",
-          "minHeight": "812px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
-          "clientHeight": 2594,
-          "scrollHeight": 2594,
-          "offsetHeight": 2594,
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
+          "clientHeight": 664,
+          "scrollHeight": 2698,
+          "offsetHeight": 664,
           "scrollTop": 0,
           "overflowY": "auto",
           "overflowX": "hidden",
-          "height": "2594.47px",
+          "height": "663.672px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": true,
-      "canScrollWheel": false,
-      "canScrollKey": false,
+      "canScrollWheel": true,
+      "canScrollKey": true,
       "initialScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
@@ -3637,13 +3637,13 @@
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       },
       "afterKeyScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       }
     },
     "projects": {
@@ -3670,7 +3670,7 @@
           "tagName": "BODY",
           "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
           "clientHeight": 812,
-          "scrollHeight": 6521,
+          "scrollHeight": 812,
           "offsetHeight": 812,
           "scrollTop": 0,
           "overflowY": "hidden",
@@ -3683,51 +3683,51 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
-          "clientHeight": 6521,
-          "scrollHeight": 6521,
-          "offsetHeight": 6521,
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
+          "clientHeight": 812,
+          "scrollHeight": 812,
+          "offsetHeight": 812,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
-          "height": "6521.36px",
-          "maxHeight": "none",
-          "minHeight": "812px"
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "812px",
+          "maxHeight": "812px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
-          "clientHeight": 6521,
-          "scrollHeight": 6521,
-          "offsetHeight": 6521,
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
+          "clientHeight": 812,
+          "scrollHeight": 812,
+          "offsetHeight": 812,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
-          "height": "6521.36px",
+          "height": "812px",
           "maxHeight": "none",
-          "minHeight": "812px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
-          "clientHeight": 6373,
-          "scrollHeight": 6373,
-          "offsetHeight": 6373,
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
+          "clientHeight": 664,
+          "scrollHeight": 6453,
+          "offsetHeight": 664,
           "scrollTop": 0,
           "overflowY": "auto",
           "overflowX": "hidden",
-          "height": "6373.03px",
+          "height": "663.672px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": true,
-      "canScrollWheel": false,
-      "canScrollKey": false,
+      "canScrollWheel": true,
+      "canScrollKey": true,
       "initialScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
@@ -3738,13 +3738,13 @@
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       },
       "afterKeyScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       }
     },
     "editor": {
@@ -3771,7 +3771,7 @@
           "tagName": "BODY",
           "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
           "clientHeight": 812,
-          "scrollHeight": 1761,
+          "scrollHeight": 812,
           "offsetHeight": 812,
           "scrollTop": 0,
           "overflowY": "hidden",
@@ -3784,51 +3784,51 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
-          "clientHeight": 1761,
-          "scrollHeight": 1761,
-          "offsetHeight": 1761,
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
+          "clientHeight": 812,
+          "scrollHeight": 812,
+          "offsetHeight": 812,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
-          "height": "1760.83px",
-          "maxHeight": "none",
-          "minHeight": "812px"
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "812px",
+          "maxHeight": "812px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
-          "clientHeight": 1761,
-          "scrollHeight": 1761,
-          "offsetHeight": 1761,
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
+          "clientHeight": 812,
+          "scrollHeight": 812,
+          "offsetHeight": 812,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
-          "height": "1760.83px",
+          "height": "812px",
           "maxHeight": "none",
-          "minHeight": "812px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
-          "clientHeight": 1613,
-          "scrollHeight": 1613,
-          "offsetHeight": 1613,
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
+          "clientHeight": 664,
+          "scrollHeight": 1693,
+          "offsetHeight": 664,
           "scrollTop": 0,
           "overflowY": "auto",
           "overflowX": "hidden",
-          "height": "1612.5px",
+          "height": "663.672px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": true,
-      "canScrollWheel": false,
-      "canScrollKey": false,
+      "canScrollWheel": true,
+      "canScrollKey": true,
       "initialScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
@@ -3839,13 +3839,13 @@
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       },
       "afterKeyScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       }
     },
     "media": {
@@ -3872,7 +3872,7 @@
           "tagName": "BODY",
           "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
           "clientHeight": 812,
-          "scrollHeight": 6683,
+          "scrollHeight": 812,
           "offsetHeight": 812,
           "scrollTop": 0,
           "overflowY": "hidden",
@@ -3885,51 +3885,51 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
-          "clientHeight": 6683,
-          "scrollHeight": 6683,
-          "offsetHeight": 6683,
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
+          "clientHeight": 812,
+          "scrollHeight": 812,
+          "offsetHeight": 812,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
-          "height": "6683.33px",
-          "maxHeight": "none",
-          "minHeight": "812px"
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "812px",
+          "maxHeight": "812px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
-          "clientHeight": 6683,
-          "scrollHeight": 6683,
-          "offsetHeight": 6683,
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
+          "clientHeight": 812,
+          "scrollHeight": 812,
+          "offsetHeight": 812,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
-          "height": "6683.33px",
+          "height": "812px",
           "maxHeight": "none",
-          "minHeight": "812px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
-          "clientHeight": 6535,
-          "scrollHeight": 6535,
-          "offsetHeight": 6535,
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
+          "clientHeight": 664,
+          "scrollHeight": 6615,
+          "offsetHeight": 664,
           "scrollTop": 0,
           "overflowY": "auto",
           "overflowX": "hidden",
-          "height": "6535px",
+          "height": "663.672px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": true,
-      "canScrollWheel": false,
-      "canScrollKey": false,
+      "canScrollWheel": true,
+      "canScrollKey": true,
       "initialScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
@@ -3940,13 +3940,13 @@
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       },
       "afterKeyScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       }
     },
     "featured": {
@@ -3973,7 +3973,7 @@
           "tagName": "BODY",
           "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
           "clientHeight": 812,
-          "scrollHeight": 1737,
+          "scrollHeight": 812,
           "offsetHeight": 812,
           "scrollTop": 0,
           "overflowY": "hidden",
@@ -3986,51 +3986,51 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
-          "clientHeight": 1737,
-          "scrollHeight": 1737,
-          "offsetHeight": 1737,
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
+          "clientHeight": 812,
+          "scrollHeight": 812,
+          "offsetHeight": 812,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
-          "height": "1737.33px",
-          "maxHeight": "none",
-          "minHeight": "812px"
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "812px",
+          "maxHeight": "812px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
-          "clientHeight": 1737,
-          "scrollHeight": 1737,
-          "offsetHeight": 1737,
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
+          "clientHeight": 812,
+          "scrollHeight": 812,
+          "offsetHeight": 812,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
-          "height": "1737.33px",
+          "height": "812px",
           "maxHeight": "none",
-          "minHeight": "812px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
-          "clientHeight": 1589,
-          "scrollHeight": 1589,
-          "offsetHeight": 1589,
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
+          "clientHeight": 664,
+          "scrollHeight": 1935,
+          "offsetHeight": 664,
           "scrollTop": 0,
           "overflowY": "auto",
           "overflowX": "hidden",
-          "height": "1589px",
+          "height": "663.672px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": true,
-      "canScrollWheel": false,
-      "canScrollKey": false,
+      "canScrollWheel": true,
+      "canScrollKey": true,
       "initialScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
@@ -4041,13 +4041,13 @@
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       },
       "afterKeyScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 500
       }
     },
     "system": {
@@ -4074,7 +4074,7 @@
           "tagName": "BODY",
           "className": "w-screen h-[100dvh] overflow-hidden bg-neutral-900 text-neut",
           "clientHeight": 812,
-          "scrollHeight": 1121,
+          "scrollHeight": 812,
           "offsetHeight": 812,
           "scrollTop": 0,
           "overflowY": "hidden",
@@ -4087,51 +4087,51 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
-          "clientHeight": 1121,
-          "scrollHeight": 1121,
-          "offsetHeight": 1121,
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
+          "clientHeight": 812,
+          "scrollHeight": 812,
+          "offsetHeight": 812,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
-          "height": "1121.33px",
-          "maxHeight": "none",
-          "minHeight": "812px"
+          "overflowY": "hidden",
+          "overflowX": "hidden",
+          "height": "812px",
+          "maxHeight": "812px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
-          "clientHeight": 1121,
-          "scrollHeight": 1121,
-          "offsetHeight": 1121,
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
+          "clientHeight": 812,
+          "scrollHeight": 812,
+          "offsetHeight": 812,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
-          "height": "1121.33px",
+          "height": "812px",
           "maxHeight": "none",
-          "minHeight": "812px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
-          "clientHeight": 973,
-          "scrollHeight": 973,
-          "offsetHeight": 973,
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
+          "clientHeight": 664,
+          "scrollHeight": 1069,
+          "offsetHeight": 664,
           "scrollTop": 0,
           "overflowY": "auto",
           "overflowX": "hidden",
-          "height": "973px",
+          "height": "663.672px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": true,
-      "canScrollWheel": false,
-      "canScrollKey": false,
+      "canScrollWheel": true,
+      "canScrollKey": true,
       "initialScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
@@ -4142,13 +4142,13 @@
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 405
       },
       "afterKeyScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 405
       }
     },
     "settings": {
@@ -4188,51 +4188,51 @@
           "name": "layoutRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen bg-[#0B0C10] text-neutral-100 font-sans antiali",
+          "className": "h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-[#0B0C10",
           "clientHeight": 812,
           "scrollHeight": 812,
           "offsetHeight": 812,
           "scrollTop": 0,
-          "overflowY": "visible",
-          "overflowX": "visible",
+          "overflowY": "hidden",
+          "overflowX": "hidden",
           "height": "812px",
-          "maxHeight": "none",
-          "minHeight": "812px"
+          "maxHeight": "812px",
+          "minHeight": "0px"
         },
         "adminRoot": {
           "name": "adminRoot",
           "exists": true,
           "tagName": "DIV",
-          "className": "min-h-screen flex flex-col lg:flex-row bg-[#0B0C10] text-neu",
+          "className": "h-full w-full flex flex-col lg:flex-row bg-[#0B0C10] text-ne",
           "clientHeight": 812,
           "scrollHeight": 812,
           "offsetHeight": 812,
           "scrollTop": 0,
-          "overflowY": "auto",
+          "overflowY": "hidden",
           "overflowX": "hidden",
           "height": "812px",
           "maxHeight": "none",
-          "minHeight": "812px"
+          "minHeight": "auto"
         },
         "main": {
           "name": "main",
           "exists": true,
           "tagName": "MAIN",
-          "className": "flex-1 min-w-0 p-4 sm:p-5 md:p-8 overflow-y-auto overflow-x-",
+          "className": "flex-1 min-w-0 min-h-0 p-4 sm:p-5 md:p-8 overflow-y-auto ove",
           "clientHeight": 664,
-          "scrollHeight": 664,
+          "scrollHeight": 669,
           "offsetHeight": 664,
           "scrollTop": 0,
           "overflowY": "auto",
           "overflowX": "hidden",
           "height": "663.672px",
           "maxHeight": "none",
-          "minHeight": "auto"
+          "minHeight": "0px"
         }
       },
       "needsScroll": false,
-      "canScrollWheel": false,
-      "canScrollKey": false,
+      "canScrollWheel": true,
+      "canScrollKey": true,
       "initialScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
@@ -4243,13 +4243,13 @@
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 5
       },
       "afterKeyScroll": {
         "windowScrollY": 0,
         "bodyScrollTop": 0,
         "htmlScrollTop": 0,
-        "mainScrollTop": 0
+        "mainScrollTop": 5
       }
     }
   }

@@ -173,17 +173,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 Inspection of remote staging database `kerem-portfolio-db-staging` via Cloudflare Worker API `/api/v1/admin/projects` revealed **31 records**:
 
 - **30 Canonical Projects (`published`)**:
-  - `workspace = 'advertising'`: 19 projects (`akbank-favori-kart`, `hepsiburada-efsane-cuma`, etc.)
-  - `workspace = 'directing'`: 11 projects (`basklar-music-video`, `pantene-commercial`, etc.)
-  - Integrity: 100% matched with canonical source data (`src/data/canonicalProjects.ts`).
+  - `workspace = 'design'`: 18 projects (100% published)
+  - `workspace = 'web'`: 12 projects (100% published)
+  - `featured`: Exactly 10 canonical projects marked `featured = true` in source (`src/data/projects.ts`).
+  - Integrity: 100% matched with canonical source data (`src/data/projects.ts`), 0 missing slugs, 0 field mismatches.
 - **1 Extraneous Draft Project (`draft`)**:
-  - `id`: `proj_f1a8c880`
+  - `id`: `staging-e2e-29cbd44d`
   - `slug`: `staging-e2e-29cbd44d`
-  - `title`: `Staging E2E Test Projesi`
-  - `workspace`: `advertising`
+  - `title`: `Staging E2E Test Projesi` (EN: `Staging E2E Test Project`)
+  - `workspace`: `web`
   - `cms_status`: `draft`
-  - `featured`: `1` (flagged as featured)
-  - `origin`: Leftover artifact from an interrupted automated test suite (`verify-remote-staging-e2e.mjs`).
+  - `featured`: `1` (staged as featured in test harness)
+  - `origin`: Interrupted automated test run from `2026-10-19T22:32:28.259Z` (`verify-remote-staging-e2e.mjs`).
+  - `public exposure`: Zero. Public Worker endpoint `/api/v1/public/projects` strictly filters for `cmsStatus === 'published'` and returns only the 30 canonical projects.
 
 ### 4.2 Why Featured Manager Leaks Test Drafts
 In `AdminDashboardClient.tsx`:
@@ -231,12 +233,12 @@ Because `existingProjects.length` is 31 and contains `staging-e2e-29cbd44d`, `is
 ### 6.1 Physical Inventory Analysis
 Public video portfolio content was inspected in `public/videos/` and `src/data/videos.ts`:
 
-- **Total Videos**: 21 video files + 21 poster images (0 missing, 100% verified on disk).
+- **Total Videos**: 21 independent video records + 21 poster images (0 missing, 100% verified on disk).
 - **Total Storage**: ~277 MB on disk.
-- **Aspect Ratio Breakdown**:
-  - **Portrait (9:16 Vertical Reels)**: 19 videos (e.g. `reel_01.mp4` through `reel_19.mp4`).
-  - **Landscape (16:9 Horizontal Videos)**: 2 videos (`directing_sample_01.mp4`, `cinematography_reel.mp4`).
-- **Metadata**: Each record contains `id`, `title`, `client`, `year`, `aspectRatio`, `src`, `poster`, `category`.
+- **Orientation Breakdown**:
+  - **Portrait (Vertical 9:16 Reels)**: 19 videos (`orientation: "portrait"`, e.g. `/videos/ai-moda-kombin-reels/video.mp4`, `/videos/la-ruota-pizza-artigianale-reels/video.mp4`, etc.).
+  - **Landscape (Horizontal 16:9 Films)**: 2 videos (`orientation: "landscape"`, e.g. `/videos/it-works-kreatif-ajans-tanitim-reels/video.mp4`, `/videos/kage-studio-showreel/video.mp4`).
+- **Metadata**: Each record contains `id`, `slug`, `type` (`"ai-reel"` | `"reel"`), `orientation`, `titleTR`, `titleEN`, `descriptionTR`, `descriptionEN`, `client`, `year`, `src`, `poster`, `servicesTR`, `servicesEN`, `tools`, `tags`.
 
 ### 6.2 Critical Architecture Gaps
 1. **Zero CMS Management**: There is no "Videos & Reels" tab in the admin dashboard. To add, edit, or remove a video, a developer must commit code to Git.
@@ -307,20 +309,21 @@ cv: {
 
 ## 9. CMS Data Architecture Gap Analysis
 
-The staging D1 database currently features only 4 tables (`projects`, `project_translations`, `project_media`, `featured_curation`). To support the complete creative portfolio, the database schema must expand:
+The staging D1 database currently operates on initial migration `0001_initial_schema.sql` comprising 9 core tables: `projects` (which directly houses `featured` and `featured_order`), `project_translations`, `project_media`, `categories`, `project_categories`, `services`, `project_services`, `audit_logs`, and `system_settings`. There is no separate `featured_curation` table.
+
+To support the complete creative portfolio in future approved phases, the schema can be additively expanded (e.g. for videos, gallery items, profile sections, and CV documents) without modifying or breaking existing canonical project tables.
 
 ```mermaid
 erDiagram
     PROJECTS ||--o{ PROJECT_TRANSLATIONS : "has"
     PROJECTS ||--o{ PROJECT_MEDIA : "owns"
-    PROJECTS ||--o{ FEATURED_CURATION : "spotlights"
     
-    VIDEOS ||--o{ VIDEO_TRANSLATIONS : "has"
+    VIDEOS ||--o{ VIDEO_TRANSLATIONS : "proposed"
     
-    GALLERY_ITEMS ||--o{ GALLERY_TRANSLATIONS : "has"
+    GALLERY_ITEMS ||--o{ GALLERY_TRANSLATIONS : "proposed"
     
-    PROFILE_SECTIONS ||--o{ PROFILE_SECTION_TRANSLATIONS : "has"
-    PROFILE_SECTIONS ||--o{ TIMELINE_ITEMS : "contains"
+    PROFILE_SECTIONS ||--o{ PROFILE_SECTION_TRANSLATIONS : "proposed"
+    PROFILE_SECTIONS ||--o{ TIMELINE_ITEMS : "proposed"
     
     CV_DOCUMENTS {
         string id PK
@@ -372,7 +375,9 @@ Detailed SQL schemas and migration plans are specified in [`docs/reviews/PORTFOL
 ## 13. Data Safety & Content Security Review
 
 - **R2 Asset Safety**: The existing staging Worker uses presigned PUT URLs for direct browser-to-R2 uploads, eliminating Worker memory bottlenecks.
-- **Media Deletion Safeguards**: Deleting a project media item deletes the D1 row but preserves the R2 object until a garbage collection cycle, preventing accidental permanent loss.
+- **Fail-Closed Security Policy**: The Cloudflare CMS content source operates on a strict fail-closed security architecture. If the remote Worker or D1 is unavailable, requests fail closed rather than falling back to unverified or stale static data, preventing unauthorized data leakage.
+- **Publication-Aware Media Caching**: Media assets that are subject to publication-state modifications or draft revisions are governed by revalidation headers rather than indefinite 1-year immutable caching, ensuring unpublished drafts cannot linger in public CDN edge caches.
+- **Media Deletion Safeguards**: Deleting a project media item deletes the D1 row but preserves the R2 object until a verified garbage collection cycle, preventing accidental permanent loss.
 - **SQL Injection Defense**: All Cloudflare D1 operations in `d1Engine.ts` utilize parameterized prepared statements (`db.prepare(...).bind(...)`).
 - **Secret Hygiene**: Zero API tokens, JWT secrets, or cloud credentials exist in client bundles or public repositories.
 

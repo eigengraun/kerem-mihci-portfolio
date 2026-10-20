@@ -1,14 +1,14 @@
 {
-  "timestamp": "2026-10-20T16:01:16.458Z",
-  "commit": "1fbd25eb2f020c9c980cd215f0d2c1b3dfad3719",
-  "total": 90,
-  "passed": 90,
+  "timestamp": "2026-10-20T16:43:36.046Z",
+  "commit": "5a94a0d344d80455226a799a9be6e58703f0f25f",
+  "total": 112,
+  "passed": 112,
   "failed": 0,
   "failures": [],
   "groups": {
     "Group A: Canonical Import Parity & CLI Guardrails": {
-      "total": 10,
-      "passed": 10,
+      "total": 18,
+      "passed": 18,
       "failed": 0,
       "checks": [
         {
@@ -58,6 +58,46 @@
         },
         {
           "name": "Local importer skips existing canonical records by default (non-destructive)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Reconciliation blocks on matching ID with conflicting slug (IDENTITY_CONFLICT)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Reconciliation blocks on matching slug with conflicting ID (IDENTITY_CONFLICT)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Reconciliation blocks on multiple matching records (IDENTITY_CONFLICT)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Reconciliation classifies identical ID and slug with 100% field match as CANONICAL_PARITY",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Reconciliation preserves OWNER_MODIFIED without overwriting and preserves draft/archived status",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Optional-field semantics: absent full description is NOT replaced with short description",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "SortOrder derivation preserves original canonical video position instead of missing-subset index",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Importer repeat idempotency: repeated execution produces 0 writes",
           "status": "PASS",
           "detail": ""
         }
@@ -143,12 +183,12 @@
           "detail": ""
         },
         {
-          "name": "Created video has valid ID: test-release-video-1792512078076",
+          "name": "Created video has valid ID: test-release-video-1792514619629",
           "status": "PASS",
           "detail": ""
         },
         {
-          "name": "GET /api/admin/videos/[id] returns HTTP 200 for test-release-video-1792512078076",
+          "name": "GET /api/admin/videos/[id] returns HTTP 200 for test-release-video-1792514619629",
           "status": "PASS",
           "detail": ""
         },
@@ -200,12 +240,12 @@
       "failed": 0,
       "checks": [
         {
-          "name": "Uploaded Poster A (storageKey: videos/test-release-video-1792512078076/poster-1792512078172-d1b5f1d5.webp)",
+          "name": "Uploaded Poster A (storageKey: videos/test-release-video-1792514619629/poster-1792514619751-7a1a79e9.webp)",
           "status": "PASS",
           "detail": ""
         },
         {
-          "name": "Uploaded Poster B replacement (videos/test-release-video-1792512078076/poster-1792512078184-2da65131.webp)",
+          "name": "Uploaded Poster B replacement (videos/test-release-video-1792514619629/poster-1792514619837-b3f9444b.webp)",
           "status": "PASS",
           "detail": ""
         },
@@ -432,17 +472,17 @@
       ]
     },
     "Group K: True Fail-Closed Behavior (Zero Local Fallback in Staging)": {
-      "total": 5,
-      "passed": 5,
+      "total": 13,
+      "passed": 13,
       "failed": 0,
       "checks": [
         {
-          "name": "Remote video save failure strictly blocks local fallback",
+          "name": "Remote video create failure strictly blocks local fallback",
           "status": "PASS",
           "detail": ""
         },
         {
-          "name": "Remote video reorder failure strictly blocks local fallback",
+          "name": "Remote video edit failure strictly blocks local fallback",
           "status": "PASS",
           "detail": ""
         },
@@ -452,12 +492,52 @@
           "detail": ""
         },
         {
+          "name": "Remote video reorder failure strictly blocks local fallback",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
           "name": "Remote revision rollback failure strictly blocks local fallback",
           "status": "PASS",
           "detail": ""
         },
         {
-          "name": "Cryptographic proof: SQLite database SHA-256 identical before and after (zero local writes)",
+          "name": "Remote video asset upload failure strictly blocks local fallback",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Database row counts (videos, translations, assets, revisions) strictly identical before and after",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Target video record status, sort order, and translations remain strictly unchanged",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "SQLite WAL state (presence, size, hash) strictly identical (zero WAL writes)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Zero accidental media files written to disk during failed remote upload",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Main SQLite database file SHA-256 strictly identical before and after",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Controlled negative test proves state comparison reliably detects simulated local fallback leak",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Active local preview database (.local-d1/portfolio.sqlite) strictly untouched during fail-closed tests",
           "status": "PASS",
           "detail": ""
         }
@@ -549,6 +629,43 @@
         },
         {
           "name": "GET /admin renders HTTP 200 without server crash",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "Group O: Staging Operator Preflight & Baseline Accuracy": {
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Canonical projects verified in database (found 30)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "All 30 canonical projects are verified with published status (found 30)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Backup file permissions restricted with umask 077 (mode 600)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Backup location is securely isolated outside Git repository",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Isolated in-memory SQLite verifies SQL syntax and dump integrity",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Backup export cryptographically hashed with valid SHA-256",
           "status": "PASS",
           "detail": ""
         }

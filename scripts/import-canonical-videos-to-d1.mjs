@@ -77,36 +77,45 @@ function verifyStagingTargetConfiguration() {
   return { workerName, d1, r2 };
 }
 
-// 1. Strict Fail-Closed CLI Argument Parsing
-const rawArgs = process.argv.slice(2);
-const VALID_FLAGS = new Set([
-  "--local",
-  "--target=local",
-  "--remote-staging",
-  "--target=remote-staging",
-  "--dry-run",
-  "--force",
-  "--execute"
-]);
+// 1. Strict Fail-Closed CLI Argument Parsing (When run directly)
+const isMain = process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
 
-for (const arg of rawArgs) {
-  if (!VALID_FLAGS.has(arg)) {
-    console.error(`FATAL: Unrecognized CLI argument "${arg}".`);
-    console.error("Allowed flags: --local, --remote-staging, --dry-run, --force, --execute.");
+let isRemoteStaging = false;
+let isLocal = true;
+let isForce = false;
+let isExecute = false;
+let isDryRun = true;
+
+if (isMain) {
+  const rawArgs = process.argv.slice(2);
+  const VALID_FLAGS = new Set([
+    "--local",
+    "--target=local",
+    "--remote-staging",
+    "--target=remote-staging",
+    "--dry-run",
+    "--force",
+    "--execute"
+  ]);
+
+  for (const arg of rawArgs) {
+    if (!VALID_FLAGS.has(arg)) {
+      console.error(`FATAL: Unrecognized CLI argument "${arg}".`);
+      console.error("Allowed flags: --local, --remote-staging, --dry-run, --force, --execute.");
+      process.exit(1);
+    }
+  }
+
+  isRemoteStaging = rawArgs.includes("--remote-staging") || rawArgs.includes("--target=remote-staging");
+  isLocal = rawArgs.includes("--local") || rawArgs.includes("--target=local") || !isRemoteStaging;
+  isForce = rawArgs.includes("--force");
+  isExecute = rawArgs.includes("--execute");
+  isDryRun = rawArgs.includes("--dry-run") || (!isExecute && !isForce);
+
+  if (isRemoteStaging && isForce) {
+    console.error("FATAL: --force overwrite is strictly prohibited against remote staging. Remote seeding must be non-destructive.");
     process.exit(1);
   }
-}
-
-const isRemoteStaging = rawArgs.includes("--remote-staging") || rawArgs.includes("--target=remote-staging");
-const isLocal = rawArgs.includes("--local") || rawArgs.includes("--target=local") || !isRemoteStaging;
-const isForce = rawArgs.includes("--force");
-const isExecute = rawArgs.includes("--execute");
-// Default is dry-run unless --execute or --force is explicitly authorized
-const isDryRun = rawArgs.includes("--dry-run") || (!isExecute && !isForce);
-
-if (isRemoteStaging && isForce) {
-  console.error("FATAL: --force overwrite is strictly prohibited against remote staging. Remote seeding must be non-destructive.");
-  process.exit(1);
 }
 
 const dbPath = process.env.LOCAL_D1_DB_PATH
@@ -137,6 +146,210 @@ function resolveServiceToken() {
     } catch {}
   }
   return "";
+}
+
+export function compareCanonicalWithRecord(c, r) {
+  const diffs = [];
+  const check = (field, expected, actual) => {
+    const expStr = JSON.stringify(expected ?? null);
+    const actStr = JSON.stringify(actual ?? null);
+    if (expStr !== actStr) {
+      diffs.push({ field, expected, actual });
+    }
+  };
+
+  check("id", c.id, r.id);
+  check("slug", c.slug, r.slug);
+  check("type", c.type, r.type);
+  check("orientation", c.orientation || "portrait", r.orientation);
+  check("aiAssisted", Boolean(c.aiAssisted), Boolean(r.aiAssisted));
+  check("productionMethod", c.productionMethod || "traditional", r.productionMethod);
+  check("client", c.client || "", r.client || "");
+  check("year", c.year || 2026, Number(r.year || 2026));
+  check("titleTR", c.titleTR, r.titleTR);
+  check("titleEN", c.titleEN, r.titleEN);
+  check("shortTitleTR", c.shortTitleTR || "", r.shortTitleTR || "");
+  check("shortTitleEN", c.shortTitleEN || "", r.shortTitleEN || "");
+  check("descriptionTR", c.descriptionTR || "", r.descriptionTR || "");
+  check("descriptionEN", c.descriptionEN || "", r.descriptionEN || "");
+  // Optional-field semantics: absent or empty full description is preserved without substitution
+  check("fullDescriptionTR", c.fullDescriptionTR || "", r.fullDescriptionTR || "");
+  check("fullDescriptionEN", c.fullDescriptionEN || "", r.fullDescriptionEN || "");
+  check("poster", c.poster, r.poster);
+  check("src", c.src || `/videos/${c.slug}/video.mp4`, r.src);
+  check("thumbnail", c.thumbnail || null, r.thumbnail || null);
+  check("duration", c.duration || "", r.duration || "");
+  const expectedAspect = c.aspectRatio || (c.orientation === "landscape" ? "16:9" : "9:16");
+  const actualAspect = r.aspectRatio || (r.orientation === "landscape" ? "16:9" : "9:16");
+  check("aspectRatio", expectedAspect, actualAspect);
+  check("featured", Boolean(c.featured), Boolean(r.featured));
+  check("sortOrder", c.sortOrder, Number(r.sortOrder));
+  const expectedAutoplay = c.autoplayPreview !== false;
+  const actualAutoplay = r.autoplayPreview !== false;
+  check("autoplayPreview", expectedAutoplay, actualAutoplay);
+  check("externalUrl", c.externalUrl || null, r.externalUrl || null);
+  check("projectSlug", c.projectSlug || null, r.projectSlug || null);
+  check("tools", c.tools || [], r.tools || []);
+  check("tags", c.tags || [], r.tags || []);
+  check("servicesTR", c.servicesTR || c.services || [], r.servicesTR || []);
+  check("servicesEN", c.servicesEN || c.services || [], r.servicesEN || []);
+
+  return {
+    isParity: diffs.length === 0,
+    diffs
+  };
+}
+
+export function reconcileCanonicalVideos(canonicalVideos, existingRecords) {
+  const result = {
+    canonicalParity: [],
+    ownerModified: [],
+    missing: [],
+    identityConflicts: []
+  };
+
+  for (const c of canonicalVideos) {
+    const matchingById = existingRecords.filter((r) => String(r.id) === String(c.id));
+    const matchingBySlug = existingRecords.filter((r) => String(r.slug) === String(c.slug));
+
+    // Multiple matches (BLOCK)
+    if (matchingById.length > 1 || matchingBySlug.length > 1) {
+      result.identityConflicts.push({
+        canonical: c,
+        type: "MULTIPLE_MATCHES",
+        reason: `Multiple records found matching ID "${c.id}" (${matchingById.length}) or slug "${c.slug}" (${matchingBySlug.length})`
+      });
+      continue;
+    }
+
+    // Matching ID but conflicting slug (BLOCK)
+    if (matchingById.length === 1 && matchingBySlug.length === 0) {
+      result.identityConflicts.push({
+        canonical: c,
+        type: "ID_MATCH_SLUG_CONFLICT",
+        reason: `Matching ID "${c.id}" but conflicting slug: existing record has slug "${matchingById[0].slug}", canonical has "${c.slug}"`
+      });
+      continue;
+    }
+
+    // Matching slug but conflicting ID (BLOCK)
+    if (matchingById.length === 0 && matchingBySlug.length === 1) {
+      result.identityConflicts.push({
+        canonical: c,
+        type: "SLUG_MATCH_ID_CONFLICT",
+        reason: `Matching slug "${c.slug}" but conflicting ID: existing record has ID "${matchingBySlug[0].id}", canonical has "${c.id}"`
+      });
+      continue;
+    }
+
+    // Cross-record clash (Record A has ID, Record B has Slug) (BLOCK)
+    if (matchingById.length === 1 && matchingBySlug.length === 1) {
+      if (matchingById[0].id !== matchingBySlug[0].id) {
+        result.identityConflicts.push({
+          canonical: c,
+          type: "CROSS_RECORD_CONFLICT",
+          reason: `Cross-record conflict: canonical ID "${c.id}" belongs to slug "${matchingById[0].slug}" while canonical slug "${c.slug}" belongs to ID "${matchingBySlug[0].id}"`
+        });
+        continue;
+      }
+
+      // Exactly 1 matching record with matching ID and matching slug (EXISTING)
+      const existing = matchingById[0];
+      const comparison = compareCanonicalWithRecord(c, existing);
+      if (comparison.isParity) {
+        result.canonicalParity.push({ canonical: c, record: existing });
+      } else {
+        result.ownerModified.push({
+          canonical: c,
+          record: existing,
+          diffs: comparison.diffs,
+          preservedStatus: existing.cmsStatus || existing.status || "published"
+        });
+      }
+      continue;
+    }
+
+    // Missing both ID and slug (ELIGIBLE FOR INSERTION)
+    if (matchingById.length === 0 && matchingBySlug.length === 0) {
+      result.missing.push(c);
+    }
+  }
+
+  return result;
+}
+
+export function mapLocalRowsToCmsVideos(videoRows, translationRows, assetRows) {
+  const transMap = new Map();
+  for (const t of translationRows) {
+    const vid = String(t.video_id);
+    if (!transMap.has(vid)) transMap.set(vid, {});
+    const entry = transMap.get(vid);
+    if (t.locale === "tr") entry.tr = t;
+    else if (t.locale === "en") entry.en = t;
+  }
+
+  const assetMap = new Map();
+  for (const a of assetRows) {
+    const vid = String(a.video_id);
+    if (!assetMap.has(vid)) assetMap.set(vid, {});
+    const entry = assetMap.get(vid);
+    if (a.asset_type === "poster") entry.poster = a;
+    else if (a.asset_type === "video") entry.video = a;
+    else if (a.asset_type === "thumbnail") entry.thumbnail = a;
+  }
+
+  return videoRows.map((row) => {
+    const vid = String(row.id);
+    const tr = transMap.get(vid)?.tr || {};
+    const en = transMap.get(vid)?.en || {};
+    const assets = assetMap.get(vid) || {};
+
+    let tools = [];
+    try { if (row.tools_json) tools = JSON.parse(String(row.tools_json)); } catch {}
+
+    let tags = [];
+    try { if (row.tags_json) tags = JSON.parse(String(row.tags_json)); } catch {}
+
+    let servicesTR = [];
+    try { if (tr.services_json) servicesTR = JSON.parse(String(tr.services_json)); } catch {}
+
+    let servicesEN = [];
+    try { if (en.services_json) servicesEN = JSON.parse(String(en.services_json)); } catch {}
+
+    return {
+      id: vid,
+      slug: String(row.slug),
+      type: row.video_type || "reel",
+      orientation: row.orientation || "portrait",
+      productionMethod: row.production_method || "traditional",
+      aiAssisted: Number(row.ai_assisted) === 1,
+      client: String(row.client_name || ""),
+      year: Number(row.year || 2026),
+      titleTR: String(tr.title || row.slug),
+      titleEN: String(en.title || tr.title || row.slug),
+      shortTitleTR: tr.short_title ? String(tr.short_title) : "",
+      shortTitleEN: en.short_title ? String(en.short_title) : "",
+      descriptionTR: String(tr.description || ""),
+      descriptionEN: String(en.description || ""),
+      fullDescriptionTR: tr.full_description ? String(tr.full_description) : "",
+      fullDescriptionEN: en.full_description ? String(en.full_description) : "",
+      poster: String(assets.poster?.public_url || `/videos/${row.slug}/poster.webp`),
+      src: String(assets.video?.public_url || `/videos/${row.slug}/video.mp4`),
+      thumbnail: assets.thumbnail?.public_url ? String(assets.thumbnail.public_url) : null,
+      duration: String(row.duration || ""),
+      aspectRatio: String(row.aspect_ratio || (row.orientation === "landscape" ? "16:9" : "9:16")),
+      featured: Number(row.featured) === 1,
+      sortOrder: Number(row.sort_order || 0),
+      autoplayPreview: Number(row.autoplay_preview ?? 1) === 1,
+      externalUrl: row.external_url ? String(row.external_url) : null,
+      projectSlug: row.project_slug ? String(row.project_slug) : null,
+      tools,
+      tags,
+      servicesTR,
+      servicesEN,
+      cmsStatus: String(row.status || "draft")
+    };
+  });
 }
 
 async function runRemoteStagingSeed(canonicalVideos) {
@@ -225,9 +438,6 @@ async function runRemoteStagingSeed(canonicalVideos) {
     process.exit(1);
   }
 
-  const existingSlugs = new Set(remoteVideos.map((v) => v.slug));
-  const existingIds = new Set(remoteVideos.map((v) => v.id));
-
   const publishedCount = remoteVideos.filter((v) => v.cmsStatus === "published").length;
   const draftCount = remoteVideos.filter((v) => v.cmsStatus === "draft").length;
   const archivedCount = remoteVideos.filter((v) => v.cmsStatus === "archived").length;
@@ -235,49 +445,42 @@ async function runRemoteStagingSeed(canonicalVideos) {
   console.log(`✓ Retrieved complete remote inventory: ${remoteVideos.length} total videos`);
   console.log(`  Published: ${publishedCount} | Draft: ${draftCount} | Archived: ${archivedCount}`);
 
-  // 5. Canonical Parity & Missing Count Calculation
-  const missingVideos = [];
-  const existingCanonical = [];
-
-  for (const c of canonicalVideos) {
-    const match = remoteVideos.find((r) => r.id === c.id || r.slug === c.slug);
-    if (match) {
-      existingCanonical.push({ canonical: c, remote: match });
-    } else {
-      missingVideos.push(c);
-    }
-  }
+  // 5. Strict Reconciliation across all 21 Canonical Videos
+  const reconciliation = reconcileCanonicalVideos(canonicalVideos, remoteVideos);
 
   console.log(`\nInventory Evaluation against Canonical 21 Videos:`);
   console.log(`  Canonical videos in source:    ${canonicalVideos.length}`);
-  console.log(`  Already existing on staging:   ${existingCanonical.length} (preserved without modification)`);
-  console.log(`  Missing from staging:          ${missingVideos.length}`);
+  console.log(`  Canonical Parity (Matching):   ${reconciliation.canonicalParity.length}`);
+  console.log(`  Owner Modified (Preserved):    ${reconciliation.ownerModified.length}`);
+  console.log(`  Missing (Pending Seed):        ${reconciliation.missing.length}`);
+  console.log(`  Identity Conflicts (Blocked):  ${reconciliation.identityConflicts.length}`);
 
-  // Evaluate parity for existing canonical records
-  if (existingCanonical.length > 0) {
-    console.log(`\nEvaluating field parity for ${existingCanonical.length} existing records...`);
-    let mismatchCount = 0;
-    for (const { canonical: c, remote: r } of existingCanonical) {
-      const mismatches = [];
-      if (r.titleTR !== c.titleTR) mismatches.push(`titleTR: remote="${r.titleTR}" vs canon="${c.titleTR}"`);
-      if (r.titleEN !== c.titleEN) mismatches.push(`titleEN: remote="${r.titleEN}" vs canon="${c.titleEN}"`);
-      if (r.orientation !== (c.orientation || "portrait")) mismatches.push(`orientation: remote="${r.orientation}" vs canon="${c.orientation || "portrait"}"`);
-      if (r.type !== c.type) mismatches.push(`type: remote="${r.type}" vs canon="${c.type}"`);
-      if (mismatches.length > 0) {
-        mismatchCount++;
-        console.warn(`  [Notice] Differences detected in "${c.slug}": ${mismatches.join("; ")} (user edits preserved)`);
-      }
+  if (reconciliation.identityConflicts.length > 0) {
+    console.error(`\nFATAL: Detected ${reconciliation.identityConflicts.length} identity conflict(s) on remote staging:`);
+    for (const conflict of reconciliation.identityConflicts) {
+      console.error(`  - "${conflict.canonical.slug}" (ID: ${conflict.canonical.id}): ${conflict.reason}`);
     }
-    if (mismatchCount === 0) {
-      console.log(`  ✓ All ${existingCanonical.length} existing records match canonical baseline.`);
+    console.error("Aborting remote seeding to prevent corrupting staging database.");
+    process.exit(1);
+  }
+
+  if (reconciliation.ownerModified.length > 0) {
+    console.log(`\nNotice: ${reconciliation.ownerModified.length} canonical video(s) have owner modifications on staging.`);
+    console.log("These modifications are preserved and will NOT be overwritten:");
+    for (const om of reconciliation.ownerModified) {
+      const fieldList = om.diffs.map((d) => d.field).join(", ");
+      console.log(`  - "${om.canonical.slug}": modified fields [${fieldList}] (status: ${om.preservedStatus})`);
     }
   }
+
+  const missingVideos = reconciliation.missing;
 
   // 6. Dry Run Guardrail
   if (isDryRun) {
     console.log("\n========================================================");
     console.log("[DRY RUN COMPLETE] Zero remote writes executed.");
     console.log("Staging target identity and authenticated inventory verified.");
+    console.log(`Status: Parity=${reconciliation.canonicalParity.length}, OwnerModified=${reconciliation.ownerModified.length}, Missing=${missingVideos.length}`);
     console.log(`To execute live remote seeding upon authorized approval, run:`);
     console.log("  node scripts/import-canonical-videos-to-d1.mjs --remote-staging --execute");
     console.log("========================================================");
@@ -291,6 +494,7 @@ async function runRemoteStagingSeed(canonicalVideos) {
 
   for (let idx = 0; idx < missingVideos.length; idx++) {
     const c = missingVideos[idx];
+    const canonicalPosition = canonicalVideos.findIndex((cv) => cv.id === c.id) + 1;
     const payload = {
       id: c.id,
       slug: c.slug,
@@ -304,13 +508,14 @@ async function runRemoteStagingSeed(canonicalVideos) {
       shortTitleEN: c.shortTitleEN || "",
       descriptionTR: c.descriptionTR || "",
       descriptionEN: c.descriptionEN || "",
-      fullDescriptionTR: c.fullDescriptionTR || c.descriptionTR || "",
-      fullDescriptionEN: c.fullDescriptionEN || c.descriptionEN || "",
+      // Optional-field semantics: absent or empty full description is preserved without substitution
+      fullDescriptionTR: c.fullDescriptionTR || "",
+      fullDescriptionEN: c.fullDescriptionEN || "",
       client: c.client || "",
       year: c.year || 2026,
       poster: c.poster,
       thumbnail: c.thumbnail || null,
-      src: c.src,
+      src: c.src || `/videos/${c.slug}/video.mp4`,
       duration: c.duration || "",
       aspectRatio: c.orientation === "landscape" ? "16:9" : "9:16",
       servicesTR: c.servicesTR || c.services || [],
@@ -322,7 +527,8 @@ async function runRemoteStagingSeed(canonicalVideos) {
       externalUrl: c.externalUrl || null,
       projectSlug: c.projectSlug || null,
       featured: Boolean(c.featured),
-      sortOrder: c.sortOrder || idx + 1,
+      // Use original canonical video position when deriving missing sortOrder
+      sortOrder: c.sortOrder ?? canonicalPosition,
       cmsStatus: "published",
       actionType: "create"
     };
@@ -351,6 +557,48 @@ async function runRemoteStagingSeed(canonicalVideos) {
     console.error("FATAL: Remote staging seeding encountered insertion failures.");
     process.exit(1);
   }
+
+  // 8. Post-Seed Verification via Authenticated GET /api/v1/admin/videos
+  console.log("\nPerforming post-seeding read-only verification via GET /api/v1/admin/videos...");
+  let postSeedRemoteVideos = [];
+  try {
+    const postRes = await fetch(`${APPROVED_STAGING_CONFIG.workerUrl}/api/v1/admin/videos`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "X-Actor-Email": "staging-seed@keremmihci.com",
+        "Cache-Control": "no-store"
+      }
+    });
+    if (!postRes.ok) {
+      console.error(`FATAL: Post-seeding admin verification failed: HTTP ${postRes.status}`);
+      process.exit(1);
+    }
+    const postData = await postRes.json();
+    postSeedRemoteVideos = postData.videos || [];
+  } catch (err) {
+    console.error(`FATAL: Failed to query admin videos for post-seed verification: ${err.message}`);
+    process.exit(1);
+  }
+
+  const postReconciliation = reconcileCanonicalVideos(canonicalVideos, postSeedRemoteVideos);
+  let unverifiedCount = 0;
+
+  for (const newlyInserted of missingVideos) {
+    const isNowParity = postReconciliation.canonicalParity.some((p) => p.canonical.id === newlyInserted.id);
+    const isNowOwnerMod = postReconciliation.ownerModified.some((p) => p.canonical.id === newlyInserted.id);
+    if (!isNowParity && !isNowOwnerMod) {
+      unverifiedCount++;
+      console.error(`  [UNVERIFIED] Newly seeded video "${newlyInserted.slug}" was not confirmed in post-seed query.`);
+    }
+  }
+
+  if (unverifiedCount > 0) {
+    console.error(`FATAL: Post-seeding verification failed: ${unverifiedCount} record(s) unverified.`);
+    process.exit(1);
+  }
+
+  console.log(`\n✓ Post-seeding verification passed: All ${missingVideos.length} newly seeded videos confirmed in remote staging.`);
+  console.log(`  Remote status: CANONICAL_PARITY=${postReconciliation.canonicalParity.length}, OWNER_MODIFIED=${postReconciliation.ownerModified.length}, MISSING=${postReconciliation.missing.length}`);
 }
 
 async function runLocalSeed(canonicalVideos) {
@@ -400,11 +648,28 @@ async function runLocalSeed(canonicalVideos) {
   let skippedCount = 0;
   let updatedCount = 0;
 
+  const existingVideoRows = db.prepare(`SELECT * FROM portfolio_videos`).all();
+  const existingTransRows = db.prepare(`SELECT * FROM portfolio_video_translations`).all();
+  const existingAssetRows = db.prepare(`SELECT * FROM portfolio_video_assets`).all();
+
+  const localVideos = mapLocalRowsToCmsVideos(existingVideoRows, existingTransRows, existingAssetRows);
+  const localReconcile = reconcileCanonicalVideos(canonicalVideos, localVideos);
+
+  if (localReconcile.identityConflicts.length > 0 && !isForce) {
+    console.error(`FATAL: Detected ${localReconcile.identityConflicts.length} identity conflict(s) in local database:`);
+    for (const c of localReconcile.identityConflicts) {
+      console.error(`  - "${c.canonical.slug}" (ID: ${c.canonical.id}): ${c.reason}`);
+    }
+    throw new Error(`Identity conflict in database. Refusing to seed.`);
+  }
+
+  const existingMap = new Map();
+  for (const p of localReconcile.canonicalParity) existingMap.set(p.canonical.id, p.record);
+  for (const o of localReconcile.ownerModified) existingMap.set(o.canonical.id, o.record);
+
   for (let idx = 0; idx < canonicalVideos.length; idx++) {
     const v = canonicalVideos[idx];
-    const existing = db
-      .prepare(`SELECT id, slug, status, sort_order FROM portfolio_videos WHERE id = ? OR slug = ?`)
-      .get(v.id, v.slug);
+    const existing = existingMap.get(v.id);
 
     if (existing && !isForce) {
       skippedCount++;
@@ -417,7 +682,8 @@ async function runLocalSeed(canonicalVideos) {
       continue;
     }
 
-    const sortOrder = existing ? Number(existing.sort_order || 0) : v.sortOrder || idx + 1;
+    const canonicalPosition = canonicalVideos.findIndex((cv) => cv.id === v.id) + 1;
+    const sortOrder = existing ? Number(existing.sortOrder || existing.sort_order || 0) : v.sortOrder ?? canonicalPosition;
     const orientation = v.orientation || "portrait";
     const aspectRatio = orientation === "landscape" ? "16:9" : "9:16";
 
@@ -799,7 +1065,9 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error("Import script failed:", err);
-  process.exit(1);
-});
+if (isMain) {
+  main().catch((err) => {
+    console.error("Import script failed:", err);
+    process.exit(1);
+  });
+}

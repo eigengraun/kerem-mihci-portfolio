@@ -59,12 +59,14 @@ export async function GET(
 
       // 304 Not Modified conditional response forwarding
       if (upstream.status === 304) {
+        const upstreamCache =
+          upstream.headers.get("cache-control") ||
+          "public, max-age=0, must-revalidate, s-maxage=3600";
         return new Response(null, {
           status: 304,
           headers: {
             ETag: upstream.headers.get("etag") || ifNoneMatch || "",
-            "Cache-Control":
-              "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400"
+            "Cache-Control": upstreamCache
           }
         });
       }
@@ -79,10 +81,10 @@ export async function GET(
 
         const headers = new Headers();
         headers.set("Content-Type", contentType);
-        headers.set(
-          "Cache-Control",
-          "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400"
-        );
+        const upstreamCache =
+          upstream.headers.get("cache-control") ||
+          "public, max-age=0, must-revalidate, s-maxage=3600";
+        headers.set("Cache-Control", upstreamCache);
         headers.set("Accept-Ranges", "bytes");
 
         const etag = upstream.headers.get("etag");
@@ -229,7 +231,7 @@ export async function GET(
       headers: {
         ETag: localEtag,
         "Cache-Control": isPublic
-          ? "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400"
+          ? "public, max-age=0, must-revalidate, s-maxage=3600"
           : "private, no-store, no-cache, must-revalidate"
       }
     });

@@ -1,6 +1,6 @@
-# Portfolio OS Phase 3 & 3.1: Video Media Upload & Storage Contract
+# Portfolio OS Phase 3 & 3.2: Video Media Upload & Storage Contract
 
-**Version:** 2.0.0 (Hardened Release Contract)  
+**Version:** 2.1.0 (Hardened Staging & Point-in-Time Retention Contract)<br>
 **Status:** Approved & Verified (Local Simulation & Cloudflare Worker Aligned)  
 **System:** Kerem Mıhçı Portfolio OS — Videos & Reels Engine  
 **Repository Branch:** `feature/cloudflare-cms-dashboard`  
@@ -9,7 +9,7 @@
 
 ## 1. Executive Summary
 
-This contract defines the strict binary, validation, security, and metadata rules for managing video and poster assets in Portfolio OS. It enforces fail-closed magic byte signature inspection, deterministic R2 object keys, strict size limits, and full parity between local simulation and remote Cloudflare R2 object storage.
+This contract defines the strict binary, validation, security, memory handling, and metadata rules for managing video and poster assets in Portfolio OS. It enforces fail-closed magic byte signature inspection, deterministic R2 object keys, immutable asset retention for revision rollback, strict size limits, and full parity between local simulation and remote Cloudflare R2 object storage.
 
 ---
 
@@ -50,7 +50,7 @@ CREATE TABLE portfolio_video_assets (
 );
 ```
 
-### 3.2 Cloudflare R2 Bucket Key Namespacing
+### 3.2 Cloudflare R2 Bucket Key Namespacing & Asset Binary Retention
 Uploaded assets are assigned collision-resistant, sanitized storage keys within the video namespace:
 
 ```
@@ -60,8 +60,9 @@ videos/
     └── video-<timestamp>-<randomHex>.mp4
 ```
 
-- When replacing an existing asset, previous staged versions are cleanly deleted from R2 / local storage to prevent bucket bloating.
-- If a database write fails during asset replacement, the newly uploaded object is rolled back immediately.
+- **Historical Asset Retention for Point-in-Time Rollback**: When a user replaces an existing poster or video asset, previous binaries are **retained** under their immutable timestamped storage keys in R2 and local storage. This guarantees that point-in-time revision rollback (`portfolio_video_revisions`) never breaks media links or leads to missing assets.
+- **Transactional Rollback on Failure**: If a database write fails during asset replacement, the newly uploaded object is rolled back immediately to maintain consistency.
+- **Bucket Pruning**: Background pruning or R2 lifecycle rules may be scheduled separately without impacting active or historically referenced snapshots.
 
 ---
 
@@ -92,4 +93,17 @@ videos/
 
 ### 5.2 Cache Control & Private Media Protection
 - Published media objects return `Cache-Control: public, max-age=0, must-revalidate, s-maxage=3600` with `ETag`.
+- Next.js media proxy passes through upstream edge caching without overriding with legacy 7-day TTLs (`s-maxage=604800` is eliminated).
 - Media belonging to draft or archived videos returns `HTTP 404` to unauthenticated public visitors, but returns `HTTP 200` to authenticated admins with `Cache-Control: private, no-store, no-cache, must-revalidate`.
+
+---
+
+## 6. Worker Memory Limits & Buffer Streaming Considerations
+
+Cloudflare Worker execution environments have specific memory characteristics:
+1. **Isolate Memory Ceiling**: Cloudflare Workers standard isolates enforce a 128 MB RAM ceiling (up to 512 MB on higher tiers).
+2. **Buffer Allocation (`file.arrayBuffer()`)**: Ingesting large files via `file.arrayBuffer()` holds the entire payload in isolate memory simultaneously during signature validation and R2 `put()`.
+3. **Recommended Upload Ceiling**:
+   - Files $\le$ **50 MB**: Fully safe for standard Worker isolate ingestion.
+   - Files **50 MB – 100 MB**: Permitted, but memory usage approaches isolate thresholds under high concurrency.
+   - The Studio OS Admin UI displays a warning for files exceeding 50 MB, advising short/optimized clips.

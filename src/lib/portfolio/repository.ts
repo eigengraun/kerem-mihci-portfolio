@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
-import { projectsData, type Project, type WorkspaceId } from "@/data/projects";
-import { videosData, type PortfolioVideo } from "@/data/videos";
+import { projectsData, type Project, type WorkspaceId } from "../../data/projects";
+import { videosData, type PortfolioVideo } from "../../data/videos";
 import {
   assertLocalSimulationAllowed,
   deleteMediaFromD1AndR2 as deleteMediaLocal,
@@ -72,6 +72,10 @@ interface SnapshotCoordinationState {
   updatedAtMs: number;
   tombstonedIds: Record<string, number>;
   tombstonedSlugs: Record<string, number>;
+  tombstonedVideoIds: Record<string, number>;
+  tombstonedVideoSlugs: Record<string, number>;
+  videoGeneration: number;
+  videoUpdatedAtMs: number;
 }
 
 interface VerifiedSnapshotCache {
@@ -80,12 +84,26 @@ interface VerifiedSnapshotCache {
   generation: number;
 }
 
+interface VerifiedVideosSnapshotCache {
+  videos: PortfolioVideo[];
+  capturedAtMs: number;
+  generation: number;
+}
+
 // Process-local verified snapshot, coordinated via shared host tombstone ledger + strict TTL
 let lastKnownPublishedSnapshot: VerifiedSnapshotCache | null = null;
+let lastKnownPublishedVideosSnapshot: VerifiedVideosSnapshotCache | null = null;
+
+const DEFAULT_VIDEO_SNAPSHOT_TTL_MS = 30 * 1000; // 30 seconds max stale TTL during Worker outage
 
 function getSnapshotTtlMs(): number {
   const raw = Number(process.env.CMS_SNAPSHOT_MAX_STALE_MS || DEFAULT_SNAPSHOT_TTL_MS);
   return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_SNAPSHOT_TTL_MS;
+}
+
+function getVideoSnapshotTtlMs(): number {
+  const raw = Number(process.env.CMS_VIDEO_SNAPSHOT_MAX_STALE_MS || DEFAULT_VIDEO_SNAPSHOT_TTL_MS);
+  return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_VIDEO_SNAPSHOT_TTL_MS;
 }
 
 function getCoordinationFilePath(): string {
@@ -105,7 +123,11 @@ function readCoordinationState(): SnapshotCoordinationState {
         generation: Number(parsed.generation || 1),
         updatedAtMs: Number(parsed.updatedAtMs || 0),
         tombstonedIds: parsed.tombstonedIds || {},
-        tombstonedSlugs: parsed.tombstonedSlugs || {}
+        tombstonedSlugs: parsed.tombstonedSlugs || {},
+        tombstonedVideoIds: parsed.tombstonedVideoIds || {},
+        tombstonedVideoSlugs: parsed.tombstonedVideoSlugs || {},
+        videoGeneration: Number(parsed.videoGeneration || 1),
+        videoUpdatedAtMs: Number(parsed.videoUpdatedAtMs || 0)
       };
     }
   } catch {
@@ -115,7 +137,11 @@ function readCoordinationState(): SnapshotCoordinationState {
     generation: 1,
     updatedAtMs: 0,
     tombstonedIds: {},
-    tombstonedSlugs: {}
+    tombstonedSlugs: {},
+    tombstonedVideoIds: {},
+    tombstonedVideoSlugs: {},
+    videoGeneration: 1,
+    videoUpdatedAtMs: 0
   };
 }
 
@@ -904,14 +930,128 @@ export async function getD1HealthAndStats() {
   return getLocalD1HealthAndStats();
 }
 
-let verifiedPublishedVideosSnapshot: PortfolioVideo[] | null = null;
+/**
+ * Coordinates video snapshot invalidation and unpublish/archive/delete tombstones across all Node processes on the host.
+ */
+export function recordVideoSnapshotMutation(params: {
+  tombstoneId?: string;
+  tombstoneSlug?: string;
+  publishedVideo?: PortfolioVideo | CmsVideoRecord;
+  clearAllSnapshots?: boolean;
+}): void {
+  const state = readCoordinationState();
+  const now = Date.now();
+  state.videoGeneration = (state.videoGeneration || 1) + 1;
+  state.videoUpdatedAtMs = now;
+  if (!state.tombstonedVideoIds) state.tombstonedVideoIds = {};
+  if (!state.tombstonedVideoSlugs) state.tombstonedVideoSlugs = {};
+
+  // Prune tombstones older than 24h
+  const cutoff = now - 86400 * 1000;
+  for (const [k, ts] of Object.entries(state.tombstonedVideoIds)) {
+    if (ts < cutoff) delete state.tombstonedVideoIds[k];
+  }
+  for (const [k, ts] of Object.entries(state.tombstonedVideoSlugs)) {
+    if (ts < cutoff) delete state.tombstonedVideoSlugs[k];
+  }
+
+  if (params.tombstoneId) {
+    state.tombstonedVideoIds[params.tombstoneId] = now;
+  }
+  if (params.tombstoneSlug) {
+    state.tombstonedVideoSlugs[params.tombstoneSlug] = now;
+  }
+
+  if (params.publishedVideo && (params.publishedVideo as any).cmsStatus === "published") {
+    delete state.tombstonedVideoIds[params.publishedVideo.id];
+    delete state.tombstonedVideoSlugs[params.publishedVideo.slug];
+  }
+
+  writeCoordinationState(state);
+
+  if (params.clearAllSnapshots) {
+    lastKnownPublishedVideosSnapshot = null;
+    return;
+  }
+
+  if (lastKnownPublishedVideosSnapshot) {
+    let updatedList = lastKnownPublishedVideosSnapshot.videos.filter(
+      (v) => !state.tombstonedVideoIds[v.id] && !state.tombstonedVideoSlugs[v.slug]
+    );
+    if (params.publishedVideo) {
+      if ((params.publishedVideo as any).cmsStatus === "published") {
+        const pVideo = params.publishedVideo as PortfolioVideo;
+        const idx = updatedList.findIndex((v) => v.id === pVideo.id || v.slug === pVideo.slug);
+        if (idx >= 0) {
+          updatedList[idx] = pVideo;
+        } else {
+          updatedList.push(pVideo);
+        }
+        updatedList.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+      } else {
+        updatedList = updatedList.filter(
+          (v) => v.id !== params.publishedVideo!.id && v.slug !== params.publishedVideo!.slug
+        );
+      }
+    }
+    lastKnownPublishedVideosSnapshot = {
+      videos: updatedList,
+      capturedAtMs: lastKnownPublishedVideosSnapshot.capturedAtMs,
+      generation: state.videoGeneration
+    };
+  }
+}
+
+export function getValidCoordinatedVideosSnapshot(): PortfolioVideo[] | null {
+  if (!lastKnownPublishedVideosSnapshot) {
+    return null;
+  }
+  const now = Date.now();
+  if (now - lastKnownPublishedVideosSnapshot.capturedAtMs > getVideoSnapshotTtlMs()) {
+    lastKnownPublishedVideosSnapshot = null;
+    return null;
+  }
+  const coord = readCoordinationState();
+  const tombstonedIds = coord.tombstonedVideoIds || {};
+  const tombstonedSlugs = coord.tombstonedVideoSlugs || {};
+  return lastKnownPublishedVideosSnapshot.videos.filter(
+    (v) => !tombstonedIds[v.id] && !tombstonedSlugs[v.slug]
+  );
+}
 
 export function setVerifiedPublishedVideosSnapshot(videos: PortfolioVideo[]): void {
-  verifiedPublishedVideosSnapshot = videos;
+  const coord = readCoordinationState();
+  const now = Date.now();
+  if (!coord.tombstonedVideoIds) coord.tombstonedVideoIds = {};
+  if (!coord.tombstonedVideoSlugs) coord.tombstonedVideoSlugs = {};
+
+  let coordChanged = false;
+  for (const v of videos) {
+    if (coord.tombstonedVideoIds[v.id]) {
+      delete coord.tombstonedVideoIds[v.id];
+      coordChanged = true;
+    }
+    if (coord.tombstonedVideoSlugs[v.slug]) {
+      delete coord.tombstonedVideoSlugs[v.slug];
+      coordChanged = true;
+    }
+  }
+  if (coordChanged) {
+    coord.videoUpdatedAtMs = now;
+    writeCoordinationState(coord);
+  }
+
+  const tombstonedIds = coord.tombstonedVideoIds;
+  const tombstonedSlugs = coord.tombstonedVideoSlugs;
+  lastKnownPublishedVideosSnapshot = {
+    videos: videos.filter((v) => !tombstonedIds[v.id] && !tombstonedSlugs[v.slug]),
+    capturedAtMs: now,
+    generation: coord.videoGeneration || 1
+  };
 }
 
 export function getVerifiedPublishedVideosSnapshot(): PortfolioVideo[] | null {
-  return verifiedPublishedVideosSnapshot;
+  return getValidCoordinatedVideosSnapshot();
 }
 
 export async function getPublishedVideosWithMeta(): Promise<{
@@ -944,8 +1084,8 @@ export async function getPublishedVideosWithMeta(): Promise<{
       };
     } catch (error) {
       const errReason = error instanceof Error ? error.message : String(error);
-      const snapshot = getVerifiedPublishedVideosSnapshot();
-      if (snapshot !== null) {
+      const snapshot = getValidCoordinatedVideosSnapshot();
+      if (snapshot !== null && snapshot.length > 0) {
         return {
           videos: snapshot,
           degraded: true,
@@ -957,7 +1097,7 @@ export async function getPublishedVideosWithMeta(): Promise<{
         videos: [],
         degraded: true,
         source: "degraded-cold-start-outage",
-        reason: "Cloudflare Worker is unreachable and no verified video snapshot exists on this Node process."
+        reason: "Cloudflare Worker is unreachable and no valid bounded video snapshot exists."
       };
     }
   }
@@ -1055,11 +1195,31 @@ export async function saveAdminVideo(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(input)
     });
-    return res.video;
+    const saved = res.video;
+    if (saved.cmsStatus !== "published") {
+      recordVideoSnapshotMutation({
+        tombstoneId: saved.id,
+        tombstoneSlug: saved.slug,
+        publishedVideo: saved
+      });
+    } else {
+      recordVideoSnapshotMutation({ publishedVideo: saved });
+    }
+    return saved;
   }
 
   assertLocalSimulationAllowed("saveAdminVideo");
-  return upsertVideoLocal(input, actorEmail, actionType);
+  const saved = upsertVideoLocal(input, actorEmail, actionType);
+  if (saved.cmsStatus !== "published") {
+    recordVideoSnapshotMutation({
+      tombstoneId: saved.id,
+      tombstoneSlug: saved.slug,
+      publishedVideo: saved
+    });
+  } else {
+    recordVideoSnapshotMutation({ publishedVideo: saved });
+  }
+  return saved;
 }
 
 export async function deleteAdminVideo(
@@ -1068,7 +1228,7 @@ export async function deleteAdminVideo(
 ): Promise<{ deletedId: string }> {
   if (shouldUseWorkerApi()) {
     requireWorkerConfigForMutation("deleteAdminVideo");
-    const res = await fetchWorkerJson<{ ok: boolean; deletedId: string }>(
+    const res = await fetchWorkerJson<{ ok: boolean; deletedId: string; slug?: string }>(
       `/api/v1/admin/videos/${encodeURIComponent(id)}`,
       {
         method: "DELETE",
@@ -1076,11 +1236,20 @@ export async function deleteAdminVideo(
         actorEmail
       }
     );
+    recordVideoSnapshotMutation({
+      tombstoneId: res.deletedId,
+      tombstoneSlug: res.slug
+    });
     return { deletedId: res.deletedId };
   }
 
   assertLocalSimulationAllowed("deleteAdminVideo");
-  return deleteVideoLocal(id, actorEmail);
+  const deleted = deleteVideoLocal(id, actorEmail);
+  recordVideoSnapshotMutation({
+    tombstoneId: deleted.deletedId,
+    tombstoneSlug: (deleted as any).slug
+  });
+  return deleted;
 }
 
 export async function updateVideoOrderingInD1(
@@ -1099,11 +1268,14 @@ export async function updateVideoOrderingInD1(
         body: JSON.stringify({ orderings })
       }
     );
+    recordVideoSnapshotMutation({ clearAllSnapshots: true });
     return { updatedCount: res.updatedCount };
   }
 
   assertLocalSimulationAllowed("updateVideoOrderingInD1");
-  return updateVideoOrderingLocal(orderings, actorEmail);
+  const res = updateVideoOrderingLocal(orderings, actorEmail);
+  recordVideoSnapshotMutation({ clearAllSnapshots: true });
+  return res;
 }
 
 export async function listVideoRevisionsFromD1(videoId: string): Promise<CmsVideoRevisionRecord[]> {
@@ -1137,11 +1309,31 @@ export async function rollbackVideoRevisionInD1(
         body: JSON.stringify({ revisionNumber })
       }
     );
-    return res.video;
+    const restored = res.video;
+    if (restored.cmsStatus !== "published") {
+      recordVideoSnapshotMutation({
+        tombstoneId: restored.id,
+        tombstoneSlug: restored.slug,
+        publishedVideo: restored
+      });
+    } else {
+      recordVideoSnapshotMutation({ publishedVideo: restored });
+    }
+    return restored;
   }
 
   assertLocalSimulationAllowed("rollbackVideoRevisionInD1");
-  return rollbackVideoRevisionLocal(videoId, revisionNumber, actorEmail);
+  const restored = rollbackVideoRevisionLocal(videoId, revisionNumber, actorEmail);
+  if (restored.cmsStatus !== "published") {
+    recordVideoSnapshotMutation({
+      tombstoneId: restored.id,
+      tombstoneSlug: restored.slug,
+      publishedVideo: restored
+    });
+  } else {
+    recordVideoSnapshotMutation({ publishedVideo: restored });
+  }
+  return restored;
 }
 
 export async function uploadVideoAsset(params: {

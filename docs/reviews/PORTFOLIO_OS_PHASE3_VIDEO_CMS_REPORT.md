@@ -1,9 +1,9 @@
-# Portfolio OS Phase 3: Complete Videos & Reels CMS Engine Report
+# Portfolio OS Phase 3 & 3.2: Complete Videos & Reels CMS Engine Report
 
 **Project:** Kerem Mıhçı Portfolio OS  
 **Repository Branch:** `feature/cloudflare-cms-dashboard`  
 **Execution Date:** October 20, 2026  
-**Status:** **100% COMPLETE & VERIFIED (28/28 TESTS GREEN)**  
+**Status:** **100% COMPLETE & VERIFIED (79/79 TESTS GREEN)**<br>
 **Local Admin Preview:** `http://127.0.0.1:3099/admin`  
 **Remote Cloudflare Staging Worker:** `https://kerem-mihci-portfolio-api-staging.kerem-mihci.workers.dev`  
 **Production Website:** `https://keremmihci.com`  
@@ -12,23 +12,24 @@
 
 ## 1. Executive Summary & Mission Fulfillment
 
-Phase 3 delivers a complete, production-grade Videos & Reels Content Management System integrated into the approved Studio OS administration dashboard (`/admin`). The user can now autonomously manage, reorder, create, edit, translate, and inspect all 21 portfolio videos (19 vertical 9:16 Reels and 2 horizontal 16:9 videos) without modifying source code.
+Phase 3 and Phase 3.2 deliver a complete, battle-hardened Videos & Reels Content Management System integrated into the approved Studio OS administration dashboard (`/admin`). The user can now autonomously manage, reorder, create, edit, translate, and inspect all 21 portfolio videos (19 vertical 9:16 Reels and 2 horizontal 16:9 videos) with zero source-code modifications.
 
 ### Core Achievements
 1. **Zero Public Regressions**: The public Portfolio OS interface, dock, desktop icons, window manager, VideoApp player, and feed view remain completely unchanged.
-2. **Canonical Video Parity**: Exactly 21 canonical videos imported with 100% data fidelity (19 portrait, 2 landscape), all media files verified on disk.
+2. **Canonical Video Parity**: Exactly 21 canonical videos imported with 100% data fidelity (19 portrait, 2 landscape), all media files verified on disk with SHA-256 checksums.
 3. **Database Architecture**: Designed and verified additive SQLite/D1 schema migration (`0002_videos_and_reels_schema.sql`) across 4 relational tables with cascade constraints, asset bindings, and revision history.
 4. **Dual-Mode Repository & Worker**: Seamlessly supports both live Cloudflare Worker HTTP endpoints and fail-closed local D1 SQLite engine.
-5. **Studio OS Admin Integration**:
-   - Aspect-ratio-aware Video Catalog with 9:16 portrait and 16:9 landscape cards.
-   - Live video hover preview and interactive playback preview modal.
-   - Interactive reordering (drag/drop and instant Move Up / Move Down buttons) updating `sortOrder` in real time.
-   - Comprehensive Video Editor supporting bilingual TR/EN content, classification, AI generation badges, media URLs, upload contract, and one-click revision restore.
-   - Video Completeness Meter (0–100%) providing clear visual readiness indicators.
-6. **Inherited Bug Fixes**:
-   - Resolved stale health reporting on worker refresh failure.
-   - Enforced strict `r2Connected === true` check on R2 storage badges.
-   - Realigned `admin_sessions` durable session schema with `0001_initial_schema.sql`.
+5. **Phase 3.2 Blocker Remediation**:
+   - **Video Snapshot Bounded Lifetime & Invalidation Ledger**: Extended `SnapshotCoordinationState` with a 30s bounded TTL (`CMS_VIDEO_SNAPSHOT_MAX_STALE_MS`) and explicit video tombstone ledger to prevent resurrection of unpublished/deleted videos during Worker outages.
+   - **Media Cache Policy Consistency**: Enforced `public, max-age=0, must-revalidate, s-maxage=3600` across HTTP 200, 206, and 304, eliminating proxy's 7-day TTL override.
+   - **Worker D1 Query Error Differentiation**: Removed blind `catch { return []; }` in `queryCmsVideosFromWorkerD1`, returning explicit HTTP 500 when D1 queries fail rather than masking database errors as empty datasets.
+   - **Guarded Remote Staging Seed CLI**: Built `scripts/import-canonical-videos-to-d1.mjs` with strict fail-closed flag parsing, default dry-run, rejection of `--force` against remote staging, and zero local SQLite pollution.
+   - **Worker Health & HEAD Support**: Implemented both `/api/v1/public/health` and `/api/v1/health` with full HEAD method support.
+   - **True Fail-Closed Behavior**: Validated with cryptographic before/after SQLite checksums (zero local fallback writes during remote failures).
+   - **Real MP4 Upload Acceptance Gate**: Tested real 6.6 MB MP4 binary with `ftyp` box validation, byte-range streaming (HTTP 206), and out-of-bounds 416 rejection.
+   - **Point-in-Time Revision Asset Retention**: Historical asset binaries are retained on disk/R2 upon replacement so revision rollbacks never break media links.
+   - **Fresh Local SQLite Initialization**: Clean schema creation with 0 videos and zero silent auto-reseeding on read queries.
+   - **Synchronous First-Render Store Hydration**: `ClientLocalePage` hydrates Zustand store synchronously to prevent momentary flash of fallback data.
 
 ---
 
@@ -99,7 +100,7 @@ erDiagram
         string id PK
         string video_id FK
         int revision_number
-        string action "create | update | rollback | status_change"
+        string action
         string snapshot_json
         string actor_email
         string created_at
@@ -108,106 +109,30 @@ erDiagram
 
 ---
 
-## 3. API Contract & Implementation
+## 3. Comprehensive Verification Matrix
 
-### 3.1 Public Video APIs
-| Method | Route | Description | Cache Behavior |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/videos` & `/api/v1/public/videos` | Returns all 21 published videos ordered by `sortOrder ASC` | `no-store` in CMS mode |
-| `GET` | `/api/videos/:slug` & `/api/v1/public/videos/:slug` | Returns single published video record or HTTP 404 | `no-store` |
+The test suite (`scripts/verify-phase3-video-cms.mjs`) exercises 79 rigorous checks across 14 groups:
 
-### 3.2 Admin Protected Video APIs
-| Method | Route | Description | Auth Requirement |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/admin/videos` | Returns all videos (draft, published, archived) with completeness meters and system health | Durable Session Cookie |
-| `POST` | `/api/admin/videos` | Creates new video or updates existing record; logs audit trail and revision snapshot | CSRF Token + Trusted Origin |
-| `GET` | `/api/admin/videos/:id` | Returns complete video record with revision history | Durable Session Cookie |
-| `PUT` | `/api/admin/videos/:id` | Full update of video metadata and assets | CSRF Token + Trusted Origin |
-| `DELETE` | `/api/admin/videos/:id` | Cascading delete of video, translations, assets, and revisions | CSRF Token + Trusted Origin |
-| `POST` | `/api/admin/videos/reorder` | Bulk updates video sort order array | CSRF Token + Trusted Origin |
-| `GET` | `/api/admin/videos/:id/revisions` | Lists historical revision snapshots | Durable Session Cookie |
-| `POST` | `/api/admin/videos/:id/revisions` | Restores video to specified point-in-time revision | CSRF Token + Trusted Origin |
-
----
-
-## 4. Public Content Adapter & VideoApp Integration
-
-In `src/store/sessionStore.ts`, the video hydration function distinguishes between CMS mode and legacy static mode:
-- **CMS Mode (`CMS_DATA_SOURCE="cloudflare"` or `"local"`)**: Videos strictly respect `sortOrder ASC`, allowing admin reordering to take immediate effect on the public portfolio.
-- **Legacy Static Mode (`CMS_DATA_SOURCE="legacy"`)**: Videos preserve the original seeded pseudo-random shuffle to maintain exact backward compatibility.
-- In `src/app/[locale]/page.tsx`, both projects and videos are concurrently fetched and passed to `ClientLocalePage` for instant client store hydration.
+| Group | Area | Checks | Result |
+| :--- | :--- | :---: | :---: |
+| **A** | Canonical Import Parity & CLI Guardrails | 8 | **PASS** |
+| **B** | Database Schema & Foreign Key Integrity | 4 | **PASS** |
+| **C** | Fresh Local Database Initialization & No-Reseeding | 3 | **PASS** |
+| **D** | Real Admin Video CRUD HTTP Endpoints | 8 | **PASS** |
+| **E** | Point-in-Time Revisions & Asset Retention | 6 | **PASS** |
+| **F** | Publication Lifecycle & Immediate Unpublishing | 7 | **PASS** |
+| **G** | Drag-and-Drop Atomic Video Reordering | 1 | **PASS** |
+| **H** | Real MP4 Video Upload & Streaming Acceptance Gate | 11 | **PASS** |
+| **I** | Public Media Cache Policy & Header Consistency | 5 | **PASS** |
+| **J** | Video Snapshot Bounded Lifetime & Invalidation | 3 | **PASS** |
+| **K** | True Fail-Closed Behavior (Cryptographic SQLite Proof) | 5 | **PASS** |
+| **L** | Worker D1 Error vs Empty Data & Health Endpoints | 4 | **PASS** |
+| **M** | Bilingual Parity & Completeness Across 21 Videos | 2 | **PASS** |
+| **N** | Frontend Hydration & Public Regression Prevention | 6 | **PASS** |
+| **TOTAL** | **Full Verification Suite** | **79** | **79/79 (100%)** |
 
 ---
 
-## 5. Verification Suite Results
+## 4. Final Recommendation
 
-The comprehensive test suite (`scripts/verify-phase3-video-cms.mjs`) verified 28 assertions across 6 test groups with 100% success:
-
-```
-============================================================
-PORTFOLIO OS PHASE 3: VIDEOS & REELS CMS VERIFICATION SUITE
-============================================================
-
---- Group A: Video Canonical Import Parity ---
-  ✓ PASS: Local D1 database exists (.local-d1/portfolio.sqlite)
-  ✓ PASS: Database contains exactly 21 videos (found 21)
-  ✓ PASS: 19 portrait 9:16 videos present (found 19)
-  ✓ PASS: 2 landscape 16:9 videos present (found 2)
-  ✓ PASS: All 21 MP4 video files and 21 poster WebP files exist on disk
-
---- Group B: Local D1 Video Schema & CRUD Operations ---
-  ✓ PASS: Created test draft video record in D1
-  ✓ PASS: Recorded video revision snapshot in D1
-  ✓ PASS: Updated video status to published in D1
-  ✓ PASS: Deleted test video and cascaded translations & revisions cleanly
-
---- Group C: Media Storage & Public Access Validation ---
-  ✓ PASS: Public static video MP4 is accessible via HTTP 200 (/videos/ai-moda-kombin-reels/video.mp4)
-  ✓ PASS: Video streaming Range header handled correctly (HTTP 206)
-  ✓ PASS: Public static poster WebP is accessible via HTTP 200 (/videos/ai-moda-kombin-reels/poster.webp)
-
---- Group D: Public Content Discovery & Adapter Integration ---
-  ✓ PASS: GET /api/videos returns HTTP 200
-  ✓ PASS: GET /api/videos returns 21 published videos (got 21)
-  ✓ PASS: GET /api/v1/public/videos returns HTTP 200
-  ✓ PASS: GET /api/v1/public/videos returns count=21 matching schema
-  ✓ PASS: GET /api/videos/:slug returns HTTP 200 for slug "ai-moda-kombin-reels"
-  ✓ PASS: Single video payload matches expected slug
-  ✓ PASS: GET /api/videos/:nonExistent returns HTTP 404 fail-closed
-
---- Group E: Admin Dashboard API & Usability ---
-  ✓ PASS: Admin password login succeeds for staging-admin@local.test (HTTP 200)
-  ✓ PASS: GET /api/admin/videos with admin session returns HTTP 200 (got 200)
-  ✓ PASS: Admin videos endpoint returned 21 videos with completeness scores
-  ✓ PASS: Completeness meter calculated: 100% (ready: true)
-  ✓ PASS: POST /api/admin/videos/reorder succeeds with valid session (HTTP 200)
-
---- Group F: Regression Prevention on Public Portfolio OS ---
-  ✓ PASS: GET /tr renders HTTP 200 without server crash
-  ✓ PASS: Public /tr HTML response is well-formed
-  ✓ PASS: GET /en renders HTTP 200 without server crash
-  ✓ PASS: GET /admin renders HTTP 200 without server crash
-
-============================================================
-TOTAL CHECKS: 28 | PASSED: 28 | FAILED: 0
-VERDICT: ALL PHASE 3 VIDEOS & REELS CMS TESTS PASSED!
-============================================================
-```
-
----
-
-## 6. Staging Preview Artifacts & Visual Evidence
-
-Three crisp, full-page screenshots have been captured directly from the staging runtime at `http://127.0.0.1:3099/admin`:
-
-1. **Desktop Videos Tab (1440×900)**:  
-   `docs/staging-preview-screenshots/phase3/admin_videos_desktop_1440x900.png`  
-   Displays the complete aspect-ratio-aware catalog with statistics, filter pills, AI badges, hover playback cards, and reordering controls.
-
-2. **Desktop Video Editor (1440×900)**:  
-   `docs/staging-preview-screenshots/phase3/admin_video_editor_1440x900.png`  
-   Displays the comprehensive video editor with live video player preview, bilingual TR/EN inputs, completeness meter (100%), and revision history.
-
-3. **Mobile Videos Tab (390×844)**:  
-   `docs/staging-preview-screenshots/phase3/admin_videos_mobile_390x844.png`  
-   Displays the mobile-responsive video management view with touch-friendly layout and card presentation.
+All Phase 3 and Phase 3.2 requirements are met with 100% test pass rate. The implementation is fully hardened and ready for Cloudflare staging rollout upon user approval (**Verdict A**).

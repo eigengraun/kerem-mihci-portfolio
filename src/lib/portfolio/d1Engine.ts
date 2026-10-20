@@ -6,19 +6,19 @@ import {
   projectsData,
   type DesktopThumbnailConfig,
   type ProjectCategoryId,
-  ProjectContentBlock,
+  type ProjectContentBlock,
   type ProjectExternalLink,
   type ProjectMediaItem,
   type ProjectMediaLayout,
   type ProjectStatus,
   type WorkspaceId
-} from "@/data/projects";
+} from "../../data/projects";
 import {
   videosData,
   type VideoType,
   type VideoOrientation,
   type ProductionMethod
-} from "@/data/videos";
+} from "../../data/videos";
 import {
   CmsStorageUnavailableError,
   type CmsAuditLogRecord,
@@ -433,6 +433,10 @@ export function getD1Database(): SqliteDatabase {
     // Non-destructive compatibility check
   }
 
+  // Cache DB handle immediately to prevent recursive initialization
+  cachedDb = db;
+  cachedDbPath = dbPath;
+
   const countRow = db.prepare("SELECT COUNT(*) as count FROM projects").get() as
     | { count: number }
     | undefined;
@@ -441,20 +445,9 @@ export function getD1Database(): SqliteDatabase {
     seedCanonicalProjects(db, { upsertExisting: false });
   }
 
-  // Seed canonical videos if table exists but empty
-  try {
-    const videoCountRow = db
-      .prepare("SELECT COUNT(*) as count FROM portfolio_videos")
-      .get() as { count: number } | undefined;
-    if (Number(videoCountRow?.count ?? 0) === 0) {
-      seedCanonicalVideosInLocalD1(false);
-    }
-  } catch {
-    // portfolio_videos may not exist in minimal environments
-  }
+  // Note: portfolio_videos is explicitly seeded via operator command or seedCanonicalVideosInLocalD1().
+  // Legitimate empty CMS databases remain empty; no unexpected data writes on read-only requests.
 
-  cachedDb = db;
-  cachedDbPath = dbPath;
   return db;
 }
 
@@ -3287,17 +3280,9 @@ export function uploadVideoAssetToStorageAndD1(params: {
       now
     );
 
-    // 6. Safe cleanup of old asset file after database transaction succeeds
-    if (oldStorageKey && oldStorageKey !== storageKey) {
-      const oldPath = path.resolve(r2Root, oldStorageKey);
-      if (oldPath.startsWith(r2Root + path.sep) && fs.existsSync(oldPath)) {
-        try {
-          fs.unlinkSync(oldPath);
-        } catch {
-          // ignore cleanup error
-        }
-      }
-    }
+    // 6. Asset Retention Policy: Retain previous asset binary on disk / storage.
+    // Historical asset binaries are required for point-in-time video revision rollback.
+    // Immediate unlinking on replacement would destroy media integrity when restoring earlier snapshots.
 
     return {
       id: assetId,

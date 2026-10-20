@@ -1292,44 +1292,36 @@ async function queryCmsVideosFromWorkerD1(
   whereClause: string,
   params: unknown[]
 ): Promise<Record<string, unknown>[]> {
-  try {
-    const stmt = db
-      .prepare(`SELECT * FROM portfolio_videos ${whereClause} ORDER BY sort_order ASC, created_at DESC`)
-      .bind(...params);
-    const { results: videoRows } = await stmt.all<Record<string, unknown>>();
-    if (!videoRows || videoRows.length === 0) return [];
+  const stmt = db
+    .prepare(`SELECT * FROM portfolio_videos ${whereClause} ORDER BY sort_order ASC, created_at DESC`)
+    .bind(...params);
+  const { results: videoRows } = await stmt.all<Record<string, unknown>>();
+  if (!videoRows || videoRows.length === 0) return [];
 
-    const { results: translationRows } = await db
-      .prepare(`SELECT * FROM portfolio_video_translations`)
-      .all<Record<string, unknown>>();
-    const { results: assetRows } = await db
-      .prepare(`SELECT * FROM portfolio_video_assets`)
-      .all<Record<string, unknown>>();
+  const { results: translationRows } = await db
+    .prepare(`SELECT * FROM portfolio_video_translations`)
+    .all<Record<string, unknown>>();
+  const { results: assetRows } = await db
+    .prepare(`SELECT * FROM portfolio_video_assets`)
+    .all<Record<string, unknown>>();
 
-    return mapWorkerRowsToCmsVideos(videoRows, translationRows || [], assetRows || []);
-  } catch {
-    return [];
-  }
+  return mapWorkerRowsToCmsVideos(videoRows, translationRows || [], assetRows || []);
 }
 
 async function listVideoRevisionsInWorkerD1(db: D1Database, videoId: string) {
-  try {
-    const { results } = await db
-      .prepare(`SELECT * FROM portfolio_video_revisions WHERE video_id = ? ORDER BY revision_number DESC LIMIT 50`)
-      .bind(videoId)
-      .all<Record<string, unknown>>();
-    return (results || []).map((r) => ({
-      id: String(r.id),
-      videoId: String(r.video_id),
-      revisionNumber: Number(r.revision_number),
-      action: String(r.action),
-      snapshotJson: String(r.snapshot_json),
-      actorEmail: String(r.actor_email),
-      createdAt: String(r.created_at)
-    }));
-  } catch {
-    return [];
-  }
+  const { results } = await db
+    .prepare(`SELECT * FROM portfolio_video_revisions WHERE video_id = ? ORDER BY revision_number DESC LIMIT 50`)
+    .bind(videoId)
+    .all<Record<string, unknown>>();
+  return (results || []).map((r) => ({
+    id: String(r.id),
+    videoId: String(r.video_id),
+    revisionNumber: Number(r.revision_number),
+    action: String(r.action),
+    snapshotJson: String(r.snapshot_json),
+    actorEmail: String(r.actor_email),
+    createdAt: String(r.created_at)
+  }));
 }
 
 async function upsertVideoInWorkerD1(
@@ -1684,7 +1676,7 @@ const worker = {
       // ---------------------------------------------------------
       // PUBLIC READ ENDPOINTS (Published projects & R2 media only)
       // ---------------------------------------------------------
-      if (pathname === "/api/v1/public/health" && request.method === "GET") {
+      if ((pathname === "/api/v1/public/health" || pathname === "/api/v1/health") && (request.method === "GET" || request.method === "HEAD")) {
         const countRow = await db
           .prepare(`SELECT COUNT(*) as count FROM projects WHERE status = ?`)
           .bind("published")
@@ -1706,7 +1698,7 @@ const worker = {
         );
       }
 
-      if (pathname === "/api/v1/public/projects" && request.method === "GET") {
+      if (pathname === "/api/v1/public/projects" && (request.method === "GET" || request.method === "HEAD")) {
         const projects = await queryCmsProjectsFromWorkerD1(db, "WHERE status = ?", ["published"]);
         return jsonResponse(
           { ok: true, projects },
@@ -1716,7 +1708,7 @@ const worker = {
         );
       }
 
-      if (pathname.startsWith("/api/v1/public/projects/") && request.method === "GET") {
+      if (pathname.startsWith("/api/v1/public/projects/") && (request.method === "GET" || request.method === "HEAD")) {
         const slug = decodeURIComponent(pathname.replace("/api/v1/public/projects/", ""));
         const projects = await queryCmsProjectsFromWorkerD1(
           db,
@@ -1734,37 +1726,71 @@ const worker = {
         );
       }
 
-      if (pathname === "/api/v1/public/videos" && request.method === "GET") {
-        const videos = await queryCmsVideosFromWorkerD1(db, "WHERE status = ?", ["published"]);
-        return jsonResponse(
-          { ok: true, count: videos.length, videos },
-          200,
-          origin,
-          "no-store, no-cache, must-revalidate"
-        );
-      }
-
-      if (pathname.startsWith("/api/v1/public/videos/") && request.method === "GET") {
-        const slug = decodeURIComponent(pathname.replace("/api/v1/public/videos/", ""));
-        const videos = await queryCmsVideosFromWorkerD1(
-          db,
-          "WHERE slug = ? AND status = ?",
-          [slug, "published"]
-        );
-        if (videos.length === 0) {
+      if (pathname === "/api/v1/public/videos" && (request.method === "GET" || request.method === "HEAD")) {
+        try {
+          const videos = await queryCmsVideosFromWorkerD1(db, "WHERE status = ?", ["published"]);
           return jsonResponse(
-            { ok: false, error: "Video not found" },
-            404,
+            { ok: true, count: videos.length, videos },
+            200,
+            origin,
+            "no-store, no-cache, must-revalidate"
+          );
+        } catch (err: unknown) {
+          const errMsg = err instanceof Error ? err.message : String(err);
+          const isMissingSchema = errMsg.includes("no such table") || errMsg.includes("portfolio_videos");
+          return jsonResponse(
+            {
+              ok: false,
+              code: isMissingSchema ? "SCHEMA_NOT_INITIALIZED" : "DATABASE_QUERY_ERROR",
+              error: isMissingSchema
+                ? "Video catalog database schema not initialized (migration required)."
+                : "Database query failure while retrieving published videos."
+            },
+            500,
             origin,
             "no-store, no-cache, must-revalidate"
           );
         }
-        return jsonResponse(
-          { ok: true, video: videos[0] },
-          200,
-          origin,
-          "no-store, no-cache, must-revalidate"
-        );
+      }
+
+      if (pathname.startsWith("/api/v1/public/videos/") && (request.method === "GET" || request.method === "HEAD")) {
+        const slug = decodeURIComponent(pathname.replace("/api/v1/public/videos/", ""));
+        try {
+          const videos = await queryCmsVideosFromWorkerD1(
+            db,
+            "WHERE slug = ? AND status = ?",
+            [slug, "published"]
+          );
+          if (videos.length === 0) {
+            return jsonResponse(
+              { ok: false, error: "Video not found" },
+              404,
+              origin,
+              "no-store, no-cache, must-revalidate"
+            );
+          }
+          return jsonResponse(
+            { ok: true, video: videos[0] },
+            200,
+            origin,
+            "no-store, no-cache, must-revalidate"
+          );
+        } catch (err: unknown) {
+          const errMsg = err instanceof Error ? err.message : String(err);
+          const isMissingSchema = errMsg.includes("no such table") || errMsg.includes("portfolio_videos");
+          return jsonResponse(
+            {
+              ok: false,
+              code: isMissingSchema ? "SCHEMA_NOT_INITIALIZED" : "DATABASE_QUERY_ERROR",
+              error: isMissingSchema
+                ? "Video catalog database schema not initialized (migration required)."
+                : "Database query failure while retrieving video."
+            },
+            500,
+            origin,
+            "no-store, no-cache, must-revalidate"
+          );
+        }
       }
 
       if (pathname.startsWith("/api/v1/public/media/") && request.method === "GET") {
@@ -2534,10 +2560,26 @@ const worker = {
           }
         }
 
-        if (pathname === "/api/v1/admin/videos" && request.method === "GET") {
-          const videos = await queryCmsVideosFromWorkerD1(db, "", []);
-          const health = await getWorkerD1Health(db, Boolean(bucket));
-          return jsonResponse({ ok: true, videos, health }, 200, origin);
+        if (pathname === "/api/v1/admin/videos" && (request.method === "GET" || request.method === "HEAD")) {
+          try {
+            const videos = await queryCmsVideosFromWorkerD1(db, "", []);
+            const health = await getWorkerD1Health(db, Boolean(bucket));
+            return jsonResponse({ ok: true, videos, health }, 200, origin);
+          } catch (err: unknown) {
+            const errMsg = err instanceof Error ? err.message : String(err);
+            const isMissingSchema = errMsg.includes("no such table") || errMsg.includes("portfolio_videos");
+            return jsonResponse(
+              {
+                ok: false,
+                code: isMissingSchema ? "SCHEMA_NOT_INITIALIZED" : "DATABASE_QUERY_ERROR",
+                error: isMissingSchema
+                  ? "portfolio_videos table not found. Run migration 0002."
+                  : "Database error querying admin videos."
+              },
+              500,
+              origin
+            );
+          }
         }
 
         if (pathname === "/api/v1/admin/videos" && request.method === "POST") {
@@ -2888,9 +2930,8 @@ const worker = {
                 )
             ]);
 
-            if (oldStorageKey && oldStorageKey !== storageKey) {
-              await bucket.delete(oldStorageKey).catch(() => {});
-            }
+            // Asset Retention Policy: Retain previous R2 object so historical revision snapshots
+            // remain intact and can be rolled back faithfully without broken media references.
 
             const asset = {
               id: assetId,

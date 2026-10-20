@@ -3,11 +3,16 @@
  * scripts/import-canonical-videos-to-d1.mjs
  *
  * Deterministic, idempotent, non-destructive import and parity validation tool
- * for the canonical 21 PortfolioVideo records from src/data/videos.ts into LOCAL D1 SQLite.
+ * for the canonical 21 PortfolioVideo records from src/data/videos.ts into D1.
+ *
+ * Supported Targets:
+ *   --local / --target=local           : Targets local SQLite D1 simulation (.local-d1/portfolio.sqlite)
+ *   --remote-staging / --target=remote-staging : Targets verified Cloudflare staging D1 & Worker
  *
  * Flags:
- *   --dry-run : Evaluates canonical parity without making database writes
- *   --force   : Explicitly authorizes overwriting existing D1 video records
+ *   --dry-run : Evaluates canonical parity without making database writes (default)
+ *   --force   : Explicitly authorizes overwriting existing records (LOCAL ONLY)
+ *   --execute : Authorizes executing remote staging seeding (REQUIRES VERDICT A APPROVAL)
  */
 
 import fs from "node:fs";
@@ -20,9 +25,44 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, "..");
 
-const args = process.argv.slice(2);
-const isDryRun = args.includes("--dry-run");
-const isForce = args.includes("--force");
+const APPROVED_STAGING_CONFIG = {
+  workerUrl: "https://kerem-mihci-portfolio-api-staging.kerem-mihci.workers.dev",
+  workerName: "kerem-mihci-portfolio-api-staging",
+  databaseName: "kerem-portfolio-db-staging",
+  databaseId: "0efef7a7-cc93-4dc2-8cb7-db28379fe01f"
+};
+
+// 1. Strict Fail-Closed CLI Argument Parsing
+const rawArgs = process.argv.slice(2);
+const VALID_FLAGS = new Set([
+  "--local",
+  "--target=local",
+  "--remote-staging",
+  "--target=remote-staging",
+  "--dry-run",
+  "--force",
+  "--execute"
+]);
+
+for (const arg of rawArgs) {
+  if (!VALID_FLAGS.has(arg)) {
+    console.error(`FATAL: Unrecognized CLI argument "${arg}".`);
+    console.error("Allowed flags: --local, --remote-staging, --dry-run, --force, --execute.");
+    process.exit(1);
+  }
+}
+
+const isRemoteStaging = rawArgs.includes("--remote-staging") || rawArgs.includes("--target=remote-staging");
+const isLocal = rawArgs.includes("--local") || rawArgs.includes("--target=local") || !isRemoteStaging;
+const isForce = rawArgs.includes("--force");
+const isExecute = rawArgs.includes("--execute");
+// Default is dry-run unless --execute or --force is explicitly authorized
+const isDryRun = rawArgs.includes("--dry-run") || (!isExecute && !isForce);
+
+if (isRemoteStaging && isForce) {
+  console.error("FATAL: --force overwrite is strictly prohibited against remote staging. Remote seeding must be non-destructive.");
+  process.exit(1);
+}
 
 const dbPath = process.env.LOCAL_D1_DB_PATH
   ? path.resolve(process.env.LOCAL_D1_DB_PATH)
@@ -35,7 +75,149 @@ function sha256File(filePath) {
   return hash.digest("hex");
 }
 
-async function main() {
+function resolveServiceToken() {
+  if (process.env.CLOUDFLARE_API_SERVICE_TOKEN) {
+    return process.env.CLOUDFLARE_API_SERVICE_TOKEN.trim();
+  }
+  const tokenCandidates = [
+    path.join(ROOT, "cloudflare", "portfolio-api", ".staging-service-token.tmp"),
+    path.join(ROOT, ".staging-service-token.tmp")
+  ];
+  for (const p of tokenCandidates) {
+    try {
+      if (fs.existsSync(p)) {
+        const token = fs.readFileSync(p, "utf-8").trim();
+        if (token.length >= 16) return token;
+      }
+    } catch {}
+  }
+  return "";
+}
+
+async function runRemoteStagingSeed(canonicalVideos) {
+  console.log("============================================================");
+  console.log("REMOTE CLOUDFLARE STAGING CANONICAL VIDEO SEED ENGINE");
+  console.log("============================================================");
+  console.log("Target Mode:", isDryRun ? "DRY RUN (Read-Only Validation)" : "LIVE EXECUTION");
+  console.log("Verified Worker URL:", APPROVED_STAGING_CONFIG.workerUrl);
+  console.log("Verified D1 Database:", APPROVED_STAGING_CONFIG.databaseName, `(${APPROVED_STAGING_CONFIG.databaseId})`);
+  console.log("Verified Worker Name:", APPROVED_STAGING_CONFIG.workerName);
+
+  // Safety checks
+  if (APPROVED_STAGING_CONFIG.workerUrl.includes("production") || APPROVED_STAGING_CONFIG.databaseName.includes("prod")) {
+    console.error("FATAL: Production resources detected! Remote seed engine strictly refuses to run against production.");
+    process.exit(1);
+  }
+
+  const token = resolveServiceToken();
+  if (!token) {
+    console.warn("Notice: Staging service token not available in local environment. Running read-only public inspection.");
+  }
+
+  // 1. Fetch current remote staging video state
+  console.log("\nConnecting to remote staging worker...");
+  let remoteVideos = [];
+  try {
+    const res = await fetch(`${APPROVED_STAGING_CONFIG.workerUrl}/api/v1/public/videos`, {
+      headers: { "Cache-Control": "no-store" }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      remoteVideos = Array.isArray(data.videos) ? data.videos : [];
+      console.log(`✓ Remote staging worker connected. Current published videos: ${remoteVideos.length}`);
+    } else {
+      console.log(`Notice: Remote public video endpoint returned status ${res.status}. Video schema may not be migrated yet.`);
+    }
+  } catch (err) {
+    console.log(`Notice: Remote staging worker unavailable (${err.message}).`);
+  }
+
+  const existingSlugs = new Set(remoteVideos.map((v) => v.slug));
+  const existingIds = new Set(remoteVideos.map((v) => v.id));
+
+  let missingCount = 0;
+  let skippedCount = 0;
+
+  for (const c of canonicalVideos) {
+    if (existingSlugs.has(c.slug) || existingIds.has(c.id)) {
+      skippedCount++;
+    } else {
+      missingCount++;
+    }
+  }
+
+  console.log(`\nRemote Staging Evaluation:`);
+  console.log(`  Canonical videos: ${canonicalVideos.length}`);
+  console.log(`  Already existing on staging: ${skippedCount} (preserved without modification)`);
+  console.log(`  Missing from staging: ${missingCount}`);
+
+  if (isDryRun) {
+    console.log("\n[DRY RUN COMPLETE] Zero remote mutations executed.");
+    console.log("To execute remote staging seeding upon user approval, run:");
+    console.log("  node scripts/import-canonical-videos-to-d1.mjs --remote-staging --execute");
+    return;
+  }
+
+  // Live execution (requires user approval and valid token)
+  if (!token) {
+    console.error("FATAL: Staging service token required for live remote seeding.");
+    process.exit(1);
+  }
+
+  console.log("\nExecuting live remote seeding of missing canonical videos...");
+  let insertedCount = 0;
+  for (const c of canonicalVideos) {
+    if (existingSlugs.has(c.slug) || existingIds.has(c.id)) continue;
+
+    const payload = {
+      id: c.id,
+      slug: c.slug,
+      type: c.type,
+      orientation: c.orientation || "portrait",
+      aiAssisted: c.aiAssisted,
+      productionMethod: c.productionMethod || "traditional",
+      titleTR: c.titleTR,
+      titleEN: c.titleEN,
+      shortTitleTR: c.shortTitleTR,
+      shortTitleEN: c.shortTitleEN,
+      descriptionTR: c.descriptionTR,
+      descriptionEN: c.descriptionEN,
+      client: c.client,
+      year: c.year,
+      poster: c.poster,
+      src: c.src,
+      duration: c.duration,
+      aspectRatio: c.orientation === "landscape" ? "16:9" : "9:16",
+      servicesTR: c.servicesTR || c.services,
+      servicesEN: c.servicesEN || c.services,
+      services: c.services,
+      autoplayPreview: c.autoplayPreview !== false,
+      featured: Boolean(c.featured),
+      sortOrder: c.sortOrder,
+      cmsStatus: "published"
+    };
+
+    const res = await fetch(`${APPROVED_STAGING_CONFIG.workerUrl}/api/v1/admin/videos`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "X-Actor-Email": "staging-seed@keremmihci.com"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (res.ok) {
+      insertedCount++;
+    } else {
+      console.error(`Failed to insert canonical video "${c.slug}": HTTP ${res.status}`);
+    }
+  }
+
+  console.log(`\n✓ Remote staging seeding completed: inserted=${insertedCount}, skipped=${skippedCount}`);
+}
+
+async function runLocalSeed(canonicalVideos) {
   console.log("============================================================");
   console.log("CANONICAL 21 PORTFOLIO VIDEO D1 IMPORT & PARITY VALIDATOR");
   console.log("============================================================");
@@ -64,14 +246,6 @@ async function main() {
   }
   console.log("✓ Verified schema migration 0002 (Videos & Reels Schema).");
 
-  // 3. Load canonical videos safely via ES Module import
-  const { videosData: canonicalVideos } = await import("../src/data/videos.ts");
-  console.log(`Loaded ${canonicalVideos.length} canonical video records from src/data/videos.ts.`);
-
-  if (canonicalVideos.length !== 21) {
-    throw new Error(`Expected exactly 21 canonical videos, found ${canonicalVideos.length}`);
-  }
-
   const portraitCount = canonicalVideos.filter(
     (v) => (v.orientation || "portrait") === "portrait"
   ).length;
@@ -84,7 +258,7 @@ async function main() {
     );
   }
 
-  // 4. Safe Non-Destructive Seeding into D1
+  // 3. Safe Non-Destructive Seeding into D1
   const now = new Date().toISOString();
   let insertedCount = 0;
   let skippedCount = 0;
@@ -319,7 +493,7 @@ async function main() {
 
   console.log(`\nImport Summary: inserted=${insertedCount}, skipped=${skippedCount}, forceUpdated=${updatedCount}`);
 
-  // 5. Parity & Binary File Integrity Verification (SHA-256)
+  // 4. Parity & Binary File Integrity Verification (SHA-256)
   console.log("\nComputing SHA-256 checksums and verifying binary media files on disk...");
   const videoRows = db.prepare(`SELECT * FROM portfolio_videos ORDER BY sort_order ASC, id ASC`).all();
   const trRows = db.prepare(`SELECT * FROM portfolio_video_translations WHERE locale = 'tr'`).all();
@@ -448,7 +622,7 @@ async function main() {
     manifest.allFilesPresentOnDisk &&
     videoRows.length === 21;
 
-  // 6. Write Updated Parity JSON Report
+  // 5. Write Updated Parity JSON Report
   const outJsonPath = path.join(ROOT, "docs", "reviews", "PORTFOLIO_OS_PHASE3_VIDEO_PARITY.json");
   fs.mkdirSync(path.dirname(outJsonPath), { recursive: true });
   fs.writeFileSync(outJsonPath, JSON.stringify(manifest, null, 2), "utf-8");
@@ -465,6 +639,20 @@ async function main() {
   console.log("✓ All 21 MP4 Files and 21 Posters Verified on Disk with SHA-256");
   console.log("✓ Zero Field Mismatches Across All Bilingual Attributes");
   console.log("========================================================");
+}
+
+async function main() {
+  const { videosData: canonicalVideos } = await import("../src/data/videos.ts");
+  console.log(`Loaded ${canonicalVideos.length} canonical video records from src/data/videos.ts.`);
+  if (canonicalVideos.length !== 21) {
+    throw new Error(`Expected exactly 21 canonical videos, found ${canonicalVideos.length}`);
+  }
+
+  if (isRemoteStaging) {
+    await runRemoteStagingSeed(canonicalVideos);
+  } else {
+    await runLocalSeed(canonicalVideos);
+  }
 }
 
 main().catch((err) => {

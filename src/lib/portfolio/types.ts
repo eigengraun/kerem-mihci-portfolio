@@ -10,13 +10,13 @@ import type {
   ProjectSeoConfig,
   ProjectStatus,
   WorkspaceId
-} from "@/data/projects";
+} from "../../data/projects";
 import type {
   PortfolioVideo,
   VideoType,
   VideoOrientation,
   ProductionMethod
-} from "@/data/videos";
+} from "../../data/videos";
 
 export type {
   PortfolioVideo,

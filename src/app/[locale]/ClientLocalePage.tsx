@@ -22,6 +22,18 @@ export function ClientLocalePage({ initialProjects, initialVideos, isCmsMode = f
   const hydrateProjects = useSessionStore((s) => s.hydrateProjects);
   const hydrateVideos = useSessionStore((s) => s.hydrateVideos);
 
+  // Synchronous first-render hydration to prevent any flash of static fallback data
+  const isHydratedRef = React.useRef(false);
+  if (!isHydratedRef.current) {
+    if (Array.isArray(initialVideos)) {
+      useSessionStore.getState().hydrateVideos(initialVideos, isCmsMode);
+    }
+    if (Array.isArray(initialProjects) && initialProjects.length > 0) {
+      useSessionStore.getState().hydrateProjects(initialProjects);
+    }
+    isHydratedRef.current = true;
+  }
+
   useEffect(() => {
     if (Array.isArray(initialProjects) && initialProjects.length > 0) {
       hydrateProjects(initialProjects);

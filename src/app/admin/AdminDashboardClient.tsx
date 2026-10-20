@@ -32,10 +32,13 @@ interface ProjectWithCompleteness extends CmsProjectRecord {
 interface D1HealthSummary {
   ok: boolean;
   mode: string;
-  dbPath?: string;
-  r2Path?: string;
+  storageMode?: string;
+  dataSource?: string;
+  dbPath?: string | null;
+  r2Path?: string | null;
   d1Connected?: boolean;
   r2Connected?: boolean;
+  error?: string;
   remoteWorkerUrl: string | null;
   remoteServiceTokenConfigured: boolean;
   counts: {
@@ -50,16 +53,21 @@ interface D1HealthSummary {
   workspaceBreakdown: { workspace: string; status: string; count: number }[];
 }
 
+interface ReconciliationSummary {
+  checkCompleted?: boolean;
+  status?: "verified" | "modified" | "mismatch" | "error" | "unexecuted";
+  canonicalCount: number;
+  d1TotalCount: number;
+  missingSlugs: string[];
+  nonCanonicalSlugs?: string[];
+  fieldMismatches: { slug: string; field: string; expected: unknown; actual: unknown }[];
+  reconciled: boolean;
+  error?: string;
+}
+
 interface SystemPayload {
   d1Health: D1HealthSummary;
-  reconciliation: {
-    canonicalCount: number;
-    d1TotalCount: number;
-    missingSlugs: string[];
-    nonCanonicalSlugs?: string[];
-    fieldMismatches: { slug: string; field: string; expected: unknown; actual: unknown }[];
-    reconciled: boolean;
-  };
+  reconciliation: ReconciliationSummary;
   auditLogs: CmsAuditLogRecord[];
   publishingEvents: CmsPublishingEventRecord[];
   environment: {
@@ -139,6 +147,7 @@ export function AdminDashboardClient({
   const [projects, setProjects] = useState<ProjectWithCompleteness[]>([]);
   const [health, setHealth] = useState<D1HealthSummary | null>(null);
   const [mediaList, setMediaList] = useState<CmsMediaRecord[]>([]);
+  const [mediaDisplayLimit, setMediaDisplayLimit] = useState(60);
   const [systemInfo, setSystemInfo] = useState<SystemPayload | null>(null);
   const [loadingCore, setLoadingCore] = useState(false);
 
@@ -237,20 +246,21 @@ export function AdminDashboardClient({
         dotClass: "bg-neutral-500"
       };
     }
-    const isOk = health.ok && (health.d1Connected !== false);
+    const isOk = Boolean(health.ok && health.d1Connected === true);
     if (isOk) {
+      const isRemote = health.storageMode !== "local";
       return {
         isOperational: true,
         label: "OPERATIONAL",
-        badgeText: "D1 Staging Active",
+        badgeText: isRemote ? "D1 Staging Active" : "Local D1 Active",
         colorClass: "bg-emerald-500/10 text-emerald-300 border-emerald-500/20",
         dotClass: "bg-emerald-400 animate-pulse"
       };
     }
     return {
       isOperational: false,
-      label: "DEGRADED",
-      badgeText: "D1 Degraded",
+      label: health.error ? "UNAVAILABLE" : "DEGRADED",
+      badgeText: health.error ? "Worker Unreachable" : "D1 Degraded",
       colorClass: "bg-amber-500/10 text-amber-300 border-amber-500/20",
       dotClass: "bg-amber-400"
     };
@@ -266,6 +276,7 @@ export function AdminDashboardClient({
           badgeLabel: "CHECKING",
           color: "text-amber-400 font-mono",
           badgeBg: "bg-amber-500/10 text-amber-300 border-amber-500/20",
+          dotClass: "bg-amber-400",
           summary: "Checking baseline parity...",
           isVerified: false
         };
@@ -275,33 +286,50 @@ export function AdminDashboardClient({
         badgeLabel: "UNAVAILABLE",
         color: "text-neutral-400 font-mono",
         badgeBg: "bg-neutral-500/10 text-neutral-400 border-neutral-500/20",
+        dotClass: "bg-neutral-500",
         summary: "System reconciliation data unavailable",
         isVerified: false
       };
     }
 
     const { reconciliation } = systemInfo;
+
+    // Must strictly distinguish unexecuted or failed checks from verified passes
+    if (reconciliation.checkCompleted === false || reconciliation.status === "unexecuted") {
+      return {
+        code: "UNAVAILABLE",
+        badgeLabel: "RECONCILIATION UNAVAILABLE",
+        color: "text-amber-400 font-mono",
+        badgeBg: "bg-amber-500/10 text-amber-300 border-amber-500/20",
+        dotClass: "bg-amber-400",
+        summary: reconciliation.error || "Reconciliation check could not be executed",
+        isVerified: false
+      };
+    }
+
     const hasMissing = reconciliation.missingSlugs && reconciliation.missingSlugs.length > 0;
     const hasFieldDiff = reconciliation.fieldMismatches && reconciliation.fieldMismatches.length > 0;
     const nonCanonicalCount = reconciliation.nonCanonicalSlugs?.length || 0;
 
-    if (hasMissing) {
+    if (hasMissing || reconciliation.status === "error") {
       return {
         code: "GENUINE_ERROR",
         badgeLabel: "ERROR: MISSING CANONICAL",
         color: "text-red-400 font-mono",
         badgeBg: "bg-red-500/10 text-red-300 border-red-500/20",
-        summary: `Missing ${reconciliation.missingSlugs.length} canonical project(s)`,
+        dotClass: "bg-red-400",
+        summary: `Missing ${reconciliation.missingSlugs?.length || 0} canonical project(s)`,
         isVerified: false
       };
     }
 
-    if (!hasFieldDiff) {
+    if (!hasFieldDiff && reconciliation.status === "verified") {
       return {
         code: "BASELINE_VERIFIED",
         badgeLabel: "BASELINE VERIFIED",
         color: "text-emerald-400 font-mono",
         badgeBg: "bg-emerald-500/10 text-emerald-300 border-emerald-500/20",
+        dotClass: "bg-emerald-400",
         summary: `${reconciliation.canonicalCount}/${reconciliation.canonicalCount} Baseline Reconciled${
           nonCanonicalCount > 0 ? ` (+${nonCanonicalCount} CMS Draft${nonCanonicalCount > 1 ? "s" : ""})` : ""
         }`,
@@ -310,13 +338,14 @@ export function AdminDashboardClient({
     }
 
     // Baseline present (30/30) but legitimate admin edits modified fields in staging CMS
-    const diffNames = reconciliation.fieldMismatches.map((m) => `${m.slug} (${m.field})`).join(", ");
+    const diffNames = (reconciliation.fieldMismatches || []).map((m) => `${m.slug} (${m.field})`).join(", ");
     return {
       code: "CONTENT_MODIFIED",
       badgeLabel: "CONTENT MODIFIED FROM BASELINE",
       color: "text-amber-400 font-mono",
       badgeBg: "bg-amber-500/10 text-amber-300 border-amber-500/20",
-      summary: `${reconciliation.canonicalCount}/${reconciliation.canonicalCount} Baseline Present • ${reconciliation.fieldMismatches.length} CMS Modification(s)`,
+      dotClass: "bg-amber-400",
+      summary: `${reconciliation.canonicalCount}/${reconciliation.canonicalCount} Baseline Present • ${(reconciliation.fieldMismatches || []).length} CMS Modification(s)`,
       detail: `Modified in Staging CMS: ${diffNames}`,
       isVerified: false
     };
@@ -1029,7 +1058,7 @@ export function AdminDashboardClient({
                   {projects.filter((p) => p.cmsStatus === "published" && p.featured).length}
                 </p>
                 <span className="text-[10px] font-mono text-[#A0A8B5] mt-1 block">
-                  11 published desktop icons
+                  {projects.filter((p) => p.cmsStatus === "published" && p.featured).length} published desktop icons
                 </span>
               </div>
               <div className="p-4 rounded-xl bg-[#121418] border border-violet-500/30 shadow-sm">
@@ -1038,7 +1067,7 @@ export function AdminDashboardClient({
                   {health?.counts.mediaItems ?? mediaList.length}
                 </p>
                 <span className="text-[10px] font-mono text-[#A0A8B5] mt-1 block">
-                  72 indexed R2 assets
+                  {health?.counts.mediaItems ?? mediaList.length} indexed metadata records
                 </span>
               </div>
             </div>
@@ -1935,7 +1964,7 @@ export function AdminDashboardClient({
                   <h3 className="text-sm font-semibold text-[#F5F7FA]">Cloudflare R2 Media Catalog</h3>
                 </div>
                 <p className="text-xs text-[#A0A8B5] mt-1">
-                  {mediaList.length} D1 database index records pointing to validated physical assets in R2 bucket <code className="text-violet-300 font-mono bg-[#181B22] px-1.5 py-0.5 rounded border border-[#252A33]">kerem-portfolio-media-staging</code>.
+                  {mediaList.length} media metadata records indexed in D1 (associated with R2 bucket <code className="text-violet-300 font-mono bg-[#181B22] px-1.5 py-0.5 rounded border border-[#252A33]">kerem-portfolio-media-staging</code>).
                 </p>
               </div>
               <label className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white shadow-sm shadow-indigo-600/30 transition-all cursor-pointer">
@@ -1953,7 +1982,7 @@ export function AdminDashboardClient({
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {mediaList.slice(0, 60).map((item) => (
+              {mediaList.slice(0, mediaDisplayLimit).map((item) => (
                 <div
                   key={item.id}
                   className="rounded-xl bg-[#121418] border border-[#252A33] overflow-hidden flex flex-col justify-between shadow-sm hover:border-[#353C48] transition-all"
@@ -1982,6 +2011,43 @@ export function AdminDashboardClient({
                 </div>
               ))}
             </div>
+
+            {mediaList.length > 60 && (
+              <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-xl bg-[#121418] border border-[#252A33] text-xs">
+                <span className="text-[#A0A8B5] font-mono">
+                  Showing {Math.min(mediaDisplayLimit, mediaList.length)} of {mediaList.length} media records
+                </span>
+                <div className="flex items-center gap-2">
+                  {mediaDisplayLimit < mediaList.length && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setMediaDisplayLimit((prev) => prev + 30)}
+                        className="px-3 py-1.5 rounded-lg bg-[#181B22] border border-[#252A33] text-[#F5F7FA] hover:border-[#3B4352] transition-colors font-mono cursor-pointer"
+                      >
+                        Show More (+{Math.min(30, mediaList.length - mediaDisplayLimit)})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMediaDisplayLimit(mediaList.length)}
+                        className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors font-mono cursor-pointer"
+                      >
+                        Show All ({mediaList.length})
+                      </button>
+                    </>
+                  )}
+                  {mediaDisplayLimit >= mediaList.length && (
+                    <button
+                      type="button"
+                      onClick={() => setMediaDisplayLimit(60)}
+                      className="px-3 py-1.5 rounded-lg bg-[#181B22] border border-[#252A33] text-[#A0A8B5] hover:text-[#F5F7FA] transition-colors font-mono cursor-pointer"
+                    >
+                      Collapse to 60
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -2086,7 +2152,7 @@ export function AdminDashboardClient({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="p-5 rounded-xl bg-[#121418] border border-[#252A33] space-y-2.5 text-xs shadow-sm">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className={`w-2 h-2 rounded-full ${reconciliationStatus.isVerified ? "bg-emerald-400" : "bg-amber-400"}`} />
+                  <span className={`w-2 h-2 rounded-full ${reconciliationStatus.dotClass}`} />
                   <h3 className="text-sm font-semibold text-[#F5F7FA]">Database & Migration Health</h3>
                 </div>
                 <p className="text-[#A0A8B5]">
@@ -2142,8 +2208,10 @@ export function AdminDashboardClient({
                 </p>
                 <p className="text-[#A0A8B5]">
                   Cloudflare R2 Storage:{" "}
-                  <span className="text-emerald-300 font-mono text-[11px]">
-                    Active & Bound
+                  <span className={`font-mono text-[11px] ${systemInfo.d1Health.r2Connected !== false ? "text-emerald-300" : "text-amber-400"}`}>
+                    {systemInfo.d1Health.r2Connected !== false
+                      ? "Bucket Configured & Bound (R2 API Connected)"
+                      : "Unverified / Disconnected"}
                   </span>
                 </p>
               </div>
@@ -2154,7 +2222,7 @@ export function AdminDashboardClient({
                 <h3 className="text-sm font-semibold text-[#F5F7FA]">
                   Admin Security & Mutation Audit Logs
                 </h3>
-                <p className="text-xs text-[#A0A8B5] mt-0.5">Cryptographically logged administrative operations</p>
+                <p className="text-xs text-[#A0A8B5] mt-0.5">Administrative mutation trail recorded in D1</p>
               </div>
               <div className="overflow-x-auto rounded-lg border border-[#252A33]">
                 <table className="w-full text-left text-xs">
@@ -2202,7 +2270,7 @@ export function AdminDashboardClient({
               <h3 className="text-sm font-semibold text-[#F5F7FA]">
                 Portfolio OS CMS & Security Configuration
               </h3>
-              <p className="text-xs text-[#A0A8B5] mt-0.5">Runtime isolation & cryptographic protections</p>
+              <p className="text-xs text-[#A0A8B5] mt-0.5">Session authentication & access controls</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-[#A0A8B5]">
               <div className="p-4 rounded-lg bg-[#181B22] border border-[#252A33] space-y-1.5">

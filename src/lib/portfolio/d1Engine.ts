@@ -1707,10 +1707,13 @@ export function getD1HealthAndStats() {
 
   if (storageMode !== "local") {
     return {
-      ok: remoteConfigured,
+      ok: false,
       mode: `cloudflare-${storageMode}`,
       storageMode,
       dataSource,
+      d1Connected: false,
+      r2Connected: false,
+      error: "Remote Cloudflare Worker health check must be queried through repository.getD1HealthAndStats()",
       dbPath: null,
       r2Path: null,
       remoteWorkerUrl: process.env.CLOUDFLARE_CMS_API_URL || null,
@@ -1753,6 +1756,8 @@ export function getD1HealthAndStats() {
     mode: remoteConfigured ? "cloudflare-worker-local" : "local-d1-sqlite",
     storageMode,
     dataSource,
+    d1Connected: true,
+    r2Connected: true,
     dbPath: getDbFilePath(),
     r2Path: getLocalR2DirPath(),
     remoteWorkerUrl: process.env.CLOUDFLARE_CMS_API_URL || null,
@@ -1853,7 +1858,16 @@ export function reconcileProjectsListWithCanonical(d1Projects: CmsProjectRecord[
     check("seo", canonical.seo, found.seo);
   }
 
+  const status: "verified" | "modified" | "mismatch" | "error" =
+    missingSlugs.length > 0
+      ? "error"
+      : fieldMismatches.length > 0
+      ? "modified"
+      : "verified";
+
   return {
+    checkCompleted: true,
+    status,
     canonicalCount: projectsData.length,
     d1TotalCount: d1Projects.length,
     missingSlugs,
@@ -1869,12 +1883,15 @@ export function reconcileProjectsListWithCanonical(d1Projects: CmsProjectRecord[
 export function reconcileCanonicalProjectsWithD1() {
   if (getCmsStorageMode() !== "local") {
     return {
+      checkCompleted: false,
+      status: "unexecuted" as const,
       canonicalCount: projectsData.length,
       d1TotalCount: 0,
       missingSlugs: [],
       nonCanonicalSlugs: [],
       fieldMismatches: [],
-      reconciled: false
+      reconciled: false,
+      error: "Remote reconciliation must be performed through repository.reconcileCanonicalProjectsWithD1()"
     };
   }
   const d1Projects = listAllProjectsForAdminFromD1();

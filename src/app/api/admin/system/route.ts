@@ -16,13 +16,16 @@ export async function GET(request: Request) {
   if ("errorResponse" in auth) return auth.errorResponse;
 
   const d1Health = await getD1HealthAndStats();
-  let reconciliation = {
+  let reconciliation: Awaited<ReturnType<typeof reconcileCanonicalProjectsWithD1>> = {
+    checkCompleted: false,
+    status: "unexecuted",
     canonicalCount: 30,
     d1TotalCount: 0,
-    missingSlugs: [] as string[],
-    nonCanonicalSlugs: [] as string[],
-    fieldMismatches: [] as { slug: string; field: string; expected: unknown; actual: unknown }[],
-    reconciled: false
+    missingSlugs: [],
+    nonCanonicalSlugs: [],
+    fieldMismatches: [],
+    reconciled: false,
+    error: "Reconciliation not yet executed"
   };
   let auditLogs: Awaited<ReturnType<typeof listAuditLogsFromD1>> = [];
   let publishingEvents: Awaited<ReturnType<typeof listPublishingEventsFromD1>> = [];
@@ -33,8 +36,20 @@ export async function GET(request: Request) {
       listAuditLogsFromD1(40),
       listPublishingEventsFromD1(40)
     ]);
-  } catch {
-    // When in staging/production without Worker configured, keep empty arrays and report unconfigured health
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[/api/admin/system] System check encountered an error:", err);
+    reconciliation = {
+      checkCompleted: false,
+      status: "unexecuted",
+      canonicalCount: 30,
+      d1TotalCount: 0,
+      missingSlugs: [],
+      nonCanonicalSlugs: [],
+      fieldMismatches: [],
+      reconciled: false,
+      error: `System check execution error: ${message}`
+    };
   }
 
   const authConfig = getAdminAuthConfigStatus();

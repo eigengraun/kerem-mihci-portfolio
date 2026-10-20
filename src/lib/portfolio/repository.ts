@@ -849,16 +849,53 @@ export async function getD1HealthAndStats() {
         remoteServiceTokenConfigured: Boolean(getWorkerServiceToken())
       };
     } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
       console.error("[getD1HealthAndStats] Failed to fetch worker health:", err);
-      return getLocalD1HealthAndStats();
+      return {
+        ok: false,
+        mode: `cloudflare-${getCmsStorageMode()}-unreachable`,
+        d1Connected: false,
+        r2Connected: false,
+        error: `Remote Worker Health Check Failed: ${message}`,
+        storageMode: getCmsStorageMode(),
+        dataSource: getCmsDataSource(),
+        remoteWorkerUrl: getWorkerBaseUrl(),
+        remoteServiceTokenConfigured: Boolean(getWorkerServiceToken()),
+        counts: {
+          total: 0,
+          published: 0,
+          draft: 0,
+          archived: 0,
+          featuredPublished: 0,
+          mediaItems: 0,
+          translations: 0
+        },
+        workspaceBreakdown: []
+      };
     }
   }
   return getLocalD1HealthAndStats();
 }
 
 export async function reconcileCanonicalProjectsWithD1() {
-  const projects = await getAdminProjects();
-  return reconcileProjectsListWithCanonical(projects);
+  try {
+    const projects = await getAdminProjects();
+    return reconcileProjectsListWithCanonical(projects);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[reconcileCanonicalProjectsWithD1] Reconciliation failed:", err);
+    return {
+      checkCompleted: false,
+      status: "unexecuted" as const,
+      canonicalCount: 30,
+      d1TotalCount: 0,
+      missingSlugs: [] as string[],
+      nonCanonicalSlugs: [] as string[],
+      fieldMismatches: [] as { slug: string; field: string; expected: unknown; actual: unknown }[],
+      reconciled: false,
+      error: `Reconciliation check failed: ${message}`
+    };
+  }
 }
 
 export { getCmsStorageMode, getCmsDataSource };

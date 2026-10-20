@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-20T10:42:09.288Z",
+  "timestamp": "2026-10-20T11:27:09.479Z",
   "loginScreenTests": [
     {
       "viewport": "Short Laptop (1024x500)",
@@ -45,12 +45,12 @@
   "viewportTabTests": {
     "1920x1080": {
       "overview": {
-        "needsScroll": false,
+        "needsScroll": true,
         "scrollSucceeded": true,
         "returnedToTop": true,
         "initialTop": 0,
-        "wheelTop": 0,
-        "keyTop": 0,
+        "wheelTop": 365,
+        "keyTop": 365,
         "endTop": 365,
         "homeTop": 0,
         "hasHorizontalOverflow": false
@@ -83,8 +83,8 @@
         "returnedToTop": true,
         "initialTop": 0,
         "wheelTop": 600,
-        "keyTop": 600,
-        "endTop": 600,
+        "keyTop": 1640,
+        "endTop": 1790,
         "homeTop": 0,
         "hasHorizontalOverflow": false
       },
@@ -163,7 +163,7 @@
         "initialTop": 0,
         "wheelTop": 600,
         "keyTop": 1460,
-        "endTop": 1890,
+        "endTop": 1970,
         "homeTop": 0,
         "hasHorizontalOverflow": false
       },
@@ -242,7 +242,7 @@
         "initialTop": 0,
         "wheelTop": 600,
         "keyTop": 1360,
-        "endTop": 1990,
+        "endTop": 2070,
         "homeTop": 0,
         "hasHorizontalOverflow": false
       },
@@ -321,7 +321,7 @@
         "initialTop": 0,
         "wheelTop": 600,
         "keyTop": 1328,
-        "endTop": 2086,
+        "endTop": 2150,
         "homeTop": 0,
         "hasHorizontalOverflow": false
       },
@@ -400,7 +400,7 @@
         "initialTop": 0,
         "wheelTop": 600,
         "keyTop": 1556,
-        "endTop": 2458,
+        "endTop": 2538,
         "homeTop": 0,
         "hasHorizontalOverflow": false
       },
@@ -446,7 +446,7 @@
         "initialTop": 0,
         "wheelTop": 600,
         "keyTop": 1308,
-        "endTop": 2124,
+        "endTop": 2139,
         "homeTop": 0,
         "hasHorizontalOverflow": false
       },
@@ -479,7 +479,7 @@
         "initialTop": 0,
         "wheelTop": 600,
         "keyTop": 1308,
-        "endTop": 5823,
+        "endTop": 5931,
         "homeTop": 0,
         "hasHorizontalOverflow": false
       },
@@ -501,7 +501,7 @@
         "initialTop": 0,
         "wheelTop": 600,
         "keyTop": 1308,
-        "endTop": 2521,
+        "endTop": 2538,
         "homeTop": 0,
         "hasHorizontalOverflow": false
       },
@@ -558,7 +558,7 @@
         "initialTop": 0,
         "wheelTop": 600,
         "keyTop": 1220,
-        "endTop": 5927,
+        "endTop": 6035,
         "homeTop": 0,
         "hasHorizontalOverflow": false
       },
@@ -580,7 +580,7 @@
         "initialTop": 0,
         "wheelTop": 600,
         "keyTop": 1220,
-        "endTop": 2624,
+        "endTop": 2641,
         "homeTop": 0,
         "hasHorizontalOverflow": false
       },
@@ -637,7 +637,7 @@
         "initialTop": 0,
         "wheelTop": 600,
         "keyTop": 1188,
-        "endTop": 5959,
+        "endTop": 6067,
         "homeTop": 0,
         "hasHorizontalOverflow": false
       },
@@ -659,7 +659,7 @@
         "initialTop": 0,
         "wheelTop": 600,
         "keyTop": 1188,
-        "endTop": 2656,
+        "endTop": 2673,
         "homeTop": 0,
         "hasHorizontalOverflow": false
       },

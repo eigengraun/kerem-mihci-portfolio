@@ -1,0 +1,474 @@
+{
+  "generatedAt": "2026-10-20T18:33:39.560Z",
+  "gitCommit": "0eae53748bc3e24d532dd9c4f20b04846cb8b468",
+  "branch": "feature/cloudflare-cms-dashboard",
+  "environment": "staging",
+  "targetInfrastructure": {
+    "workerUrl": "https://kerem-mihci-portfolio-api-staging.kerem-mihci.workers.dev",
+    "workerName": "kerem-mihci-portfolio-api-staging",
+    "activeDeploymentVersion": "3c0fcc95-989b-4856-8fad-bc5c8d6d8061",
+    "databaseId": "0efef7a7-cc93-4dc2-8cb7-db28379fe01f",
+    "r2Bucket": "kerem-portfolio-media-staging"
+  },
+  "categoryVerdicts": {
+    "FUNCTIONAL_PASS": true,
+    "MEDIA_PLAYBACK_PASS": true,
+    "CLEANUP_VERIFIED": true,
+    "DATA_INTEGRITY_PASS": true
+  },
+  "finalVerdict": "A — PHASE 3 STAGING E2E FULLY VERIFIED AND CLOSED",
+  "testManifest": {
+    "testRunId": "portfolio-phase3-playable-qa-1792521202503",
+    "startTime": "2026-10-20T18:33:22.503Z",
+    "createdVideoId": "portfolio-phase3-playable-qa-1792521206224",
+    "createdVideoSlug": "phase3-playable-qa-1792521206224",
+    "createdVideoStorageKey": "videos/phase3-playable-qa-1792521206224/video-1792521206259-c0c02f08.mp4",
+    "createdPosterStorageKey": "videos/phase3-playable-qa-1792521206224/poster-1792521206966-f126201a.webp",
+    "residualR2Objects": [],
+    "residualD1Records": []
+  },
+  "preTestBaseline": {
+    "projectsPublished": 30,
+    "projectsDraft": 1,
+    "projectsTotal": 31,
+    "projectMedia": 72,
+    "featuredPublished": 11,
+    "videosPublished": 21,
+    "videosDraft": 0,
+    "videoTranslations": 42,
+    "videoAssets": 42,
+    "totalAuditLogs": 99
+  },
+  "postTestState": {
+    "projectsPublished": 30,
+    "projectsDraft": 1,
+    "projectsTotal": 31,
+    "projectMedia": 72,
+    "featuredPublished": 11,
+    "videosPublished": 21,
+    "videosDraft": 0,
+    "videoTranslations": 42,
+    "videoAssets": 42,
+    "totalAuditLogs": 104
+  },
+  "totalChecks": 69,
+  "passedChecks": 69,
+  "failedChecks": 0,
+  "failures": [],
+  "checks": [
+    {
+      "group": "Group 1: Target Staging Configuration & Pre-Test Baseline",
+      "name": "Service token resolved successfully",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 1: Target Staging Configuration & Pre-Test Baseline",
+      "name": "Remote staging Worker is online and healthy",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 1: Target Staging Configuration & Pre-Test Baseline",
+      "name": "Pre-test: Exactly 30 canonical published projects",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 1: Target Staging Configuration & Pre-Test Baseline",
+      "name": "Pre-test: Exactly 1 preserved staging draft project",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 1: Target Staging Configuration & Pre-Test Baseline",
+      "name": "Pre-test: Exactly 31 total staging projects",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 1: Target Staging Configuration & Pre-Test Baseline",
+      "name": "Pre-test: Exactly 72 project_media records",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 1: Target Staging Configuration & Pre-Test Baseline",
+      "name": "Pre-test: Exactly 11 published featured projects",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 1: Target Staging Configuration & Pre-Test Baseline",
+      "name": "Pre-test: Exactly 21 published canonical videos",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 1: Target Staging Configuration & Pre-Test Baseline",
+      "name": "Pre-test: Zero orphan draft videos",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 1: Target Staging Configuration & Pre-Test Baseline",
+      "name": "Pre-test: Exactly 42 video translations (TR & EN)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 1: Target Staging Configuration & Pre-Test Baseline",
+      "name": "Pre-test: Exactly 42 video assets registered",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 2: Real H.264 Playable Video Generation & Decoder Validation",
+      "name": "ffmpeg successfully generated 2s synthetic H.264 MP4",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 2: Real H.264 Playable Video Generation & Decoder Validation",
+      "name": "Generated video is substantially below 5 MB limit",
+      "status": "PASS",
+      "detail": "10438 bytes"
+    },
+    {
+      "group": "Group 2: Real H.264 Playable Video Generation & Decoder Validation",
+      "name": "ffprobe confirms video width is 320px",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 2: Real H.264 Playable Video Generation & Decoder Validation",
+      "name": "ffprobe confirms video height is 180px",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 2: Real H.264 Playable Video Generation & Decoder Validation",
+      "name": "ffprobe confirms H.264 (avc1) codec",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 2: Real H.264 Playable Video Generation & Decoder Validation",
+      "name": "ffprobe confirms yuv420p pixel format",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 2: Real H.264 Playable Video Generation & Decoder Validation",
+      "name": "ffprobe confirms duration is approx 2.0s",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 3: Staging Upload & Draft Media Isolation",
+      "name": "Upload real MP4 returns HTTP 201 Created",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 3: Staging Upload & Draft Media Isolation",
+      "name": "Video storage key allocated in test namespace",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 3: Staging Upload & Draft Media Isolation",
+      "name": "Upload WebP poster returns HTTP 201 Created",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 3: Staging Upload & Draft Media Isolation",
+      "name": "Anonymous visitor accessing draft MP4 receives HTTP 404",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 3: Staging Upload & Draft Media Isolation",
+      "name": "Draft 404 response enforces no-store, no-cache",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 3: Staging Upload & Draft Media Isolation",
+      "name": "Anonymous visitor accessing draft poster receives HTTP 404",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 3: Staging Upload & Draft Media Isolation",
+      "name": "Authenticated admin preview accessing draft MP4 returns HTTP 200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 3: Staging Upload & Draft Media Isolation",
+      "name": "Admin preview enforces private, no-store cache policy",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 4: Video Publication & Public Catalog Visibility",
+      "name": "PUT /api/v1/admin/videos/[id] publishes video (HTTP 200)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 4: Video Publication & Public Catalog Visibility",
+      "name": "Updated video status is 'published'",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 4: Video Publication & Public Catalog Visibility",
+      "name": "Public video catalog count is now 22 (21 canonical + 1 test)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 4: Video Publication & Public Catalog Visibility",
+      "name": "Published test video appears in public catalog",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 5: Strict HTTP Range Transport (206 Partial & 416 OOB)",
+      "name": "Public visitor accessing published MP4 receives HTTP 200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 5: Strict HTTP Range Transport (206 Partial & 416 OOB)",
+      "name": "Public response advertises Accept-Ranges: bytes",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 5: Strict HTTP Range Transport (206 Partial & 416 OOB)",
+      "name": "Content-Type matches video/mp4",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 5: Strict HTTP Range Transport (206 Partial & 416 OOB)",
+      "name": "Full response payload length matches original MP4 size exactly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 5: Strict HTTP Range Transport (206 Partial & 416 OOB)",
+      "name": "Full payload byte-for-byte identical to local file",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 5: Strict HTTP Range Transport (206 Partial & 416 OOB)",
+      "name": "Initial Range: bytes=0-100 returns HTTP 206 Partial Content",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 5: Strict HTTP Range Transport (206 Partial & 416 OOB)",
+      "name": "Initial Range Content-Range is bytes 0-100/<total>",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 5: Strict HTTP Range Transport (206 Partial & 416 OOB)",
+      "name": "Initial Range Content-Length is 101",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 5: Strict HTTP Range Transport (206 Partial & 416 OOB)",
+      "name": "Initial Range payload exactly matches first 101 bytes of MP4",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 5: Strict HTTP Range Transport (206 Partial & 416 OOB)",
+      "name": "Middle Range: bytes=100-200 returns HTTP 206 Partial Content",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 5: Strict HTTP Range Transport (206 Partial & 416 OOB)",
+      "name": "Middle Range Content-Range is bytes 100-200/<total>",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 5: Strict HTTP Range Transport (206 Partial & 416 OOB)",
+      "name": "Middle Range Content-Length is 101",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 5: Strict HTTP Range Transport (206 Partial & 416 OOB)",
+      "name": "Middle Range payload exactly matches bytes 100-200 of MP4",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 5: Strict HTTP Range Transport (206 Partial & 416 OOB)",
+      "name": "Unsatisfiable Range: bytes=999999-999999 returns HTTP 416",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 5: Strict HTTP Range Transport (206 Partial & 416 OOB)",
+      "name": "HTTP 416 response contains valid Content-Range header",
+      "status": "PASS",
+      "detail": "bytes */*"
+    },
+    {
+      "group": "Group 5: Strict HTTP Range Transport (206 Partial & 416 OOB)",
+      "name": "HTTP 416 response does NOT leak full video payload (0 body bytes)",
+      "status": "PASS",
+      "detail": "0 bytes"
+    },
+    {
+      "group": "Group 6: Real Headless Chromium Browser Video Playback",
+      "name": "Browser loaded and decoded video without HTMLMediaElement error",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 6: Real Headless Chromium Browser Video Playback",
+      "name": "Browser reports decoded videoWidth is 320",
+      "status": "PASS",
+      "detail": "320px"
+    },
+    {
+      "group": "Group 6: Real Headless Chromium Browser Video Playback",
+      "name": "Browser reports decoded videoHeight is 180",
+      "status": "PASS",
+      "detail": "180px"
+    },
+    {
+      "group": "Group 6: Real Headless Chromium Browser Video Playback",
+      "name": "Browser readyState indicates data loaded (readyState >= 2)",
+      "status": "PASS",
+      "detail": "readyState: 4"
+    },
+    {
+      "group": "Group 6: Real Headless Chromium Browser Video Playback",
+      "name": "Video playback progressed past 0.1s in browser engine",
+      "status": "PASS",
+      "detail": "currentTime: 0.301943s"
+    },
+    {
+      "group": "Group 6: Real Headless Chromium Browser Video Playback",
+      "name": "Playback proof screenshot captured",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 7: Unpublication & Zero-Leak Invalidation",
+      "name": "PATCH to 'draft' returns HTTP 200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 7: Unpublication & Zero-Leak Invalidation",
+      "name": "Public video catalog count immediately returns to 21",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 7: Unpublication & Zero-Leak Invalidation",
+      "name": "Unpublished video immediately absent from public catalog",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 7: Unpublication & Zero-Leak Invalidation",
+      "name": "Public media URL immediately returns HTTP 404 upon unpublish (zero leak)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 7: Unpublication & Zero-Leak Invalidation",
+      "name": "Admin preview remains accessible (HTTP 200) for unpublished video",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 8: Safe R2 & D1 Cleanup (Zero False-Pass, Zero Audit Deletion)",
+      "name": "Surgically deleted test video R2 object and verified 404",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 8: Safe R2 & D1 Cleanup (Zero False-Pass, Zero Audit Deletion)",
+      "name": "Surgically deleted test poster R2 object and verified 404",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 8: Safe R2 & D1 Cleanup (Zero False-Pass, Zero Audit Deletion)",
+      "name": "Deleted temporary test video record from D1 (HTTP 200)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 8: Safe R2 & D1 Cleanup (Zero False-Pass, Zero Audit Deletion)",
+      "name": "Zero audit log deletions executed (audit history 100% preserved)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 9: Post-Test Canonical State & Audit Trail Integrity",
+      "name": "Post-test: All 30 canonical published projects preserved intact",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 9: Post-Test Canonical State & Audit Trail Integrity",
+      "name": "Post-test: Preserved staging draft project preserved intact",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 9: Post-Test Canonical State & Audit Trail Integrity",
+      "name": "Post-test: All 72 project_media records preserved intact",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 9: Post-Test Canonical State & Audit Trail Integrity",
+      "name": "Post-test: All 21 canonical published videos preserved intact",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 9: Post-Test Canonical State & Audit Trail Integrity",
+      "name": "Post-test: Zero orphan draft videos remaining",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 9: Post-Test Canonical State & Audit Trail Integrity",
+      "name": "Post-test: All 42 video translations preserved intact",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 9: Post-Test Canonical State & Audit Trail Integrity",
+      "name": "Post-test: All 42 registered video assets preserved intact",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "group": "Group 9: Post-Test Canonical State & Audit Trail Integrity",
+      "name": "Post-test: Admin audit logs preserved and monotonically increased",
+      "status": "PASS",
+      "detail": "Pre: 99, Post: 104"
+    }
+  ]
+}

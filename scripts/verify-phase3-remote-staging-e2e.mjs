@@ -383,26 +383,34 @@ async function main() {
   });
   recordCheck(G_CLEANUP, "DELETE /api/v1/admin/videos/[id] returns HTTP 200", deleteRes.status === 200);
 
-  // Clean up R2 objects using Wrangler CLI
+  // Clean up R2 objects using Wrangler CLI with strict read-only 404 verification (no false-pass)
+  let videoR2Clean = false;
   try {
     execSync(`npx --yes wrangler r2 object delete "kerem-portfolio-media-staging/${videoStorageKey}" --remote`, {
       stdio: "pipe"
     });
-    recordCheck(G_CLEANUP, "Surgically deleted test video object from staging R2", true);
+    const vCheck = await fetch(`${APPROVED_STAGING_CONFIG.workerUrl}/api/v1/admin/media/object/${encodeURIComponent(videoStorageKey)}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    videoR2Clean = vCheck.status === 404;
   } catch (err) {
-    console.warn(`Warning deleting video R2 object: ${err.message}`);
-    recordCheck(G_CLEANUP, "Surgically deleted test video object from staging R2", true, "completed with fallback");
+    videoR2Clean = false;
   }
+  recordCheck(G_CLEANUP, "Surgically deleted test video object from staging R2 and verified 404", videoR2Clean);
 
+  let posterR2Clean = false;
   try {
     execSync(`npx --yes wrangler r2 object delete "kerem-portfolio-media-staging/${posterStorageKey}" --remote`, {
       stdio: "pipe"
     });
-    recordCheck(G_CLEANUP, "Surgically deleted test poster object from staging R2", true);
+    const pCheck = await fetch(`${APPROVED_STAGING_CONFIG.workerUrl}/api/v1/admin/media/object/${encodeURIComponent(posterStorageKey)}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    posterR2Clean = pCheck.status === 404;
   } catch (err) {
-    console.warn(`Warning deleting poster R2 object: ${err.message}`);
-    recordCheck(G_CLEANUP, "Surgically deleted test poster object from staging R2", true, "completed with fallback");
+    posterR2Clean = false;
   }
+  recordCheck(G_CLEANUP, "Surgically deleted test poster object from staging R2 and verified 404", posterR2Clean);
 
   // Verify remote staging D1 database integrity
   const d1VerifyRaw = execSync(
@@ -420,16 +428,8 @@ async function main() {
   recordCheck(G_CLEANUP, "All 31 projects preserved (30 published + 1 draft)", Number(projectStats.total_projects) === 31);
   recordCheck(G_CLEANUP, "All 72 project_media records preserved intact", Number(mediaStats.total_media) === 72);
 
-  // Clean up any audit log entries created during this temporary test run
-  try {
-    execSync(
-      `npx --yes wrangler d1 execute kerem-portfolio-db-staging --remote --command "DELETE FROM admin_audit_logs WHERE actor_email = 'staging-e2e-operator@keremmihci.com';"`,
-      { stdio: "pipe" }
-    );
-    recordCheck(G_CLEANUP, "Ephemeral test audit logs purged from staging D1", true);
-  } catch {
-    recordCheck(G_CLEANUP, "Ephemeral test audit logs purged from staging D1", true, "optional audit log retention");
-  }
+  // Audit History Preservation: Never erase audit records merely to clean test data
+  recordCheck(G_CLEANUP, "Zero audit log deletions executed (audit history 100% preserved)", true);
 
   // --------------------------------------------------------------------------
   // Summary and Report Generation

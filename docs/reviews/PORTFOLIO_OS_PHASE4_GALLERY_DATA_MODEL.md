@@ -55,7 +55,7 @@ erDiagram
 
     PORTFOLIO_GALLERY_ASSETS {
         string id PK
-        string item_id FK, UK
+        string item_id FK
         string storage_mode "local_static | r2 | external"
         string storage_key
         string public_url
@@ -63,6 +63,7 @@ erDiagram
         int byte_size
         int width
         int height
+        string asset_status "active | provisional | archived"
         string created_at
         string updated_at
     }
@@ -132,10 +133,11 @@ Stores file metadata, storage location keys, MIME signatures, and dimensions for
 | `byte_size` | `INTEGER` | `NOT NULL DEFAULT 0` | Exact binary size in bytes (max 10 MB). |
 | `width` | `INTEGER` | `NULL` | Image pixel width. |
 | `height` | `INTEGER` | `NULL` | Image pixel height. |
+| `asset_status` | `TEXT` | `NOT NULL DEFAULT 'active' CHECK (asset_status IN ('active', 'provisional', 'archived'))` | Asset publication state (`active`, `provisional` replacement, or `archived` historical revision). |
 | `created_at` | `TEXT` | `NOT NULL` | ISO 8601 creation timestamp. |
 | `updated_at` | `TEXT` | `NOT NULL` | ISO 8601 last update timestamp. |
 
-*Unique Constraint:* `UNIQUE(item_id)` enforces a single primary high-resolution photograph per gallery record.
+*Asset Lifecycle & Retention:* In Phase 4.1, `UNIQUE(item_id)` was intentionally lifted. This enables staging a replacement image as `provisional` on an already-published photograph without prematurely revealing it to anonymous visitors, while retaining historical asset records across revisions for faithful point-in-time rollbacks.
 
 ---
 
@@ -168,9 +170,9 @@ CREATE INDEX IF NOT EXISTS idx_portfolio_gallery_status_sort
 CREATE INDEX IF NOT EXISTS idx_portfolio_gallery_translations_lookup
   ON portfolio_gallery_translations(item_id, locale);
 
--- 3. Media asset binding lookup
+-- 3. Media asset binding lookup (supports active vs provisional queries)
 CREATE INDEX IF NOT EXISTS idx_portfolio_gallery_assets_lookup
-  ON portfolio_gallery_assets(item_id);
+  ON portfolio_gallery_assets(item_id, asset_status);
 
 -- 4. Reverse storage key lookup for media authorization
 CREATE INDEX IF NOT EXISTS idx_portfolio_gallery_assets_storage_key

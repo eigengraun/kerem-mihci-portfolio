@@ -46,8 +46,14 @@ export async function POST(request: Request) {
       { headers: { "Cache-Control": "no-store" } }
     );
   } catch (error) {
-    const status = error instanceof CmsStorageUnavailableError ? 503 : 500;
-    const message = error instanceof Error ? error.message : "Failed to reorder gallery";
+    const err = error as Error & { statusCode?: number; code?: string };
+    const status =
+      err instanceof CmsStorageUnavailableError
+        ? 503
+        : typeof err.statusCode === "number"
+        ? err.statusCode
+        : 400;
+    const message = err.message || "Failed to reorder gallery";
     return NextResponse.json(
       { ok: false, error: message },
       { status, headers: { "Cache-Control": "no-store" } }

@@ -2,7 +2,7 @@
 
 **Author:** Antigravity Autonomous Agent  
 **Branch:** `feature/cloudflare-cms-dashboard`  
-**Current Local Head:** Phase 4 Personal Gallery CMS Implementation Complete & Verified (75/75 Tests Green)  
+**Current Local Head:** Phase 4.1 Personal Gallery CMS Release Hardening Verified (87/87 Tests Green)  
 **Remote Target:** Cloudflare Staging Worker (`kerem-mihci-portfolio-api-staging`) & D1 (`kerem-portfolio-db-staging`)  
 **Database ID:** `0efef7a7-cc93-4dc2-8cb7-db28379fe01f`  
 **R2 Bucket:** `kerem-portfolio-media-staging`  
@@ -13,8 +13,8 @@
 
 > [!IMPORTANT]
 > **SAFETY COMMITMENT CONFIRMATION**:
-> In strict compliance with user instructions, **ZERO remote Cloudflare D1 migrations, ZERO remote Worker deployments, and ZERO remote R2 mutations have been performed during Phase 4**.
-> All schema designs, API endpoints, upload contracts, magic byte validators, and end-to-end verifications (**75/75 checks passed, 112/112 Phase 3 non-regression checks passed**) were conducted exclusively against isolated local SQLite (`.local-d1/portfolio.sqlite`) and local storage simulation.
+> In strict compliance with user instructions, **ZERO remote Cloudflare D1 migrations, ZERO remote Worker deployments, and ZERO remote R2 mutations have been performed during Phase 4 & Phase 4.1**.
+> All schema designs, API endpoints, provisional asset isolation mechanisms, EXIF GPS privacy checks, and end-to-end verifications (**87/87 checks passed, 112/112 Phase 3 non-regression checks passed**) were conducted exclusively against isolated temporary SQLite (`/tmp/portfolio-test-*.sqlite`) and local storage simulation.
 > Remote execution will occur only when the user explicitly grants authorization by selecting **Verdict A**.
 
 ---
@@ -45,10 +45,10 @@ npx wrangler d1 export kerem-portfolio-db-staging \
   --remote \
   --output "$BACKUP_PATH"
 
-# 4. Cryptographic integrity and SQLite syntax validation
+# 4. Cryptographic integrity and SQLite syntax validation (standard macOS & Linux)
 test -s "$BACKUP_PATH" || { echo "FATAL: Empty backup file"; exit 1; }
 sqlite3 :memory: < "$BACKUP_PATH" "PRAGMA quick_check;" || { echo "FATAL: Backup SQL syntax invalid"; exit 1; }
-sha256sum "$BACKUP_PATH" > "${BACKUP_PATH}.sha256"
+shasum -a 256 "$BACKUP_PATH" > "${BACKUP_PATH}.sha256"
 ```
 
 #### Pre-Migration Baseline Invariants
@@ -61,14 +61,13 @@ The pre-migration backup must contain exactly:
 
 ### Step 2: Additive D1 Schema Migration (Migration 0003)
 
-Execute migration file `0003_personal_gallery_schema.sql` against the approved remote staging D1 database:
+Execute migration file `0003_personal_gallery_schema.sql` via Cloudflare's migration tracking engine to ensure `d1_migrations` ledger consistency:
 
 ```bash
-npx wrangler d1 execute kerem-portfolio-db-staging \
+npx wrangler d1 migrations apply kerem-portfolio-db-staging \
   --config cloudflare/portfolio-api/wrangler.jsonc \
   --env staging \
-  --remote \
-  --file=cloudflare/portfolio-api/migrations/0003_personal_gallery_schema.sql
+  --remote
 ```
 
 #### Post-Migration Schema Verification
@@ -94,7 +93,7 @@ npx wrangler d1 execute kerem-portfolio-db-staging \
   --config cloudflare/portfolio-api/wrangler.jsonc \
   --env staging \
   --remote \
-  --command="SELECT 'projects' as tbl, count(*) as cnt FROM projects UNION ALL SELECT 'videos', count(*) FROM portfolio_videos;"
+  --command="SELECT 'projects' as tbl, count(*) as cnt FROM projects UNION ALL SELECT 'videos', count(*) FROM portfolio_videos UNION ALL SELECT 'media', count(*) FROM project_media;"
 ```
 
 ---
@@ -109,7 +108,7 @@ Deploy the hardened Worker code containing the new gallery routes:
 - `PUT /api/v1/admin/gallery/:id` (Update photograph)
 - `DELETE /api/v1/admin/gallery/:id` (Delete photograph)
 - `POST /api/v1/admin/gallery/reorder` (Reorder sequence)
-- `POST /api/v1/admin/gallery/upload` (Upload media asset)
+- `POST /api/v1/admin/gallery/upload` (Upload media asset with EXIF GPS check)
 - `GET /api/v1/admin/gallery/:id/revisions` (List revisions)
 - `POST /api/v1/admin/gallery/:id/rollback` (Rollback revision)
 
@@ -121,23 +120,33 @@ npx wrangler deploy \
 
 ---
 
-### Step 4: Staging Health & E2E Validation
+### Step 4: Real Staging Non-Destructive E2E Checklist
 
-Verify remote Worker and D1 health endpoints:
+When staging rollout authorization is granted, execute the exact sequence of non-destructive verifications:
 
-```bash
-# 1. Health check
-curl -fsS https://kerem-mihci-portfolio-api-staging.kerem-mihci.workers.dev/api/v1/public/health
+1. **Remote Health & Binding Check**:
+   - `GET /api/v1/public/health` returns `200 OK` with active D1 and R2 bindings.
+   - `wrangler d1 migrations list` confirms `0003_personal_gallery_schema.sql` marked applied.
 
-# 2. Public Gallery endpoint (expect ok: true, count: 0)
-curl -fsS https://kerem-mihci-portfolio-api-staging.kerem-mihci.workers.dev/api/v1/public/gallery
+2. **Complete Test-Owned Gallery Lifecycle**:
+   - Establish stable test ID `photo-staging-e2e-<timestamp>`.
+   - Upload real JPEG image (`POST /api/v1/admin/gallery/upload`), verify dimension extraction and R2 storage.
+   - Save draft metadata (`POST /api/admin/gallery`), verify adoption of same ID without orphan duplicates.
+   - Private Preview: Verify anonymous `GET /api/media/gallery/...` returns `404` with `no-store`; authenticated admin preview returns `200 OK`.
+   - Explicit Publish: Change status to `published`, verify anonymous `GET` now returns `200 OK`.
+   - Stream Reorder: Update `sortOrder` via `POST /api/v1/admin/gallery/reorder`, confirm sequence persistence.
+   - Safe Provisional Replacement: Upload replacement image for published item, confirm provisional asset status, anonymous `404` on replacement, anonymous `200` on active original image.
+   - Re-publish: Confirm promotion of provisional asset and archiving of historical asset.
+   - Rollback: Revert to revision 1, verify snapshot restoration.
 
-# 3. Non-regression: Projects endpoint (expect 30 projects)
-curl -fsS https://kerem-mihci-portfolio-api-staging.kerem-mihci.workers.dev/api/v1/public/projects | grep -q '"ok":true'
+3. **Guaranteed Post-Test Resource Cleanup**:
+   - Delete test item via `DELETE /api/v1/admin/gallery/:id`.
+   - Query remote D1 to verify 0 orphan translation, asset, or revision rows remain.
+   - Delete exact test R2 storage keys using Wrangler, then execute read-only head inspection to verify objects no longer exist.
+   - Never perform bucket-wide or wildcard deletions.
 
-# 4. Non-regression: Videos endpoint (expect 21 videos)
-curl -fsS https://kerem-mihci-portfolio-api-staging.kerem-mihci.workers.dev/api/v1/public/videos | grep -q '"count":21'
-```
+4. **Remote Canonical Baseline Parity Invariants**:
+   - Verify 30 canonical projects, 72 media items, and 21 canonical videos in remote staging D1 are 100% intact.
 
 ---
 
@@ -157,14 +166,18 @@ npx wrangler rollback "$PREV_VERSION" \
 ```
 
 ### Rollback Scenario B: Database Schema Anomaly
-If the schema migration encounters an error:
+If the additive migration needs to be reversed:
+> [!CAUTION]
+> **NEVER RESTORE FULL SQL BACKUP OVER CANONICAL DATABASE.**
+> Executing a full database restore would wipe or disrupt legitimate project and video CMS records in remote D1.
+> Rollback is strictly non-destructive:
 ```bash
-# Restore staging database from verified pre-migration backup
+# Safely remove empty additive Phase 4 tables only:
 npx wrangler d1 execute kerem-portfolio-db-staging \
   --config cloudflare/portfolio-api/wrangler.jsonc \
   --env staging \
   --remote \
-  --file="$BACKUP_PATH"
+  --command="DROP TABLE IF EXISTS portfolio_gallery_revisions; DROP TABLE IF EXISTS portfolio_gallery_assets; DROP TABLE IF EXISTS portfolio_gallery_translations; DROP TABLE IF EXISTS portfolio_gallery_items;"
 ```
 
 ---

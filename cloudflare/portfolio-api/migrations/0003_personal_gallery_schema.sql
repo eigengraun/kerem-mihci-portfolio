@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS portfolio_gallery_translations (
   UNIQUE(item_id, locale)
 );
 
--- 3. Gallery Media Assets (Original / Processed Images)
+-- 3. Gallery Media Assets (Original / Processed Images with Safe Staging & Retention)
 CREATE TABLE IF NOT EXISTS portfolio_gallery_assets (
   id TEXT PRIMARY KEY,
   item_id TEXT NOT NULL REFERENCES portfolio_gallery_items(id) ON DELETE CASCADE,
@@ -42,9 +42,9 @@ CREATE TABLE IF NOT EXISTS portfolio_gallery_assets (
   byte_size INTEGER NOT NULL DEFAULT 0,
   width INTEGER,
   height INTEGER,
+  asset_status TEXT NOT NULL DEFAULT 'active' CHECK (asset_status IN ('active', 'provisional', 'archived')),
   created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL,
-  UNIQUE(item_id)
+  updated_at TEXT NOT NULL
 );
 
 -- 4. Gallery Revisions (Audit & Snapshot History)
@@ -63,6 +63,6 @@ CREATE TABLE IF NOT EXISTS portfolio_gallery_revisions (
 -- ============================================================
 CREATE INDEX IF NOT EXISTS idx_portfolio_gallery_status_sort ON portfolio_gallery_items(status, sort_order ASC, id ASC);
 CREATE INDEX IF NOT EXISTS idx_portfolio_gallery_translations_lookup ON portfolio_gallery_translations(item_id, locale);
-CREATE INDEX IF NOT EXISTS idx_portfolio_gallery_assets_lookup ON portfolio_gallery_assets(item_id);
+CREATE INDEX IF NOT EXISTS idx_portfolio_gallery_assets_lookup ON portfolio_gallery_assets(item_id, asset_status);
 CREATE INDEX IF NOT EXISTS idx_portfolio_gallery_assets_storage_key ON portfolio_gallery_assets(storage_key);
 CREATE INDEX IF NOT EXISTS idx_portfolio_gallery_revisions_lookup ON portfolio_gallery_revisions(item_id, revision_number DESC);

@@ -1181,8 +1181,10 @@ export function AdminDashboardClient({
   // GALLERY HANDLERS (Phase 4)
   // ==========================================================
   const handleCreateGallery = () => {
+    const stableId = `photo-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     setGalleryFormState({
       ...EMPTY_GALLERY_FORM,
+      id: stableId,
       sortOrder: gallery.length
     });
     setGalleryEditorMode("create");
@@ -1238,12 +1240,14 @@ export function AdminDashboardClient({
     }
 
     try {
+      const effectiveId = galleryFormState.id || `photo-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const payload: UpsertGalleryItemInput = {
         ...galleryFormState,
+        id: effectiveId,
         cmsStatus: targetStatus
       };
 
-      const isCreate = galleryEditorMode === "create" || !payload.id;
+      const isCreate = galleryEditorMode === "create";
       const url = isCreate ? "/api/admin/gallery" : `/api/admin/gallery/${encodeURIComponent(payload.id!)}`;
       const method = isCreate ? "POST" : "PUT";
 
@@ -1405,9 +1409,9 @@ export function AdminDashboardClient({
     try {
       const formData = new FormData();
       formData.append("file", file);
-      if (galleryFormState.id) {
-        formData.append("itemId", galleryFormState.id);
-      }
+      const effectiveId = galleryFormState.id || `photo-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      formData.append("itemId", effectiveId);
+
       const res = await fetch("/api/admin/gallery/upload", {
         method: "POST",
         headers: {
@@ -1419,11 +1423,16 @@ export function AdminDashboardClient({
       if (!res.ok || !data.ok) {
         throw new Error(data.error || "Failed to upload image.");
       }
+
+      const returnedItemId = data.asset?.itemId || effectiveId;
+
       setGalleryFormState((prev) => ({
         ...prev,
+        id: returnedItemId,
         src: data.publicUrl,
         asset: data.asset
       }));
+      setGalleryEditorMode("edit");
       setGalleryUploadProgress(null);
       await loadCoreData();
     } catch (err) {
@@ -4303,6 +4312,12 @@ export function AdminDashboardClient({
                         </div>
                       )}
                     </div>
+                    {galleryFormState.asset?.assetStatus === "provisional" && (
+                      <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] font-mono">
+                        <span className="font-semibold block mb-0.5">Staged Provisional Replacement</span>
+                        This replacement image is staged provisionally. Visitors continue seeing the active image until you click &quot;Publish Photograph&quot;.
+                      </div>
+                    )}
                   </div>
 
                   {/* Manual URL Input */}

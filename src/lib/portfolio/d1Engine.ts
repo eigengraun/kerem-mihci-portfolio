@@ -402,9 +402,9 @@ CREATE TABLE IF NOT EXISTS portfolio_gallery_assets (
   byte_size INTEGER NOT NULL DEFAULT 0,
   width INTEGER,
   height INTEGER,
+  asset_status TEXT NOT NULL DEFAULT 'active' CHECK (asset_status IN ('active', 'provisional', 'archived')),
   created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL,
-  UNIQUE(item_id)
+  updated_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS portfolio_gallery_revisions (
   id TEXT PRIMARY KEY,
@@ -417,7 +417,7 @@ CREATE TABLE IF NOT EXISTS portfolio_gallery_revisions (
 );
 CREATE INDEX IF NOT EXISTS idx_portfolio_gallery_status_sort ON portfolio_gallery_items(status, sort_order ASC, id ASC);
 CREATE INDEX IF NOT EXISTS idx_portfolio_gallery_translations_lookup ON portfolio_gallery_translations(item_id, locale);
-CREATE INDEX IF NOT EXISTS idx_portfolio_gallery_assets_lookup ON portfolio_gallery_assets(item_id);
+CREATE INDEX IF NOT EXISTS idx_portfolio_gallery_assets_lookup ON portfolio_gallery_assets(item_id, asset_status);
 CREATE INDEX IF NOT EXISTS idx_portfolio_gallery_assets_storage_key ON portfolio_gallery_assets(storage_key);
 CREATE INDEX IF NOT EXISTS idx_portfolio_gallery_revisions_lookup ON portfolio_gallery_revisions(item_id, revision_number DESC);
 `;
@@ -483,6 +483,45 @@ export function getD1Database(): SqliteDatabase {
         db.exec("ALTER TABLE admin_sessions ADD COLUMN ip_hash TEXT;");
       }
       db.exec("CREATE INDEX IF NOT EXISTS idx_admin_sessions_actor_active ON admin_sessions(actor_email, revoked_at, expires_at);");
+    }
+  } catch {
+    // Non-destructive compatibility check
+  }
+
+  // Non-destructive compatibility check for portfolio_gallery_assets (additive asset_status column and multi-asset per item support)
+  try {
+    const tableSqlRow = db
+      .prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='portfolio_gallery_assets'")
+      .get() as { sql: string } | undefined;
+    if (tableSqlRow?.sql && (tableSqlRow.sql.includes("UNIQUE(item_id)") || !tableSqlRow.sql.includes("asset_status"))) {
+      db.exec(`
+        PRAGMA foreign_keys = OFF;
+        CREATE TABLE IF NOT EXISTS portfolio_gallery_assets_new (
+          id TEXT PRIMARY KEY,
+          item_id TEXT NOT NULL REFERENCES portfolio_gallery_items(id) ON DELETE CASCADE,
+          storage_mode TEXT NOT NULL DEFAULT 'local_static' CHECK (storage_mode IN ('local_static', 'r2', 'external')),
+          storage_key TEXT NOT NULL,
+          public_url TEXT NOT NULL,
+          mime_type TEXT NOT NULL DEFAULT 'image/webp' CHECK (mime_type IN ('image/jpeg', 'image/png', 'image/webp')),
+          byte_size INTEGER NOT NULL DEFAULT 0,
+          width INTEGER,
+          height INTEGER,
+          asset_status TEXT NOT NULL DEFAULT 'active' CHECK (asset_status IN ('active', 'provisional', 'archived')),
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        );
+        INSERT INTO portfolio_gallery_assets_new (
+          id, item_id, storage_mode, storage_key, public_url, mime_type, byte_size, width, height, asset_status, created_at, updated_at
+        )
+        SELECT
+          id, item_id, storage_mode, storage_key, public_url, mime_type, byte_size, width, height, 'active', created_at, updated_at
+        FROM portfolio_gallery_assets;
+        DROP TABLE portfolio_gallery_assets;
+        ALTER TABLE portfolio_gallery_assets_new RENAME TO portfolio_gallery_assets;
+        CREATE INDEX IF NOT EXISTS idx_portfolio_gallery_assets_lookup ON portfolio_gallery_assets(item_id, asset_status);
+        CREATE INDEX IF NOT EXISTS idx_portfolio_gallery_assets_storage_key ON portfolio_gallery_assets(storage_key);
+        PRAGMA foreign_keys = ON;
+      `);
     }
   } catch {
     // Non-destructive compatibility check
@@ -1836,10 +1875,10 @@ export function isMediaKeyPubliclyAccessibleInLocalD1(storageKey: string): boole
         `SELECT pga.id, pgi.status as item_status
          FROM portfolio_gallery_assets pga
          INNER JOIN portfolio_gallery_items pgi ON pga.item_id = pgi.id
-         WHERE pga.storage_key = ?
+         WHERE (pga.storage_key = ? OR pga.public_url = ?) AND (pga.asset_status = 'active' OR pga.asset_status IS NULL)
          LIMIT 1`
       )
-      .get(storageKey) as { id: string; item_status: string } | undefined;
+      .get(storageKey, `/api/media/${storageKey}`) as { id: string; item_status: string } | undefined;
 
     return Boolean(galleryRow && galleryRow.item_status === "published");
   } catch {
@@ -3485,10 +3524,13 @@ export function mapRowsToCmsGalleryItems(
     translationsByItemId.set(itemId, entry);
   }
 
-  const assetsByItemId = new Map<string, CmsGalleryAssetRecord>();
+  const activeAssetsByItemId = new Map<string, CmsGalleryAssetRecord>();
+  const provisionalAssetsByItemId = new Map<string, CmsGalleryAssetRecord>();
+
   for (const ar of assetRows) {
     const itemId = String(ar.item_id);
-    assetsByItemId.set(itemId, {
+    const assetStatus = (ar.asset_status as "active" | "provisional" | "archived") || "active";
+    const record: CmsGalleryAssetRecord = {
       id: String(ar.id),
       itemId,
       storageMode: (ar.storage_mode as "local_static" | "r2" | "external") || "local_static",
@@ -3498,15 +3540,24 @@ export function mapRowsToCmsGalleryItems(
       byteSize: Number(ar.byte_size || 0),
       width: ar.width !== null && ar.width !== undefined ? Number(ar.width) : null,
       height: ar.height !== null && ar.height !== undefined ? Number(ar.height) : null,
+      assetStatus,
       createdAt: String(ar.created_at || ""),
       updatedAt: String(ar.updated_at || "")
-    });
+    };
+
+    if (assetStatus === "active") {
+      activeAssetsByItemId.set(itemId, record);
+    } else if (assetStatus === "provisional") {
+      provisionalAssetsByItemId.set(itemId, record);
+    }
   }
 
   return itemRows.map((r) => {
     const itemId = String(r.id);
     const trs = translationsByItemId.get(itemId) || {};
-    const asset = assetsByItemId.get(itemId) || null;
+    const activeAsset = activeAssetsByItemId.get(itemId) || null;
+    const provisionalAsset = provisionalAssetsByItemId.get(itemId) || null;
+    const effectiveAsset = activeAsset || provisionalAsset;
 
     const altTR = trs.tr ? String(trs.tr.alt_text || "") : "";
     const altEN = trs.en ? String(trs.en.alt_text || "") : "";
@@ -3519,7 +3570,7 @@ export function mapRowsToCmsGalleryItems(
       id: itemId,
       cmsStatus: (r.status as CmsPublishStatus) || "draft",
       sortOrder: Number(r.sort_order ?? 0),
-      src: asset?.publicUrl || "",
+      src: effectiveAsset?.publicUrl || "",
       alt: {
         tr: altTR,
         en: altEN
@@ -3531,7 +3582,8 @@ export function mapRowsToCmsGalleryItems(
       updatedAt: String(r.updated_at || ""),
       publishedAt: r.published_at ? String(r.published_at) : null,
       archivedAt: r.archived_at ? String(r.archived_at) : null,
-      asset
+      asset: activeAsset,
+      provisionalAsset
     };
 
     return item;
@@ -3576,7 +3628,9 @@ export function listPublishedGalleryItemsFromD1(): CmsGalleryItem[] {
     .prepare(`SELECT * FROM portfolio_gallery_translations WHERE item_id IN (${placeholders})`)
     .all(...itemIds);
   const assetRows = db
-    .prepare(`SELECT * FROM portfolio_gallery_assets WHERE item_id IN (${placeholders})`)
+    .prepare(
+      `SELECT * FROM portfolio_gallery_assets WHERE item_id IN (${placeholders}) AND (asset_status = 'active' OR asset_status IS NULL)`
+    )
     .all(...itemIds);
 
   return mapRowsToCmsGalleryItems(itemRows, translationRows, assetRows);
@@ -3608,7 +3662,7 @@ export function upsertGalleryItemInD1(
   const db = getD1Database();
 
   const existingById = input.id
-    ? db.prepare(`SELECT * FROM portfolio_gallery_items WHERE id = ?`).get(input.id)
+    ? (db.prepare(`SELECT * FROM portfolio_gallery_items WHERE id = ?`).get(input.id) as Record<string, unknown> | undefined)
     : undefined;
 
   if (actionLabel === "create") {
@@ -3618,7 +3672,7 @@ export function upsertGalleryItemInD1(
       err.code = "CONFLICT";
       throw err;
     }
-  } else {
+  } else if (actionLabel !== "rollback") {
     if (!existingById) {
       const err = new Error("Gallery item not found.") as Error & { statusCode: number; code: string };
       err.statusCode = 404;
@@ -3630,6 +3684,32 @@ export function upsertGalleryItemInD1(
   const itemId = existingById ? String(existingById.id) : (input.id || `gal-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`);
   const now = new Date().toISOString();
 
+  // Strict Media Ownership Verification
+  if (input.asset && input.asset.storageKey) {
+    const sKey = input.asset.storageKey;
+    // Reject if key is in project media
+    const inProj = db.prepare("SELECT id FROM project_media WHERE storage_key = ? LIMIT 1").get(sKey);
+    if (inProj) {
+      const err = new Error("Unauthorized asset association: storage key belongs to project media.") as Error & { statusCode: number };
+      err.statusCode = 403;
+      throw err;
+    }
+    // Reject if key is in video assets
+    const inVid = db.prepare("SELECT id FROM portfolio_video_assets WHERE storage_key = ? LIMIT 1").get(sKey);
+    if (inVid) {
+      const err = new Error("Unauthorized asset association: storage key belongs to video media.") as Error & { statusCode: number };
+      err.statusCode = 403;
+      throw err;
+    }
+    // Reject if owned by another gallery item
+    const otherGal = db.prepare("SELECT id FROM portfolio_gallery_assets WHERE storage_key = ? AND item_id != ? LIMIT 1").get(sKey, itemId);
+    if (otherGal) {
+      const err = new Error("Unauthorized asset association: storage key is owned by another gallery item.") as Error & { statusCode: number };
+      err.statusCode = 403;
+      throw err;
+    }
+  }
+
   const prevStatus = existingById ? (String(existingById.status) as CmsPublishStatus) : null;
   const rawRequestedStatus = input.cmsStatus || (input.status as CmsPublishStatus | undefined);
   const nextStatus: CmsPublishStatus =
@@ -3637,14 +3717,37 @@ export function upsertGalleryItemInD1(
       ? rawRequestedStatus
       : prevStatus || "draft";
 
+  // Preserve existing metadata on partial PATCH updates
+  const existingTranslations = existingById
+    ? (db.prepare(`SELECT locale, alt_text, caption FROM portfolio_gallery_translations WHERE item_id = ?`).all(itemId) as Array<{ locale: string; alt_text: string; caption: string }>)
+    : [];
+  const exTR = existingTranslations.find((t) => t.locale === "tr");
+  const exEN = existingTranslations.find((t) => t.locale === "en");
+
+  const finalAltTR = input.altTR !== undefined ? input.altTR : (exTR?.alt_text ?? "");
+  const finalAltEN = input.altEN !== undefined ? input.altEN : (exEN?.alt_text ?? "");
+  const finalCaptionTR = input.captionTR !== undefined ? input.captionTR : (exTR?.caption ?? "");
+  const finalCaptionEN = input.captionEN !== undefined ? input.captionEN : (exEN?.caption ?? "");
+  const finalYear = input.year !== undefined ? (input.year || null) : (existingById?.year ? String(existingById.year) : null);
+  const finalLocation = input.location !== undefined ? (input.location || null) : (existingById?.location ? String(existingById.location) : null);
+
+  // Validate MERGED state before publishing
   if (nextStatus === "published") {
-    if (!input.altTR?.trim() || !input.altEN?.trim()) {
-      throw new Error("Both Turkish and English alt text are required before publishing.");
+    if (!finalAltTR.trim() || !finalAltEN.trim()) {
+      const err = new Error("Both Turkish and English alt text are required before publishing.") as Error & { statusCode: number };
+      err.statusCode = 400;
+      throw err;
     }
-    // Must have a valid image source (either from asset or input.src)
-    const existingAsset = db.prepare(`SELECT id, public_url FROM portfolio_gallery_assets WHERE item_id = ?`).get(itemId);
-    if (!input.src?.trim() && !existingAsset && !input.asset?.publicUrl) {
-      throw new Error("A valid image is required before publishing.");
+    const activeAsset = db
+      .prepare(`SELECT id, public_url FROM portfolio_gallery_assets WHERE item_id = ? AND (asset_status = 'active' OR asset_status IS NULL) LIMIT 1`)
+      .get(itemId);
+    const provAsset = db
+      .prepare(`SELECT id, public_url FROM portfolio_gallery_assets WHERE item_id = ? AND asset_status = 'provisional' LIMIT 1`)
+      .get(itemId);
+    if (!input.src?.trim() && !activeAsset && !provAsset && !input.asset?.publicUrl) {
+      const err = new Error("A valid image is required before publishing.") as Error & { statusCode: number };
+      err.statusCode = 400;
+      throw err;
     }
   }
 
@@ -3684,8 +3787,8 @@ export function upsertGalleryItemInD1(
     itemId,
     nextStatus,
     finalSortOrder,
-    input.year || null,
-    input.location || null,
+    finalYear,
+    finalLocation,
     existingById ? String(existingById.created_at) : now,
     now,
     publishedAt,
@@ -3703,8 +3806,8 @@ export function upsertGalleryItemInD1(
   ).run(
     `gtr-${itemId}-tr`,
     itemId,
-    input.altTR || "",
-    input.captionTR || "",
+    finalAltTR,
+    finalCaptionTR,
     now
   );
 
@@ -3718,18 +3821,32 @@ export function upsertGalleryItemInD1(
   ).run(
     `gtr-${itemId}-en`,
     itemId,
-    input.altEN || "",
-    input.captionEN || "",
+    finalAltEN,
+    finalCaptionEN,
     now
   );
 
-  // If asset provided in input, upsert it
+  // Promote provisional asset if publishing or explicitly requested
+  if (nextStatus === "published" || input.promoteProvisionalAsset) {
+    const provRow = db
+      .prepare(`SELECT * FROM portfolio_gallery_assets WHERE item_id = ? AND asset_status = 'provisional' LIMIT 1`)
+      .get(itemId) as { id: string } | undefined;
+    if (provRow) {
+      db.prepare(`UPDATE portfolio_gallery_assets SET asset_status = 'archived', updated_at = ? WHERE item_id = ? AND asset_status = 'active'`).run(now, itemId);
+      db.prepare(`UPDATE portfolio_gallery_assets SET asset_status = 'active', updated_at = ? WHERE id = ?`).run(now, provRow.id);
+    }
+  }
+
+  // If asset provided in input, persist it as active
   if (input.asset && input.asset.storageKey) {
+    db.prepare(`UPDATE portfolio_gallery_assets SET asset_status = 'archived', updated_at = ? WHERE item_id = ? AND asset_status = 'active'`).run(now, itemId);
+
+    const assetId = input.asset.id || `gast-${itemId}-${Date.now()}`;
     db.prepare(
       `INSERT INTO portfolio_gallery_assets (
-        id, item_id, storage_mode, storage_key, public_url, mime_type, byte_size, width, height, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT(item_id) DO UPDATE SET
+        id, item_id, storage_mode, storage_key, public_url, mime_type, byte_size, width, height, asset_status, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
         storage_mode = excluded.storage_mode,
         storage_key = excluded.storage_key,
         public_url = excluded.public_url,
@@ -3737,9 +3854,10 @@ export function upsertGalleryItemInD1(
         byte_size = excluded.byte_size,
         width = excluded.width,
         height = excluded.height,
+        asset_status = 'active',
         updated_at = excluded.updated_at`
     ).run(
-      input.asset.id || `gast-${itemId}`,
+      assetId,
       itemId,
       input.asset.storageMode || "r2",
       input.asset.storageKey,
@@ -3751,6 +3869,24 @@ export function upsertGalleryItemInD1(
       now,
       now
     );
+  } else if (input.src && !input.asset) {
+    // Check if we have an active asset or external source
+    const existingActive = db.prepare(`SELECT id FROM portfolio_gallery_assets WHERE item_id = ? AND asset_status = 'active' LIMIT 1`).get(itemId);
+    if (!existingActive) {
+      const assetId = `gast-${itemId}-${Date.now()}`;
+      db.prepare(
+        `INSERT INTO portfolio_gallery_assets (
+          id, item_id, storage_mode, storage_key, public_url, mime_type, byte_size, width, height, asset_status, created_at, updated_at
+        ) VALUES (?, ?, 'external', ?, ?, 'image/webp', 0, null, null, 'active', ?, ?)`
+      ).run(
+        assetId,
+        itemId,
+        input.src,
+        input.src,
+        now,
+        now
+      );
+    }
   }
 
   // Fetch updated item to record snapshot and revision
@@ -3827,30 +3963,76 @@ export function updateGalleryOrderingInD1(
   actorEmail: string
 ): { updated: number } {
   assertLocalSimulationAllowed("updateGalleryOrderingInD1");
-  const db = getD1Database();
-  const now = new Date().toISOString();
 
-  let updatedCount = 0;
-  for (const item of items) {
-    const res = db
-      .prepare(`UPDATE portfolio_gallery_items SET sort_order = ?, updated_at = ? WHERE id = ?`)
-      .run(item.sortOrder, now, item.id);
-    if (res.changes > 0) {
-      updatedCount += 1;
-    }
+  if (!Array.isArray(items) || items.length === 0) {
+    const err = new Error("Invalid reorder request: items array must be non-empty.") as Error & { statusCode: number };
+    err.statusCode = 400;
+    throw err;
   }
 
-  db.prepare(
-    `INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
-     VALUES (?, ?, 'reorder', 'gallery_item', null, ?, ?)`
-  ).run(
-    `log-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`,
-    actorEmail,
-    JSON.stringify({ count: updatedCount }),
-    now
-  );
+  const seenIds = new Set<string>();
+  for (const item of items) {
+    if (!item.id || typeof item.id !== "string") {
+      const err = new Error("Invalid reorder request: each item must have a valid string ID.") as Error & { statusCode: number };
+      err.statusCode = 400;
+      throw err;
+    }
+    if (typeof item.sortOrder !== "number" || !Number.isInteger(item.sortOrder) || item.sortOrder < 0) {
+      const err = new Error(`Invalid reorder request: sortOrder for item "${item.id}" must be a non-negative integer.`) as Error & { statusCode: number };
+      err.statusCode = 400;
+      throw err;
+    }
+    if (seenIds.has(item.id)) {
+      const err = new Error(`Invalid reorder request: duplicate item ID "${item.id}".`) as Error & { statusCode: number };
+      err.statusCode = 400;
+      throw err;
+    }
+    seenIds.add(item.id);
+  }
 
-  return { updated: updatedCount };
+  const db = getD1Database();
+  const placeholders = items.map(() => "?").join(",");
+  const existingRows = db
+    .prepare(`SELECT id FROM portfolio_gallery_items WHERE id IN (${placeholders})`)
+    .all(...items.map((i) => i.id)) as Array<{ id: string }>;
+
+  if (existingRows.length !== items.length) {
+    const existingIdSet = new Set(existingRows.map((r) => r.id));
+    const missing = items.filter((i) => !existingIdSet.has(i.id)).map((i) => i.id);
+    const err = new Error(`Invalid reorder request: unknown item ID(s): ${missing.join(", ")}`) as Error & { statusCode: number };
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const now = new Date().toISOString();
+
+  // Atomically apply updates in an explicit SQLite transaction
+  db.exec("BEGIN TRANSACTION;");
+  try {
+    for (const item of items) {
+      db.prepare(`UPDATE portfolio_gallery_items SET sort_order = ?, updated_at = ? WHERE id = ?`).run(
+        item.sortOrder,
+        now,
+        item.id
+      );
+    }
+
+    db.prepare(
+      `INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+       VALUES (?, ?, 'reorder', 'gallery_item', null, ?, ?)`
+    ).run(
+      `log-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`,
+      actorEmail,
+      JSON.stringify({ count: items.length }),
+      now
+    );
+    db.exec("COMMIT;");
+  } catch (err) {
+    db.exec("ROLLBACK;");
+    throw err;
+  }
+
+  return { updated: items.length };
 }
 
 export function listGalleryRevisionsFromD1(itemId: string): CmsGalleryRevisionRecord[] {
@@ -3894,6 +4076,20 @@ export function rollbackGalleryRevisionInD1(
   }
 
   const snapshot: CmsGalleryItem = JSON.parse(String(revRow.snapshot_json));
+  const now = new Date().toISOString();
+
+  // If snapshot had an asset, re-promote that exact asset to active without deleting historical bytes
+  if (snapshot.asset?.storageKey) {
+    const matchRow = db
+      .prepare(`SELECT id FROM portfolio_gallery_assets WHERE item_id = ? AND storage_key = ? LIMIT 1`)
+      .get(itemId, snapshot.asset.storageKey) as { id: string } | undefined;
+
+    if (matchRow) {
+      db.prepare(`UPDATE portfolio_gallery_assets SET asset_status = 'archived', updated_at = ? WHERE item_id = ? AND asset_status = 'active'`).run(now, itemId);
+      db.prepare(`UPDATE portfolio_gallery_assets SET asset_status = 'active', updated_at = ? WHERE id = ?`).run(now, matchRow.id);
+    }
+  }
+
   const restored = upsertGalleryItemInD1(
     {
       id: snapshot.id,
@@ -3936,11 +4132,17 @@ export function uploadGalleryAssetToStorageAndD1(params: {
     height = null
   } = params;
 
-  // Strict signature, format, and size validation
+  // Strict signature, format, EXIF GPS privacy, and size validation
   const sigCheck = validateGalleryImageSignature(buffer, mimeType, filename);
   if (!sigCheck.valid) {
-    throw new Error(sigCheck.error || "Invalid gallery image asset.");
+    const isExceeds = sigCheck.error && sigCheck.error.includes("exceeds");
+    const err = new Error(sigCheck.error || "Invalid gallery image asset.") as Error & { statusCode: number };
+    err.statusCode = isExceeds ? 413 : 400;
+    throw err;
   }
+
+  const resolvedWidth = width ?? sigCheck.width ?? null;
+  const resolvedHeight = height ?? sigCheck.height ?? null;
 
   const cleanItemId = initialItemId ? normalizeSlug(initialItemId) || "new-item" : `gal-${Date.now()}`;
   const ext =
@@ -3964,14 +4166,16 @@ export function uploadGalleryAssetToStorageAndD1(params: {
   const now = new Date().toISOString();
 
   let targetItemId = initialItemId;
+  let itemStatus = "draft";
 
   try {
-    // 1. Resolve or establish target gallery item identity
     if (targetItemId) {
       const existing = db
-        .prepare(`SELECT id FROM portfolio_gallery_items WHERE id = ?`)
-        .get(targetItemId);
-      if (!existing) {
+        .prepare(`SELECT id, status FROM portfolio_gallery_items WHERE id = ?`)
+        .get(targetItemId) as { id: string; status: string } | undefined;
+      if (existing) {
+        itemStatus = existing.status;
+      } else {
         db.prepare(
           `INSERT INTO portfolio_gallery_items (id, status, sort_order, created_at, updated_at) VALUES (?, 'draft', 0, ?, ?)`
         ).run(targetItemId, now, now);
@@ -3983,27 +4187,28 @@ export function uploadGalleryAssetToStorageAndD1(params: {
       ).run(targetItemId, now, now);
     }
 
-    // 2. Check if an asset already exists for replacement
-    const existingAsset = db
-      .prepare(`SELECT * FROM portfolio_gallery_assets WHERE item_id = ?`)
-      .get(targetItemId) as Record<string, unknown> | undefined;
+    // Safe provisional vs active determination
+    // If published: replacement is PROVISIONAL (pending explicit publish)
+    // If draft: replacement is ACTIVE for the draft item
+    const isPublished = itemStatus === "published";
+    const assetStatus = isPublished ? "provisional" : "active";
+    const assetId = `gast-${targetItemId}-${Date.now()}-${crypto.randomUUID().slice(0, 4)}`;
 
-    // 3. Atomically upsert asset record
-    const assetId = existingAsset?.id ? String(existingAsset.id) : `gast-${targetItemId}`;
+    if (!isPublished) {
+      db.prepare(
+        `UPDATE portfolio_gallery_assets SET asset_status = 'archived', updated_at = ? WHERE item_id = ? AND asset_status = 'active'`
+      ).run(now, targetItemId);
+    } else {
+      db.prepare(
+        `UPDATE portfolio_gallery_assets SET asset_status = 'archived', updated_at = ? WHERE item_id = ? AND asset_status = 'provisional'`
+      ).run(now, targetItemId);
+    }
+
     db.prepare(
       `INSERT INTO portfolio_gallery_assets (
         id, item_id, storage_mode, storage_key, public_url,
-        mime_type, byte_size, width, height, created_at, updated_at
-      ) VALUES (?, ?, 'r2', ?, ?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT(item_id) DO UPDATE SET
-        storage_mode = 'r2',
-        storage_key = excluded.storage_key,
-        public_url = excluded.public_url,
-        mime_type = excluded.mime_type,
-        byte_size = excluded.byte_size,
-        width = excluded.width,
-        height = excluded.height,
-        updated_at = excluded.updated_at`
+        mime_type, byte_size, width, height, asset_status, created_at, updated_at
+      ) VALUES (?, ?, 'r2', ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
       assetId,
       targetItemId,
@@ -4011,13 +4216,14 @@ export function uploadGalleryAssetToStorageAndD1(params: {
       publicUrl,
       mimeType,
       buffer.byteLength,
-      width,
-      height,
+      resolvedWidth,
+      resolvedHeight,
+      assetStatus,
       now,
       now
     );
 
-    // 4. Record audit log
+    // Record audit log
     db.prepare(
       `INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
        VALUES (?, ?, 'upload_asset', 'gallery_item', ?, ?, ?)`
@@ -4028,6 +4234,7 @@ export function uploadGalleryAssetToStorageAndD1(params: {
       JSON.stringify({
         assetId,
         storageKey,
+        assetStatus,
         byteSize: buffer.byteLength
       }),
       now
@@ -4041,9 +4248,10 @@ export function uploadGalleryAssetToStorageAndD1(params: {
       publicUrl,
       mimeType,
       byteSize: buffer.byteLength,
-      width,
-      height,
-      createdAt: existingAsset?.created_at ? String(existingAsset.created_at) : now,
+      width: resolvedWidth,
+      height: resolvedHeight,
+      assetStatus,
+      createdAt: now,
       updatedAt: now
     };
   } catch (err) {

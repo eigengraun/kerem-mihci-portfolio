@@ -1,0 +1,523 @@
+{
+  "suite": "Portfolio OS Phase 4.1 Personal Gallery CMS Hardening Verification",
+  "timestamp": "2026-10-20T21:51:54.605Z",
+  "commit": "f85bf90213130f7bf6eb71a7d2893b93da86cea7",
+  "total": 87,
+  "passed": 87,
+  "failed": 0,
+  "failures": [],
+  "groups": {
+    "A: D1 Personal Gallery Schema & Relational Integrity": {
+      "total": 17,
+      "passed": 17,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Migration file 0003_personal_gallery_schema.sql exists",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Migration contains portfolio_gallery_items",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Migration contains portfolio_gallery_translations",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Migration contains portfolio_gallery_assets",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Migration contains portfolio_gallery_revisions",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Migration contains asset_status column",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Migration contains (item_id, asset_status) index",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Migration allows multiple historical/provisional assets per item (no UNIQUE item_id constraint)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "portfolio_gallery_items table exists in test D1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "portfolio_gallery_translations table exists in test D1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "portfolio_gallery_assets table exists in test D1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "portfolio_gallery_revisions table exists in test D1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Foreign key cascade on delete removes translations",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Foreign key cascade on delete removes assets",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Foreign key cascade on delete removes revisions",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Admin authenticated successfully as staging-admin@local.test",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "CSRF token returned by auth endpoint",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "B: Real Admin Gallery CRUD via HTTP Endpoints": {
+      "total": 8,
+      "passed": 8,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "POST /api/admin/gallery creates photograph",
+          "status": "PASS",
+          "detail": "HTTP 201"
+        },
+        {
+          "name": "Creation response reports ok: true",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Created photograph has matching ID",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Created photograph stores Turkish alt",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "GET /api/admin/gallery succeeds",
+          "status": "PASS",
+          "detail": "HTTP 200"
+        },
+        {
+          "name": "Created photograph appears in admin gallery list",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "PUT /api/admin/gallery/:id updates photograph",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Updated photograph persists updated location",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "C: Single-Record Identity Lifecycle & Zero Duplicate Prevention": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Upload with stable ID creates initial draft asset",
+          "status": "PASS",
+          "detail": "HTTP 201"
+        },
+        {
+          "name": "Uploaded asset binds strictly to the stable item ID",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Saving draft for existing item ID succeeds with 200",
+          "status": "PASS",
+          "detail": "HTTP 200"
+        },
+        {
+          "name": "Exactly ONE gallery record created during Add -> Upload -> Save flow (zero orphan duplicates)",
+          "status": "PASS",
+          "detail": "Expected: 5, Actual: 5"
+        }
+      ]
+    },
+    "D: Safe Provisional Asset Isolation & Premature Publication Prevention": {
+      "total": 12,
+      "passed": 12,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Item published successfully",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Public anonymous visitor can access active published image (HTTP 200)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Replacement image upload accepted (HTTP 201)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Replacement asset assigned asset_status: provisional",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Public anonymous request for provisional image returns HTTP 404 (premature publication prevented)",
+          "status": "PASS",
+          "detail": "HTTP 404"
+        },
+        {
+          "name": "Public 404 on provisional image includes Cache-Control: no-store",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Admin authenticated preview of provisional image returns HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Public anonymous visitor still receives active image while replacement is provisional",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Explicit publish promotes provisional asset",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Public anonymous visitor can now access promoted image after explicit publication (HTTP 200)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Rollback to revision 1 succeeds",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Asset Retention Policy: Historical asset records retained across revisions",
+          "status": "PASS",
+          "detail": "Count: 2"
+        }
+      ]
+    },
+    "E: Partial Update Preservation & Strict Validation": {
+      "total": 9,
+      "passed": 9,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Partial PATCH returns 200 OK",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Partial PATCH preserves existing Turkish alt text",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Partial PATCH preserves existing English alt text",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Partial PATCH preserves existing Turkish caption",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Partial PATCH preserves existing English caption",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Partial PATCH preserves existing year",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Partial PATCH preserves existing location",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Publishing without Turkish alt text rejected with HTTP 400",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Publishing without image rejected with HTTP 400",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "F: Strict Cross-Entity Media Ownership Verification": {
+      "total": 2,
+      "passed": 2,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Associating project media storage key with gallery item rejected with HTTP 403",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Associating another gallery item's storage key rejected with HTTP 403",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "G: Atomic Reorder Validation & Stream Persistence": {
+      "total": 7,
+      "passed": 7,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Empty items array rejected with HTTP 400",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Duplicate IDs rejected with HTTP 400",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Negative sortOrder rejected with HTTP 400",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Reorder containing unknown item ID rejected with HTTP 400",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Atomic rollback: Zero sort order mutations executed after failed reorder request",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Valid reorder returns HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Valid sort order persisted to database (sortOrder: 42)",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "H: Image Media Upload, MIME & EXIF GPS Privacy Enforcement": {
+      "total": 9,
+      "passed": 9,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Valid JPEG upload accepted (201)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "JPEG asset record has image/jpeg MIME type",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Valid PNG upload accepted (201)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Valid WebP upload accepted (201)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Disallowed MIME type rejected with HTTP 400",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Corrupted PNG magic signature rejected with HTTP 400",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Image exceeding 10 MB limit rejected with HTTP 413",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "JPEG containing EXIF GPS metadata rejected with HTTP 400 for personal privacy",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Error message explicitly cites GPS metadata rejection",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "I: Upstream Outage Reporting (Degraded State)": {
+      "total": 7,
+      "passed": 7,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "GET /api/v1/public/gallery returns 200 OK when upstream healthy",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Public gallery returns array of published items",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "GET /api/gallery returns 200 OK when upstream healthy",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Public gallery route defines HTTP 503 on degraded upstream",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Public gallery route defines degraded: true in body",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Public gallery route enforces Cache-Control: no-store on error",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Internal gallery route defines HTTP 503 on degraded upstream",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "J: Public Frontend Hydration, Natural Aspect Ratio & Non-Regression": {
+      "total": 11,
+      "passed": 11,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Public Turkish desktop /tr renders with 200 OK",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Public English desktop /en renders with 200 OK",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "GalleryApp renders single vertical stream (flex-col gap-4)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "GalleryApp preserves natural aspect ratio (object-contain)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "GalleryApp contains zero forced square cropping",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "sessionStore exposes hydrateGallery",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "AdminDashboardClient contains admin-gallery-section",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "AdminDashboardClient contains admin-gallery-editor-section",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "AdminDashboardClient contains gallery-reorder-toggle-btn",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Non-regression: 30 canonical projects preserved",
+          "status": "PASS",
+          "detail": "Count: 30"
+        },
+        {
+          "name": "Non-regression: 21 canonical videos preserved",
+          "status": "PASS",
+          "detail": "Count: 22"
+        }
+      ]
+    },
+    "K: Test Fixture Isolation & Zero Host Database Mutation": {
+      "total": 1,
+      "passed": 1,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Zero host mutations: .local-d1/portfolio.sqlite SHA256 is 100% identical before and after suite",
+          "status": "PASS",
+          "detail": "SHA256: ae6594730501e7bf..."
+        }
+      ]
+    }
+  }
+}

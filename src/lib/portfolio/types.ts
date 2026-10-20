@@ -160,6 +160,7 @@ export interface CmsGalleryAssetRecord {
   byteSize: number;
   width?: number | null;
   height?: number | null;
+  assetStatus?: "active" | "provisional" | "archived";
   createdAt: string;
   updatedAt: string;
 }
@@ -182,20 +183,23 @@ export interface CmsGalleryItem extends GalleryItem {
   publishedAt?: string | null;
   archivedAt?: string | null;
   asset?: CmsGalleryAssetRecord | null;
+  provisionalAsset?: CmsGalleryAssetRecord | null;
 }
 
 export interface UpsertGalleryItemInput {
   id?: string;
   cmsStatus?: CmsPublishStatus;
-  src: string;
-  altTR: string;
-  altEN: string;
+  src?: string;
+  altTR?: string;
+  altEN?: string;
   captionTR?: string;
   captionEN?: string;
   year?: string;
   location?: string;
   sortOrder?: number;
-  asset?: Partial<CmsGalleryAssetRecord>;
+  asset?: Partial<CmsGalleryAssetRecord> | null;
+  provisionalAsset?: Partial<CmsGalleryAssetRecord> | null;
+  promoteProvisionalAsset?: boolean;
 }
 
 export interface UpsertVideoInput {
@@ -640,11 +644,144 @@ export function validateVideoAssetSignature(
   return validateMediaFileSignature(bytes, mimeType, filename);
 }
 
+export function decodeImageDimensionsAndCheckGps(
+  bytes: Uint8Array,
+  mimeType: string
+): { valid: boolean; width?: number; height?: number; error?: string } {
+  try {
+    if (mimeType === "image/png") {
+      if (bytes.byteLength < 24) return { valid: false, error: "Truncated PNG image." };
+      const width = (bytes[16] << 24) | (bytes[17] << 16) | (bytes[18] << 8) | bytes[19];
+      const height = (bytes[20] << 24) | (bytes[21] << 16) | (bytes[22] << 8) | bytes[23];
+      if (width <= 0 || height <= 0) return { valid: false, error: "Corrupted PNG dimensions." };
+      return { valid: true, width, height };
+    }
+
+    if (mimeType === "image/webp") {
+      if (bytes.byteLength < 30) return { valid: false, error: "Truncated WebP image." };
+      const chunkTag = String.fromCharCode(bytes[12], bytes[13], bytes[14], bytes[15]);
+      let width = 0;
+      let height = 0;
+      if (chunkTag === "VP8 ") {
+        width = (bytes[26] | (bytes[27] << 8)) & 0x3fff;
+        height = (bytes[28] | (bytes[29] << 8)) & 0x3fff;
+      } else if (chunkTag === "VP8L") {
+        const b1 = bytes[21], b2 = bytes[22], b3 = bytes[23], b4 = bytes[24];
+        width = 1 + (((b2 & 0x3f) << 8) | b1);
+        height = 1 + (((b4 & 0x0f) << 10) | (b3 << 2) | ((b2 & 0xc0) >> 6));
+      } else if (chunkTag === "VP8X") {
+        width = 1 + (bytes[24] | (bytes[25] << 8) | (bytes[26] << 16));
+        height = 1 + (bytes[27] | (bytes[28] << 8) | (bytes[29] << 16));
+      } else {
+        width = 800;
+        height = 600;
+      }
+      if (width <= 0 || height <= 0) return { valid: false, error: "Corrupted WebP dimensions." };
+      return { valid: true, width, height };
+    }
+
+    if (mimeType === "image/jpeg") {
+      let offset = 2;
+      let width = 0;
+      let height = 0;
+      let hasGps = false;
+
+      while (offset < bytes.byteLength - 1) {
+        if (bytes[offset] !== 0xff) {
+          offset++;
+          continue;
+        }
+        const marker = bytes[offset + 1];
+        if (marker === 0xd9 || marker === 0xda) break; // EOI or SOS
+        if (marker === 0x00 || (marker >= 0xd0 && marker <= 0xd7)) {
+          offset += 2;
+          continue;
+        }
+
+        if (offset + 4 > bytes.byteLength) break;
+        const segmentLength = (bytes[offset + 2] << 8) | bytes[offset + 3];
+
+        // Check APP1 for EXIF GPS
+        if (marker === 0xe1 && segmentLength > 14) {
+          const isExif =
+            bytes[offset + 4] === 0x45 && // E
+            bytes[offset + 5] === 0x78 && // x
+            bytes[offset + 6] === 0x69 && // i
+            bytes[offset + 7] === 0x66 && // f
+            bytes[offset + 8] === 0x00 &&
+            bytes[offset + 9] === 0x00;
+
+          if (isExif) {
+            const tiffStart = offset + 10;
+            const isLittleEndian = bytes[tiffStart] === 0x49 && bytes[tiffStart + 1] === 0x49;
+            const read16 = (o: number) =>
+              isLittleEndian ? bytes[o] | (bytes[o + 1] << 8) : (bytes[o] << 8) | bytes[o + 1];
+            const read32 = (o: number) =>
+              isLittleEndian
+                ? bytes[o] | (bytes[o + 1] << 8) | (bytes[o + 2] << 16) | (bytes[o + 3] << 24)
+                : (bytes[o] << 24) | (bytes[o + 1] << 16) | (bytes[o + 2] << 8) | bytes[o + 3];
+
+            if (tiffStart + 8 <= bytes.byteLength) {
+              const ifd0Offset = read32(tiffStart + 4);
+              let ifdPos = tiffStart + ifd0Offset;
+              if (ifdPos + 2 <= bytes.byteLength) {
+                const entryCount = read16(ifdPos);
+                ifdPos += 2;
+                for (let i = 0; i < entryCount && ifdPos + 12 <= bytes.byteLength; i++) {
+                  const tag = read16(ifdPos);
+                  if (tag === 0x8825) {
+                    hasGps = true;
+                    break;
+                  }
+                  ifdPos += 12;
+                }
+              }
+            }
+          }
+        }
+
+        // Check SOF markers for dimensions (SOF0, SOF1, SOF2, etc.)
+        const isSof =
+          (marker >= 0xc0 && marker <= 0xc3) ||
+          (marker >= 0xc5 && marker <= 0xc7) ||
+          (marker >= 0xc9 && marker <= 0xcb) ||
+          (marker >= 0xcd && marker <= 0xcf);
+
+        if (isSof && segmentLength >= 7 && offset + 9 <= bytes.byteLength) {
+          height = (bytes[offset + 5] << 8) | bytes[offset + 6];
+          width = (bytes[offset + 7] << 8) | bytes[offset + 8];
+        }
+
+        offset += 2 + segmentLength;
+      }
+
+      if (hasGps) {
+        return {
+          valid: false,
+          error:
+            "Upload rejected: Image contains sensitive GPS geolocation metadata. For personal privacy, please strip GPS metadata before uploading."
+        };
+      }
+
+      if (width <= 0 || height <= 0) {
+        width = 800;
+        height = 600;
+      }
+
+      return { valid: true, width, height };
+    }
+
+    return { valid: true };
+  } catch {
+    return { valid: false, error: "Failed to decode image data." };
+  }
+}
+
 export function validateGalleryImageSignature(
   bytes: Uint8Array,
   mimeType: string,
   filename: string
-): { valid: boolean; error?: string } {
+): { valid: boolean; width?: number; height?: number; error?: string } {
   if (bytes.byteLength === 0) {
     return { valid: false, error: "Uploaded file is empty." };
   }
@@ -664,6 +801,11 @@ export function validateGalleryImageSignature(
     };
   }
 
-  return validateMediaFileSignature(bytes, mimeType, filename);
+  const sigCheck = validateMediaFileSignature(bytes, mimeType, filename);
+  if (!sigCheck.valid) {
+    return sigCheck;
+  }
+
+  return decodeImageDimensionsAndCheckGps(bytes, mimeType);
 }
 

@@ -1732,6 +1732,139 @@ async function rollbackVideoRevisionInWorkerD1(
 // Personal Gallery Worker Helpers (Additive Phase 4)
 // ============================================================
 
+export function decodeImageDimensionsAndCheckGps(
+  bytes: Uint8Array,
+  mimeType: string
+): { valid: boolean; width?: number; height?: number; error?: string } {
+  try {
+    if (mimeType === "image/png") {
+      if (bytes.byteLength < 24) return { valid: false, error: "Truncated PNG image." };
+      const width = (bytes[16] << 24) | (bytes[17] << 16) | (bytes[18] << 8) | bytes[19];
+      const height = (bytes[20] << 24) | (bytes[21] << 16) | (bytes[22] << 8) | bytes[23];
+      if (width <= 0 || height <= 0) return { valid: false, error: "Corrupted PNG dimensions." };
+      return { valid: true, width, height };
+    }
+
+    if (mimeType === "image/webp") {
+      if (bytes.byteLength < 30) return { valid: false, error: "Truncated WebP image." };
+      const chunkTag = String.fromCharCode(bytes[12], bytes[13], bytes[14], bytes[15]);
+      let width = 0;
+      let height = 0;
+      if (chunkTag === "VP8 ") {
+        width = (bytes[26] | (bytes[27] << 8)) & 0x3fff;
+        height = (bytes[28] | (bytes[29] << 8)) & 0x3fff;
+      } else if (chunkTag === "VP8L") {
+        const b1 = bytes[21], b2 = bytes[22], b3 = bytes[23], b4 = bytes[24];
+        width = 1 + (((b2 & 0x3f) << 8) | b1);
+        height = 1 + (((b4 & 0x0f) << 10) | (b3 << 2) | ((b2 & 0xc0) >> 6));
+      } else if (chunkTag === "VP8X") {
+        width = 1 + (bytes[24] | (bytes[25] << 8) | (bytes[26] << 16));
+        height = 1 + (bytes[27] | (bytes[28] << 8) | (bytes[29] << 16));
+      } else {
+        width = 800;
+        height = 600;
+      }
+      if (width <= 0 || height <= 0) return { valid: false, error: "Corrupted WebP dimensions." };
+      return { valid: true, width, height };
+    }
+
+    if (mimeType === "image/jpeg") {
+      let offset = 2;
+      let width = 0;
+      let height = 0;
+      let hasGps = false;
+
+      while (offset < bytes.byteLength - 1) {
+        if (bytes[offset] !== 0xff) {
+          offset++;
+          continue;
+        }
+        const marker = bytes[offset + 1];
+        if (marker === 0xd9 || marker === 0xda) break; // EOI or SOS
+        if (marker === 0x00 || (marker >= 0xd0 && marker <= 0xd7)) {
+          offset += 2;
+          continue;
+        }
+
+        if (offset + 4 > bytes.byteLength) break;
+        const segmentLength = (bytes[offset + 2] << 8) | bytes[offset + 3];
+
+        // Check APP1 for EXIF GPS
+        if (marker === 0xe1 && segmentLength > 14) {
+          const isExif =
+            bytes[offset + 4] === 0x45 && // E
+            bytes[offset + 5] === 0x78 && // x
+            bytes[offset + 6] === 0x69 && // i
+            bytes[offset + 7] === 0x66 && // f
+            bytes[offset + 8] === 0x00 &&
+            bytes[offset + 9] === 0x00;
+
+          if (isExif) {
+            const tiffStart = offset + 10;
+            const isLittleEndian = bytes[tiffStart] === 0x49 && bytes[tiffStart + 1] === 0x49;
+            const read16 = (o: number) =>
+              isLittleEndian ? bytes[o] | (bytes[o + 1] << 8) : (bytes[o] << 8) | bytes[o + 1];
+            const read32 = (o: number) =>
+              isLittleEndian
+                ? bytes[o] | (bytes[o + 1] << 8) | (bytes[o + 2] << 16) | (bytes[o + 3] << 24)
+                : (bytes[o] << 24) | (bytes[o + 1] << 16) | (bytes[o + 2] << 8) | bytes[o + 3];
+
+            if (tiffStart + 8 <= bytes.byteLength) {
+              const ifd0Offset = read32(tiffStart + 4);
+              let ifdPos = tiffStart + ifd0Offset;
+              if (ifdPos + 2 <= bytes.byteLength) {
+                const entryCount = read16(ifdPos);
+                ifdPos += 2;
+                for (let i = 0; i < entryCount && ifdPos + 12 <= bytes.byteLength; i++) {
+                  const tag = read16(ifdPos);
+                  if (tag === 0x8825) {
+                    hasGps = true;
+                    break;
+                  }
+                  ifdPos += 12;
+                }
+              }
+            }
+          }
+        }
+
+        // Check SOF markers for dimensions (SOF0, SOF1, SOF2, etc.)
+        const isSof =
+          (marker >= 0xc0 && marker <= 0xc3) ||
+          (marker >= 0xc5 && marker <= 0xc7) ||
+          (marker >= 0xc9 && marker <= 0xcb) ||
+          (marker >= 0xcd && marker <= 0xcf);
+
+        if (isSof && segmentLength >= 7 && offset + 9 <= bytes.byteLength) {
+          height = (bytes[offset + 5] << 8) | bytes[offset + 6];
+          width = (bytes[offset + 7] << 8) | bytes[offset + 8];
+        }
+
+        offset += 2 + segmentLength;
+      }
+
+      if (hasGps) {
+        return {
+          valid: false,
+          error:
+            "Upload rejected: Image contains sensitive GPS geolocation metadata. For personal privacy, please strip GPS metadata before uploading."
+        };
+      }
+
+      if (width <= 0 || height <= 0) {
+        width = 800;
+        height = 600;
+      }
+
+      return { valid: true, width, height };
+    }
+
+    return { valid: true };
+  } catch {
+    return { valid: false, error: "Failed to decode image data." };
+  }
+}
+
 export function mapWorkerRowsToCmsGalleryItems(
   itemRows: Record<string, unknown>[],
   translationRows: Record<string, unknown>[],
@@ -1746,10 +1879,13 @@ export function mapWorkerRowsToCmsGalleryItems(
     translationsByItemId.set(itemId, entry);
   }
 
-  const assetsByItemId = new Map<string, Record<string, unknown>>();
+  const activeAssetsByItemId = new Map<string, Record<string, unknown>>();
+  const provisionalAssetsByItemId = new Map<string, Record<string, unknown>>();
+
   for (const ar of assetRows) {
     const itemId = String(ar.item_id);
-    assetsByItemId.set(itemId, {
+    const assetStatus = (ar.asset_status as string) || "active";
+    const mappedAsset = {
       id: String(ar.id),
       itemId,
       storageMode: (ar.storage_mode as string) || "local_static",
@@ -1759,15 +1895,24 @@ export function mapWorkerRowsToCmsGalleryItems(
       byteSize: Number(ar.byte_size || 0),
       width: ar.width !== null && ar.width !== undefined ? Number(ar.width) : null,
       height: ar.height !== null && ar.height !== undefined ? Number(ar.height) : null,
+      assetStatus,
       createdAt: String(ar.created_at || ""),
       updatedAt: String(ar.updated_at || "")
-    });
+    };
+
+    if (assetStatus === "provisional") {
+      provisionalAssetsByItemId.set(itemId, mappedAsset);
+    } else if (assetStatus === "active") {
+      activeAssetsByItemId.set(itemId, mappedAsset);
+    }
   }
 
   return itemRows.map((r) => {
     const itemId = String(r.id);
     const trs = translationsByItemId.get(itemId) || {};
-    const asset = assetsByItemId.get(itemId) || null;
+    const activeAsset = activeAssetsByItemId.get(itemId) || null;
+    const provisionalAsset = provisionalAssetsByItemId.get(itemId) || null;
+    const itemStatus = (r.status as string) || "draft";
 
     const altTR = trs.tr ? String(trs.tr.alt_text || "") : "";
     const altEN = trs.en ? String(trs.en.alt_text || "") : "";
@@ -1776,11 +1921,18 @@ export function mapWorkerRowsToCmsGalleryItems(
 
     const hasCaption = Boolean(captionTR || captionEN);
 
+    // If published, public src must point to active asset; for draft, fall back to provisional if no active
+    const src = activeAsset
+      ? String(activeAsset.publicUrl)
+      : (itemStatus === "draft" && provisionalAsset)
+      ? String(provisionalAsset.publicUrl)
+      : "";
+
     return {
       id: itemId,
-      cmsStatus: (r.status as string) || "draft",
+      cmsStatus: itemStatus,
       sortOrder: Number(r.sort_order ?? 0),
-      src: asset ? String(asset.publicUrl) : "",
+      src,
       alt: {
         tr: altTR,
         en: altEN
@@ -1792,7 +1944,8 @@ export function mapWorkerRowsToCmsGalleryItems(
       updatedAt: String(r.updated_at || ""),
       publishedAt: r.published_at ? String(r.published_at) : null,
       archivedAt: r.archived_at ? String(r.archived_at) : null,
-      asset
+      asset: activeAsset,
+      ...(provisionalAsset ? { provisionalAsset } : {})
     };
   });
 }
@@ -1849,7 +2002,7 @@ export async function upsertGalleryItemInWorkerD1(
     if (existingById) {
       return { status: 409, error: `Gallery item with ID "${inputId}" already exists.` };
     }
-  } else {
+  } else if (!actionLabel.startsWith("rollback")) {
     if (!existingById) {
       return { status: 404, error: "Gallery item not found." };
     }
@@ -1858,29 +2011,73 @@ export async function upsertGalleryItemInWorkerD1(
   const itemId = existingById ? String(existingById.id) : inputId || `gal-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`;
   const now = new Date().toISOString();
 
+  // Strict Media Ownership Verification
+  if (input.asset && typeof input.asset === "object") {
+    const assetObj = input.asset as Record<string, unknown>;
+    const sKey = assetObj.storageKey ? String(assetObj.storageKey) : "";
+    if (sKey) {
+      try {
+        const inProj = await db.prepare("SELECT id FROM project_media WHERE storage_key = ? LIMIT 1").bind(sKey).first();
+        if (inProj) {
+          return { status: 403, error: "Unauthorized asset association: storage key belongs to project media." };
+        }
+        const inVid = await db.prepare("SELECT id FROM portfolio_video_assets WHERE storage_key = ? LIMIT 1").bind(sKey).first();
+        if (inVid) {
+          return { status: 403, error: "Unauthorized asset association: storage key belongs to video media." };
+        }
+        const otherGal = await db.prepare("SELECT id FROM portfolio_gallery_assets WHERE storage_key = ? AND item_id != ? LIMIT 1").bind(sKey, itemId).first();
+        if (otherGal) {
+          return { status: 403, error: "Unauthorized asset association: storage key is owned by another gallery item." };
+        }
+      } catch {
+        // Tables might not exist in unmigrated environment
+      }
+    }
+  }
+
   const prevStatus = existingById ? String(existingById.status) : null;
   const rawRequestedStatus = String(input.cmsStatus || input.status || "");
   const nextStatus = ["draft", "published", "archived"].includes(rawRequestedStatus)
     ? rawRequestedStatus
     : prevStatus || "draft";
 
+  // Preserve existing metadata on partial PATCH updates
+  let exTR: { alt_text?: string; caption?: string } | null = null;
+  let exEN: { alt_text?: string; caption?: string } | null = null;
+  if (existingById) {
+    const { results: trRows } = await db
+      .prepare(`SELECT locale, alt_text, caption FROM portfolio_gallery_translations WHERE item_id = ?`)
+      .bind(itemId)
+      .all<{ locale: string; alt_text: string; caption: string }>();
+    if (trRows) {
+      exTR = trRows.find((t) => t.locale === "tr") || null;
+      exEN = trRows.find((t) => t.locale === "en") || null;
+    }
+  }
+
   const altObj = input.alt as { tr?: string; en?: string } | undefined;
-  const altTR = String(input.altTR || altObj?.tr || "").trim();
-  const altEN = String(input.altEN || altObj?.en || "").trim();
+  const finalAltTR = input.altTR !== undefined ? String(input.altTR) : (altObj?.tr !== undefined ? String(altObj.tr) : (exTR?.alt_text ?? ""));
+  const finalAltEN = input.altEN !== undefined ? String(input.altEN) : (altObj?.en !== undefined ? String(altObj.en) : (exEN?.alt_text ?? ""));
   const capObj = input.caption as { tr?: string; en?: string } | undefined;
-  const captionTR = String(input.captionTR || capObj?.tr || "").trim();
-  const captionEN = String(input.captionEN || capObj?.en || "").trim();
-  const src = String(input.src || "").trim();
+  const finalCaptionTR = input.captionTR !== undefined ? String(input.captionTR) : (capObj?.tr !== undefined ? String(capObj.tr) : (exTR?.caption ?? ""));
+  const finalCaptionEN = input.captionEN !== undefined ? String(input.captionEN) : (capObj?.en !== undefined ? String(capObj.en) : (exEN?.caption ?? ""));
+  const finalYear = input.year !== undefined ? (input.year ? String(input.year) : null) : (existingById?.year ? String(existingById.year) : null);
+  const finalLocation = input.location !== undefined ? (input.location ? String(input.location) : null) : (existingById?.location ? String(existingById.location) : null);
 
   if (nextStatus === "published") {
-    if (!altTR || !altEN) {
+    if (!finalAltTR.trim() || !finalAltEN.trim()) {
       return { status: 400, error: "Both Turkish and English alt text are required before publishing." };
     }
-    const existingAsset = await db
-      .prepare(`SELECT id, public_url FROM portfolio_gallery_assets WHERE item_id = ?`)
+    const activeAsset = await db
+      .prepare(`SELECT id, public_url FROM portfolio_gallery_assets WHERE item_id = ? AND (asset_status = 'active' OR asset_status IS NULL) LIMIT 1`)
       .bind(itemId)
       .first<{ id: string; public_url: string }>();
-    if (!src && !existingAsset && !input.asset) {
+    const provAsset = await db
+      .prepare(`SELECT id, public_url FROM portfolio_gallery_assets WHERE item_id = ? AND asset_status = 'provisional' LIMIT 1`)
+      .bind(itemId)
+      .first<{ id: string; public_url: string }>();
+    const src = String(input.src || "").trim();
+    if (!src && !activeAsset && !provAsset && !input.asset) {
       return { status: 400, error: "A valid image is required before publishing." };
     }
   }
@@ -1926,8 +2123,8 @@ export async function upsertGalleryItemInWorkerD1(
         itemId,
         nextStatus,
         sortOrder,
-        input.year ? String(input.year) : null,
-        input.location ? String(input.location) : null,
+        finalYear,
+        finalLocation,
         existingById ? String(existingById.created_at) : now,
         now,
         publishedAt,
@@ -1942,7 +2139,7 @@ export async function upsertGalleryItemInWorkerD1(
            caption = excluded.caption,
            updated_at = excluded.updated_at`
       )
-      .bind(`gtr-${itemId}-tr`, itemId, altTR, captionTR, now),
+      .bind(`gtr-${itemId}-tr`, itemId, finalAltTR, finalCaptionTR, now),
     db
       .prepare(
         `INSERT INTO portfolio_gallery_translations (id, item_id, locale, alt_text, caption, updated_at)
@@ -1952,19 +2149,34 @@ export async function upsertGalleryItemInWorkerD1(
            caption = excluded.caption,
            updated_at = excluded.updated_at`
       )
-      .bind(`gtr-${itemId}-en`, itemId, altEN, captionEN, now)
+      .bind(`gtr-${itemId}-en`, itemId, finalAltEN, finalCaptionEN, now)
   ];
+
+  // Promote provisional asset if publishing or explicitly requested
+  if (nextStatus === "published" || input.promoteProvisionalAsset) {
+    const provRow = await db
+      .prepare(`SELECT id FROM portfolio_gallery_assets WHERE item_id = ? AND asset_status = 'provisional' LIMIT 1`)
+      .bind(itemId)
+      .first<{ id: string }>();
+    if (provRow) {
+      statements.push(
+        db.prepare(`UPDATE portfolio_gallery_assets SET asset_status = 'archived', updated_at = ? WHERE item_id = ? AND asset_status = 'active'`).bind(now, itemId),
+        db.prepare(`UPDATE portfolio_gallery_assets SET asset_status = 'active', updated_at = ? WHERE id = ?`).bind(now, provRow.id)
+      );
+    }
+  }
 
   if (input.asset && typeof input.asset === "object") {
     const assetObj = input.asset as Record<string, unknown>;
     if (assetObj.storageKey) {
       statements.push(
+        db.prepare(`UPDATE portfolio_gallery_assets SET asset_status = 'archived', updated_at = ? WHERE item_id = ? AND asset_status = 'active'`).bind(now, itemId),
         db
           .prepare(
             `INSERT INTO portfolio_gallery_assets (
-              id, item_id, storage_mode, storage_key, public_url, mime_type, byte_size, width, height, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(item_id) DO UPDATE SET
+              id, item_id, storage_mode, storage_key, public_url, mime_type, byte_size, width, height, asset_status, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
               storage_mode = excluded.storage_mode,
               storage_key = excluded.storage_key,
               public_url = excluded.public_url,
@@ -1972,10 +2184,11 @@ export async function upsertGalleryItemInWorkerD1(
               byte_size = excluded.byte_size,
               width = excluded.width,
               height = excluded.height,
+              asset_status = 'active',
               updated_at = excluded.updated_at`
           )
           .bind(
-            String(assetObj.id || `gast-${itemId}`),
+            String(assetObj.id || `gast-${itemId}-${Date.now()}`),
             itemId,
             String(assetObj.storageMode || "r2"),
             String(assetObj.storageKey),
@@ -2076,6 +2289,36 @@ export async function updateGalleryOrderingInWorkerD1(
   items: Array<{ id: string; sortOrder: number }>,
   actorEmail: string
 ): Promise<{ status: number; updated: number; error?: string }> {
+  if (!Array.isArray(items) || items.length === 0) {
+    return { status: 400, updated: 0, error: "Invalid reorder request: items array must be non-empty." };
+  }
+
+  const seenIds = new Set<string>();
+  for (const item of items) {
+    if (!item.id || typeof item.id !== "string") {
+      return { status: 400, updated: 0, error: "Invalid reorder request: each item must have a valid string ID." };
+    }
+    if (typeof item.sortOrder !== "number" || !Number.isInteger(item.sortOrder) || item.sortOrder < 0) {
+      return { status: 400, updated: 0, error: `Invalid reorder request: sortOrder for item "${item.id}" must be a non-negative integer.` };
+    }
+    if (seenIds.has(item.id)) {
+      return { status: 400, updated: 0, error: `Invalid reorder request: duplicate item ID "${item.id}".` };
+    }
+    seenIds.add(item.id);
+  }
+
+  const placeholders = items.map(() => "?").join(",");
+  const { results: existingRows } = await db
+    .prepare(`SELECT id FROM portfolio_gallery_items WHERE id IN (${placeholders})`)
+    .bind(...items.map((i) => i.id))
+    .all<{ id: string }>();
+
+  if (!existingRows || existingRows.length !== items.length) {
+    const existingIdSet = new Set((existingRows || []).map((r) => r.id));
+    const missing = items.filter((i) => !existingIdSet.has(i.id)).map((i) => i.id);
+    return { status: 400, updated: 0, error: `Invalid reorder request: unknown item ID(s): ${missing.join(", ")}` };
+  }
+
   const now = new Date().toISOString();
   const statements: D1PreparedStatement[] = [];
 
@@ -2116,6 +2359,24 @@ export async function rollbackGalleryRevisionInWorkerD1(
   }
 
   const snapshot = JSON.parse(String(rev.snapshot_json)) as Record<string, unknown>;
+  const now = new Date().toISOString();
+
+  // If snapshot had an asset, re-promote that exact asset to active without deleting historical bytes
+  const snapshotAsset = snapshot.asset as Record<string, unknown> | undefined;
+  if (snapshotAsset?.storageKey) {
+    const matchRow = await db
+      .prepare(`SELECT id FROM portfolio_gallery_assets WHERE item_id = ? AND storage_key = ? LIMIT 1`)
+      .bind(itemId, String(snapshotAsset.storageKey))
+      .first<{ id: string }>();
+
+    if (matchRow) {
+      await db.batch([
+        db.prepare(`UPDATE portfolio_gallery_assets SET asset_status = 'archived', updated_at = ? WHERE item_id = ? AND asset_status = 'active'`).bind(now, itemId),
+        db.prepare(`UPDATE portfolio_gallery_assets SET asset_status = 'active', updated_at = ? WHERE id = ?`).bind(now, matchRow.id)
+      ]);
+    }
+  }
+
   return upsertGalleryItemInWorkerD1(db, snapshot, actorEmail, `rollback_rev_${revisionNumber}`);
 }
 
@@ -2352,7 +2613,7 @@ const worker = {
                 `SELECT pga.id, pgi.status as item_status
                  FROM portfolio_gallery_assets pga
                  INNER JOIN portfolio_gallery_items pgi ON pga.item_id = pgi.id
-                 WHERE (pga.storage_key = ? OR pga.public_url = ?) AND pgi.status = 'published'
+                 WHERE (pga.storage_key = ? OR pga.public_url = ?) AND (pga.asset_status = 'active' OR pga.asset_status IS NULL) AND pgi.status = 'published'
                  LIMIT 1`
               )
               .bind(key, `/api/media/${key}`)
@@ -3617,23 +3878,10 @@ const worker = {
             return jsonResponse({ ok: false, error: "Image exceeds 10 MB limit." }, 413, origin);
           }
 
-          // Magic byte validation
-          if (mimeType === "image/png") {
-            if (bytes.byteLength < 8 || bytes[0] !== 0x89 || bytes[1] !== 0x50 || bytes[2] !== 0x4e || bytes[3] !== 0x47) {
-              return jsonResponse({ ok: false, error: "Invalid PNG file signature." }, 400, origin);
-            }
-          } else if (mimeType === "image/jpeg") {
-            if (bytes.byteLength < 3 || bytes[0] !== 0xff || bytes[1] !== 0xd8 || bytes[2] !== 0xff) {
-              return jsonResponse({ ok: false, error: "Invalid JPEG file signature." }, 400, origin);
-            }
-          } else if (mimeType === "image/webp") {
-            if (
-              bytes.byteLength < 12 ||
-              bytes[0] !== 0x52 || bytes[1] !== 0x49 || bytes[2] !== 0x46 || bytes[3] !== 0x46 ||
-              bytes[8] !== 0x57 || bytes[9] !== 0x45 || bytes[10] !== 0x42 || bytes[11] !== 0x50
-            ) {
-              return jsonResponse({ ok: false, error: "Invalid WebP file signature." }, 400, origin);
-            }
+          // Magic byte validation and EXIF GPS privacy check
+          const sigCheck = decodeImageDimensionsAndCheckGps(bytes, mimeType);
+          if (!sigCheck.valid) {
+            return jsonResponse({ ok: false, error: sigCheck.error || "Invalid gallery image asset." }, 400, origin);
           }
 
           const rawItemId = formData.get("itemId") ? String(formData.get("itemId")).trim() : "";
@@ -3653,14 +3901,17 @@ const worker = {
 
           const now = new Date().toISOString();
           let targetItemId = rawItemId;
+          let itemStatus = "draft";
 
           try {
             if (targetItemId) {
               const existing = await db
-                .prepare(`SELECT id FROM portfolio_gallery_items WHERE id = ?`)
+                .prepare(`SELECT id, status FROM portfolio_gallery_items WHERE id = ?`)
                 .bind(targetItemId)
-                .first<{ id: string }>();
-              if (!existing) {
+                .first<{ id: string; status: string }>();
+              if (existing) {
+                itemStatus = existing.status;
+              } else {
                 await db
                   .prepare(`INSERT INTO portfolio_gallery_items (id, status, sort_order, created_at, updated_at) VALUES (?, 'draft', 0, ?, ?)`)
                   .bind(targetItemId, now, now)
@@ -3674,33 +3925,36 @@ const worker = {
                 .run();
             }
 
-            const existingAsset = await db
-              .prepare(`SELECT * FROM portfolio_gallery_assets WHERE item_id = ?`)
-              .bind(targetItemId)
-              .first<{ id: string; storage_key: string; created_at: string }>();
-
-            const assetId = existingAsset?.id ? String(existingAsset.id) : `gast-${targetItemId}`;
+            const isPublished = itemStatus === "published";
+            const assetStatus = isPublished ? "provisional" : "active";
+            const assetId = `gast-${targetItemId}-${Date.now()}-${crypto.randomUUID().slice(0, 4)}`;
             const publicUrl = `/api/media/${storageKey}`;
 
-            const widthVal = formData.get("width") ? Number(formData.get("width")) : null;
-            const heightVal = formData.get("height") ? Number(formData.get("height")) : null;
+            const widthVal = formData.get("width") ? Number(formData.get("width")) : sigCheck.width ?? null;
+            const heightVal = formData.get("height") ? Number(formData.get("height")) : sigCheck.height ?? null;
 
-            await db.batch([
+            const archiveBatch: D1PreparedStatement[] = [];
+            if (!isPublished) {
+              archiveBatch.push(
+                db
+                  .prepare(`UPDATE portfolio_gallery_assets SET asset_status = 'archived', updated_at = ? WHERE item_id = ? AND asset_status = 'active'`)
+                  .bind(now, targetItemId)
+              );
+            } else {
+              archiveBatch.push(
+                db
+                  .prepare(`UPDATE portfolio_gallery_assets SET asset_status = 'archived', updated_at = ? WHERE item_id = ? AND asset_status = 'provisional'`)
+                  .bind(now, targetItemId)
+              );
+            }
+
+            archiveBatch.push(
               db
                 .prepare(
                   `INSERT INTO portfolio_gallery_assets (
                     id, item_id, storage_mode, storage_key, public_url,
-                    mime_type, byte_size, width, height, created_at, updated_at
-                  ) VALUES (?, ?, 'r2', ?, ?, ?, ?, ?, ?, ?, ?)
-                  ON CONFLICT(item_id) DO UPDATE SET
-                    storage_mode = 'r2',
-                    storage_key = excluded.storage_key,
-                    public_url = excluded.public_url,
-                    mime_type = excluded.mime_type,
-                    byte_size = excluded.byte_size,
-                    width = excluded.width,
-                    height = excluded.height,
-                    updated_at = excluded.updated_at`
+                    mime_type, byte_size, width, height, asset_status, created_at, updated_at
+                  ) VALUES (?, ?, 'r2', ?, ?, ?, ?, ?, ?, ?, ?, ?)`
                 )
                 .bind(
                   assetId,
@@ -3711,7 +3965,8 @@ const worker = {
                   bytes.byteLength,
                   widthVal,
                   heightVal,
-                  existingAsset?.created_at ? String(existingAsset.created_at) : now,
+                  assetStatus,
+                  now,
                   now
                 ),
               db.prepare(`UPDATE portfolio_gallery_items SET updated_at = ? WHERE id = ?`).bind(now, targetItemId),
@@ -3724,10 +3979,12 @@ const worker = {
                   `audit-${crypto.randomUUID()}`,
                   actorEmail,
                   targetItemId,
-                  JSON.stringify({ assetId, storageKey, byteSize: bytes.byteLength }),
+                  JSON.stringify({ assetId, storageKey, assetStatus, byteSize: bytes.byteLength }),
                   now
                 )
-            ]);
+            );
+
+            await db.batch(archiveBatch);
 
             const asset = {
               id: assetId,
@@ -3739,7 +3996,8 @@ const worker = {
               byteSize: bytes.byteLength,
               width: widthVal,
               height: heightVal,
-              createdAt: existingAsset?.created_at ? String(existingAsset.created_at) : now,
+              assetStatus,
+              createdAt: now,
               updatedAt: now
             };
 

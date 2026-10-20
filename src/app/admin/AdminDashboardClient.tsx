@@ -32,8 +32,10 @@ interface ProjectWithCompleteness extends CmsProjectRecord {
 interface D1HealthSummary {
   ok: boolean;
   mode: string;
-  dbPath: string;
-  r2Path: string;
+  dbPath?: string;
+  r2Path?: string;
+  d1Connected?: boolean;
+  r2Connected?: boolean;
   remoteWorkerUrl: string | null;
   remoteServiceTokenConfigured: boolean;
   counts: {
@@ -138,6 +140,7 @@ export function AdminDashboardClient({
   const [health, setHealth] = useState<D1HealthSummary | null>(null);
   const [mediaList, setMediaList] = useState<CmsMediaRecord[]>([]);
   const [systemInfo, setSystemInfo] = useState<SystemPayload | null>(null);
+  const [loadingCore, setLoadingCore] = useState(false);
 
   // Filter state
   const [searchQuery, setSearchQuery] = useState("");
@@ -179,6 +182,7 @@ export function AdminDashboardClient({
 
   const loadCoreData = useCallback(async () => {
     if (!session) return;
+    setLoadingCore(true);
     try {
       const [projRes, sysRes, mediaRes] = await Promise.all([
         fetch("/api/admin/projects", { cache: "no-store" }),
@@ -201,6 +205,8 @@ export function AdminDashboardClient({
       }
     } catch (err) {
       console.error("Failed to load admin core data:", err);
+    } finally {
+      setLoadingCore(false);
     }
   }, [session]);
 
@@ -219,6 +225,102 @@ export function AdminDashboardClient({
       main.scrollTop = 0;
     }
   }, [activeTab]);
+
+  // Dynamic environment health status based on verified connection
+  const healthStatus = useMemo(() => {
+    if (!health) {
+      return {
+        isOperational: false,
+        label: loadingCore ? "CHECKING" : "CONNECTING",
+        badgeText: loadingCore ? "Checking..." : "Connecting...",
+        colorClass: "bg-neutral-500/10 text-neutral-400 border-neutral-500/20",
+        dotClass: "bg-neutral-500"
+      };
+    }
+    const isOk = health.ok && (health.d1Connected !== false);
+    if (isOk) {
+      return {
+        isOperational: true,
+        label: "OPERATIONAL",
+        badgeText: "D1 Staging Active",
+        colorClass: "bg-emerald-500/10 text-emerald-300 border-emerald-500/20",
+        dotClass: "bg-emerald-400 animate-pulse"
+      };
+    }
+    return {
+      isOperational: false,
+      label: "DEGRADED",
+      badgeText: "D1 Degraded",
+      colorClass: "bg-amber-500/10 text-amber-300 border-amber-500/20",
+      dotClass: "bg-amber-400"
+    };
+  }, [health, loadingCore]);
+
+  // Reconciliation status helper to strictly distinguish:
+  // CHECKING | BASELINE_VERIFIED | CONTENT_MODIFIED | UNAVAILABLE | GENUINE_ERROR
+  const reconciliationStatus = useMemo(() => {
+    if (!systemInfo) {
+      if (loadingCore) {
+        return {
+          code: "CHECKING",
+          badgeLabel: "CHECKING",
+          color: "text-amber-400 font-mono",
+          badgeBg: "bg-amber-500/10 text-amber-300 border-amber-500/20",
+          summary: "Checking baseline parity...",
+          isVerified: false
+        };
+      }
+      return {
+        code: "UNAVAILABLE",
+        badgeLabel: "UNAVAILABLE",
+        color: "text-neutral-400 font-mono",
+        badgeBg: "bg-neutral-500/10 text-neutral-400 border-neutral-500/20",
+        summary: "System reconciliation data unavailable",
+        isVerified: false
+      };
+    }
+
+    const { reconciliation } = systemInfo;
+    const hasMissing = reconciliation.missingSlugs && reconciliation.missingSlugs.length > 0;
+    const hasFieldDiff = reconciliation.fieldMismatches && reconciliation.fieldMismatches.length > 0;
+    const nonCanonicalCount = reconciliation.nonCanonicalSlugs?.length || 0;
+
+    if (hasMissing) {
+      return {
+        code: "GENUINE_ERROR",
+        badgeLabel: "ERROR: MISSING CANONICAL",
+        color: "text-red-400 font-mono",
+        badgeBg: "bg-red-500/10 text-red-300 border-red-500/20",
+        summary: `Missing ${reconciliation.missingSlugs.length} canonical project(s)`,
+        isVerified: false
+      };
+    }
+
+    if (!hasFieldDiff) {
+      return {
+        code: "BASELINE_VERIFIED",
+        badgeLabel: "BASELINE VERIFIED",
+        color: "text-emerald-400 font-mono",
+        badgeBg: "bg-emerald-500/10 text-emerald-300 border-emerald-500/20",
+        summary: `${reconciliation.canonicalCount}/${reconciliation.canonicalCount} Baseline Reconciled${
+          nonCanonicalCount > 0 ? ` (+${nonCanonicalCount} CMS Draft${nonCanonicalCount > 1 ? "s" : ""})` : ""
+        }`,
+        isVerified: true
+      };
+    }
+
+    // Baseline present (30/30) but legitimate admin edits modified fields in staging CMS
+    const diffNames = reconciliation.fieldMismatches.map((m) => `${m.slug} (${m.field})`).join(", ");
+    return {
+      code: "CONTENT_MODIFIED",
+      badgeLabel: "CONTENT MODIFIED FROM BASELINE",
+      color: "text-amber-400 font-mono",
+      badgeBg: "bg-amber-500/10 text-amber-300 border-amber-500/20",
+      summary: `${reconciliation.canonicalCount}/${reconciliation.canonicalCount} Baseline Present • ${reconciliation.fieldMismatches.length} CMS Modification(s)`,
+      detail: `Modified in Staging CMS: ${diffNames}`,
+      isVerified: false
+    };
+  }, [systemInfo, loadingCore]);
 
   const handleLogin = async (mode: "master-password" | "dev-fixture") => {
     setLoginBusy(true);
@@ -751,13 +853,13 @@ export function AdminDashboardClient({
           <div className="px-2 py-2 mb-4 border-b border-[#1C2027]">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                <span className={`w-2 h-2 rounded-full ${healthStatus.dotClass}`} />
                 <span className="text-[11px] font-mono uppercase tracking-wider text-[#F5F7FA] font-bold">
                   PORTFOLIO OS
                 </span>
               </div>
-              <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                D1 Staging
+              <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono ${healthStatus.colorClass}`}>
+                {healthStatus.badgeText}
               </span>
             </div>
             <div className="flex items-center gap-2.5 mt-3 pt-2.5 border-t border-[#1C2027]/60">
@@ -926,12 +1028,18 @@ export function AdminDashboardClient({
                 <p className="text-2xl font-bold text-indigo-300 mt-1.5 tracking-tight" data-testid="stat-featured-live">
                   {projects.filter((p) => p.cmsStatus === "published" && p.featured).length}
                 </p>
+                <span className="text-[10px] font-mono text-[#A0A8B5] mt-1 block">
+                  11 published desktop icons
+                </span>
               </div>
               <div className="p-4 rounded-xl bg-[#121418] border border-violet-500/30 shadow-sm">
-                <span className="text-[11px] font-mono uppercase tracking-wider text-violet-400 block">Media (D1/R2)</span>
+                <span className="text-[11px] font-mono uppercase tracking-wider text-violet-400 block">D1 Media Records</span>
                 <p className="text-2xl font-bold text-violet-300 mt-1.5 tracking-tight" data-testid="stat-media-records">
                   {health?.counts.mediaItems ?? mediaList.length}
                 </p>
+                <span className="text-[10px] font-mono text-[#A0A8B5] mt-1 block">
+                  72 indexed R2 assets
+                </span>
               </div>
             </div>
 
@@ -940,33 +1048,35 @@ export function AdminDashboardClient({
               <div className="p-5 rounded-xl bg-[#121418] border border-[#252A33] space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className={`w-2 h-2 rounded-full ${healthStatus.dotClass}`} />
                     <h3 className="text-sm font-semibold text-[#F5F7FA]">Cloudflare D1 & R2</h3>
                   </div>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-medium">
-                    OPERATIONAL
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-medium border ${healthStatus.colorClass}`}>
+                    {healthStatus.label}
                   </span>
                 </div>
                 <div className="space-y-1.5 text-xs text-[#A0A8B5]">
                   <p className="flex justify-between">
                     <span>Engine Mode:</span>
                     <code className="text-[#F5F7FA] font-mono bg-[#181B22] px-1.5 py-0.5 rounded border border-[#252A33]">
-                      {health?.mode || "local-d1-sqlite"}
+                      {health?.mode || (loadingCore ? "checking..." : "local-d1-sqlite")}
                     </code>
                   </p>
-                  <p className="flex justify-between items-center pt-1 border-t border-[#1C2027]">
-                    <span>Canonical Baseline:</span>
-                    <span className="text-emerald-400 font-mono text-[11px]">
-                      {systemInfo?.reconciliation.missingSlugs.length === 0 &&
-                      systemInfo?.reconciliation.fieldMismatches.length === 0
-                        ? `${systemInfo.reconciliation.canonicalCount}/${systemInfo.reconciliation.canonicalCount} Reconciled${
-                            (systemInfo.reconciliation.nonCanonicalSlugs?.length || 0) > 0
-                              ? ` (+${systemInfo.reconciliation.nonCanonicalSlugs?.length || 0} CMS)`
-                              : ""
-                          }`
-                        : "Pending Mismatch"}
-                    </span>
-                  </p>
+                  <div className="pt-1 border-t border-[#1C2027] space-y-1">
+                    <div className="flex justify-between items-center">
+                      <span>Canonical Baseline:</span>
+                      <span className={`font-mono text-[11px] ${reconciliationStatus.color}`}>
+                        {reconciliationStatus.code === "BASELINE_VERIFIED"
+                          ? "BASELINE VERIFIED"
+                          : reconciliationStatus.code === "CONTENT_MODIFIED"
+                          ? "MODIFIED FROM BASELINE"
+                          : reconciliationStatus.badgeLabel}
+                      </span>
+                    </div>
+                    <p className="text-[10px] font-mono text-[#A0A8B5] text-right truncate" title={reconciliationStatus.detail || reconciliationStatus.summary}>
+                      {reconciliationStatus.summary}
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -1822,10 +1932,10 @@ export function AdminDashboardClient({
               <div>
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-violet-400" />
-                  <h3 className="text-sm font-semibold text-[#F5F7FA]">Cloudflare R2 Media Library</h3>
+                  <h3 className="text-sm font-semibold text-[#F5F7FA]">Cloudflare R2 Media Catalog</h3>
                 </div>
                 <p className="text-xs text-[#A0A8B5] mt-1">
-                  Validated image & video uploads with cryptographic key hashing and immutable caching.
+                  {mediaList.length} D1 database index records pointing to validated physical assets in R2 bucket <code className="text-violet-300 font-mono bg-[#181B22] px-1.5 py-0.5 rounded border border-[#252A33]">kerem-portfolio-media-staging</code>.
                 </p>
               </div>
               <label className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white shadow-sm shadow-indigo-600/30 transition-all cursor-pointer">
@@ -1974,34 +2084,38 @@ export function AdminDashboardClient({
         {activeTab === "system" && systemInfo && (
           <div className="space-y-6" data-testid="admin-system-section">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-5 rounded-xl bg-[#121418] border border-[#252A33] space-y-2 text-xs shadow-sm">
+              <div className="p-5 rounded-xl bg-[#121418] border border-[#252A33] space-y-2.5 text-xs shadow-sm">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  <span className={`w-2 h-2 rounded-full ${reconciliationStatus.isVerified ? "bg-emerald-400" : "bg-amber-400"}`} />
                   <h3 className="text-sm font-semibold text-[#F5F7FA]">Database & Migration Health</h3>
                 </div>
                 <p className="text-[#A0A8B5]">
                   Engine Mode: <code className="text-[#F5F7FA] font-mono bg-[#181B22] px-1.5 py-0.5 rounded border border-[#252A33]">{systemInfo.d1Health.mode}</code>
                 </p>
-                <p className="text-[#A0A8B5]">
-                  Canonical 30-Project Reconciliation:{" "}
-                  <strong
-                    className={
-                      systemInfo.reconciliation.missingSlugs.length === 0 &&
-                      systemInfo.reconciliation.fieldMismatches.length === 0
-                        ? "text-emerald-400 font-mono"
-                        : "text-amber-400 font-mono"
-                    }
-                  >
-                    {systemInfo.reconciliation.missingSlugs.length === 0 &&
-                    systemInfo.reconciliation.fieldMismatches.length === 0
-                      ? systemInfo.reconciliation.reconciled
-                        ? "100% RECONCILED (30/30)"
-                        : `BASELINE RECONCILED (30/30) • ${systemInfo.reconciliation.nonCanonicalSlugs?.length || 0} ADDITIONAL CMS RECORD(S)`
-                      : "MISMATCH DETECTED"}
-                  </strong>
-                </p>
-                <p className="text-[#A0A8B5]">
-                  Total Translations: <code className="text-[#F5F7FA] font-mono bg-[#181B22] px-1.5 py-0.5 rounded border border-[#252A33]">{systemInfo.d1Health.counts.translations}</code> rows
+                <div>
+                  <div className="flex items-center justify-between text-[#A0A8B5] mb-1">
+                    <span>Canonical 30-Project Reconciliation:</span>
+                    <strong className={`font-mono ${reconciliationStatus.color}`}>
+                      {reconciliationStatus.badgeLabel}
+                    </strong>
+                  </div>
+                  <div className="text-[11px] font-mono p-2.5 rounded bg-[#181B22] border border-[#252A33] space-y-1">
+                    <div className="text-[#F5F7FA]">{reconciliationStatus.summary}</div>
+                    {systemInfo.reconciliation.fieldMismatches && systemInfo.reconciliation.fieldMismatches.length > 0 && (
+                      <div className="text-amber-300/90 pt-1.5 border-t border-[#252A33] mt-1 space-y-0.5">
+                        <span className="text-[10px] uppercase text-[#A0A8B5] block font-semibold">Staging CMS Field Modifications:</span>
+                        {systemInfo.reconciliation.fieldMismatches.map((m) => (
+                          <div key={`${m.slug}-${m.field}`}>
+                            • <span className="text-white">{m.slug}</span>: {m.field} = <code className="text-amber-300 bg-[#121418] px-1 rounded">{String(m.actual)}</code> (canonical: {String(m.expected)})
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <p className="text-[#A0A8B5] flex justify-between pt-1 border-t border-[#1C2027]">
+                  <span>Total Translations:</span>
+                  <code className="text-[#F5F7FA] font-mono bg-[#181B22] px-1.5 py-0.5 rounded border border-[#252A33]">{systemInfo.d1Health.counts.translations} rows</code>
                 </p>
               </div>
 

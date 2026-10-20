@@ -1,9 +1,9 @@
 /* ==========================================================================
    Portfolio OS: Studio OS Design System Tokens
-   Exclusively scoped to /admin layout. Zero leakage to public desktop.
+   Exclusively scoped to .admin-studio-root. Zero leakage to public desktop.
    ========================================================================== */
 
-:root {
+.admin-studio-root {
   --studio-bg: #0B0C0E;
   --studio-surface-primary: #121418;
   --studio-surface-elevated: #181B22;

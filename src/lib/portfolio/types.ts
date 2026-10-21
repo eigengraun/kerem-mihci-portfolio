@@ -809,3 +809,291 @@ export function validateGalleryImageSignature(
   return decodeImageDimensionsAndCheckGps(bytes, mimeType);
 }
 
+// ============================================================
+// PHASE 5: PROFILE, WORKSPACE NOTES, EXPERIENCE, EDUCATION, SKILLS & CV CMS
+// ============================================================
+
+export interface ProfileStat {
+  value: string;
+  labelTR: string;
+  labelEN: string;
+}
+
+export interface CmsProfileRecord {
+  id: string;
+  status: "draft" | "published";
+  name: string;
+  email: string;
+  image: string;
+  avatar: string;
+  headline: { tr: string; en: string };
+  location: { tr: string; en: string };
+  alt: { tr: string; en: string };
+  summary: { tr: string[]; en: string[] };
+  stats: ProfileStat[];
+  focusAreas: { tr: string[]; en: string[] };
+  createdAt: string;
+  updatedAt: string;
+  publishedAt?: string | null;
+}
+
+export interface UpsertProfileInput {
+  name?: string;
+  email?: string;
+  image?: string;
+  avatar?: string;
+  headlineTR?: string;
+  headlineEN?: string;
+  locationTR?: string;
+  locationEN?: string;
+  altTR?: string;
+  altEN?: string;
+  summaryTR?: string[];
+  summaryEN?: string[];
+  stats?: ProfileStat[];
+  focusAreasTR?: string[];
+  focusAreasEN?: string[];
+  status?: "draft" | "published";
+}
+
+export interface CmsProfileRevisionRecord {
+  id: string;
+  profileId: string;
+  revisionNumber: number;
+  action: string;
+  snapshotJson: string;
+  actorEmail: string;
+  createdAt: string;
+}
+
+export interface CmsWorkspaceNote {
+  id: string;
+  workspaceId: WorkspaceCategory;
+  status: CmsPublishStatus;
+  sortOrder: number;
+  filename: string;
+  title: { tr: string; en: string };
+  content: { tr: string; en: string };
+  createdAt: string;
+  updatedAt: string;
+  publishedAt?: string | null;
+  archivedAt?: string | null;
+}
+
+export interface UpsertWorkspaceNoteInput {
+  id?: string;
+  workspaceId: WorkspaceCategory;
+  status?: CmsPublishStatus;
+  sortOrder?: number;
+  filename?: string;
+  titleTR?: string;
+  titleEN?: string;
+  contentTR?: string;
+  contentEN?: string;
+}
+
+export interface CmsWorkspaceNoteRevisionRecord {
+  id: string;
+  workspaceId: string;
+  revisionNumber: number;
+  action: string;
+  snapshotJson: string;
+  actorEmail: string;
+  createdAt: string;
+}
+
+export interface CmsExperienceItem {
+  id: string;
+  status: CmsPublishStatus;
+  organization: string;
+  startDate: string;
+  category: "work" | "freelance" | "ai" | "creative" | "volunteer";
+  skills: string[];
+  sortOrder: number;
+  role: { tr: string; en: string };
+  endDate: { tr: string; en: string };
+  location?: { tr?: string; en?: string };
+  employmentType?: { tr?: string; en?: string };
+  description: { tr: string; en: string };
+  createdAt: string;
+  updatedAt: string;
+  publishedAt?: string | null;
+  archivedAt?: string | null;
+}
+
+export interface UpsertExperienceInput {
+  id?: string;
+  status?: CmsPublishStatus;
+  organization: string;
+  startDate: string;
+  category?: "work" | "freelance" | "ai" | "creative" | "volunteer";
+  skills?: string[];
+  sortOrder?: number;
+  roleTR: string;
+  roleEN: string;
+  endDateTR: string;
+  endDateEN: string;
+  locationTR?: string;
+  locationEN?: string;
+  employmentTypeTR?: string;
+  employmentTypeEN?: string;
+  descriptionTR: string;
+  descriptionEN: string;
+}
+
+export interface CmsExperienceRevisionRecord {
+  id: string;
+  experienceId: string;
+  revisionNumber: number;
+  action: string;
+  snapshotJson: string;
+  actorEmail: string;
+  createdAt: string;
+}
+
+export interface CmsEducationItem {
+  id: string;
+  status: CmsPublishStatus;
+  startYear?: string;
+  sortOrder: number;
+  institution: { tr: string; en: string };
+  program: { tr: string; en: string };
+  endYear: { tr: string; en: string };
+  statusLabel: { tr: string; en: string };
+  description?: { tr?: string; en?: string };
+  createdAt: string;
+  updatedAt: string;
+  publishedAt?: string | null;
+  archivedAt?: string | null;
+}
+
+export interface UpsertEducationInput {
+  id?: string;
+  status?: CmsPublishStatus;
+  startYear?: string;
+  sortOrder?: number;
+  institutionTR: string;
+  institutionEN: string;
+  programTR: string;
+  programEN: string;
+  endYearTR: string;
+  endYearEN: string;
+  statusLabelTR: string;
+  statusLabelEN: string;
+  descriptionTR?: string;
+  descriptionEN?: string;
+}
+
+export interface CmsEducationRevisionRecord {
+  id: string;
+  educationId: string;
+  revisionNumber: number;
+  action: string;
+  snapshotJson: string;
+  actorEmail: string;
+  createdAt: string;
+}
+
+export type CmsSkillCategory = "design" | "web" | "production" | "ai" | "strategy" | "tools";
+
+export interface CmsSkillItem {
+  id: string;
+  category: CmsSkillCategory;
+  status: CmsPublishStatus;
+  sortOrder: number;
+  name: { tr: string; en: string };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpsertSkillInput {
+  id?: string;
+  category: CmsSkillCategory;
+  status?: CmsPublishStatus;
+  sortOrder?: number;
+  nameTR: string;
+  nameEN: string;
+}
+
+export interface CmsCvDocument {
+  id: string;
+  locale: "tr" | "en";
+  status: CmsPublishStatus;
+  storageMode: "local_static" | "r2" | "external";
+  storageKey: string;
+  publicUrl: string;
+  filename: string;
+  mimeType: string;
+  byteSize: number;
+  sha256: string;
+  createdAt: string;
+  updatedAt: string;
+  publishedAt?: string | null;
+  archivedAt?: string | null;
+}
+
+export interface UpsertCvInput {
+  locale: "tr" | "en";
+  status?: CmsPublishStatus;
+  storageMode?: "local_static" | "r2" | "external";
+  storageKey?: string;
+  publicUrl?: string;
+  filename?: string;
+  mimeType?: string;
+  byteSize?: number;
+  sha256?: string;
+}
+
+export interface CmsCvRevisionRecord {
+  id: string;
+  cvId: string;
+  revisionNumber: number;
+  action: string;
+  snapshotJson: string;
+  actorEmail: string;
+  createdAt: string;
+}
+
+export function validateCvPdfSignature(
+  bytes: Uint8Array,
+  filename: string
+): { valid: boolean; byteSize?: number; error?: string } {
+  if (bytes.byteLength === 0) {
+    return { valid: false, error: "Uploaded CV file is empty." };
+  }
+
+  const maxBytes = 15 * 1024 * 1024; // 15 MB
+  if (bytes.byteLength > maxBytes) {
+    return {
+      valid: false,
+      error: `CV file exceeds maximum allowed size of 15 MB (${bytes.byteLength} bytes).`
+    };
+  }
+
+  const lowerName = (filename || "").toLowerCase().trim();
+  if (!lowerName.endsWith(".pdf")) {
+    return {
+      valid: false,
+      error: `CV file must have a .pdf extension (received: "${filename}").`
+    };
+  }
+
+  // Magic bytes check for PDF: %PDF- (0x25 0x50 0x44 0x46 0x2D)
+  if (
+    bytes.byteLength < 5 ||
+    bytes[0] !== 0x25 ||
+    bytes[1] !== 0x50 ||
+    bytes[2] !== 0x44 ||
+    bytes[3] !== 0x46 ||
+    bytes[4] !== 0x2d
+  ) {
+    return {
+      valid: false,
+      error: "Invalid PDF signature: file header does not match %PDF- magic bytes."
+    };
+  }
+
+  return { valid: true, byteSize: bytes.byteLength };
+}
+
+

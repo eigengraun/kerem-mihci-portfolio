@@ -9,21 +9,40 @@ import { Locale } from "@/data/translations";
 import type { Project } from "@/data/projects";
 import type { PortfolioVideo } from "@/data/videos";
 import type { GalleryItem } from "@/data/gallery";
+import type {
+  CmsProfileRecord,
+  CmsWorkspaceNote,
+  CmsExperienceItem,
+  CmsEducationItem,
+  CmsSkillItem,
+  CmsCvDocument
+} from "@/lib/portfolio/types";
+
+export interface Phase5InitialData {
+  profile?: CmsProfileRecord | null;
+  notes?: Record<string, CmsWorkspaceNote[]>;
+  experience?: CmsExperienceItem[];
+  education?: CmsEducationItem[];
+  skills?: CmsSkillItem[];
+  cv?: { tr: CmsCvDocument | null; en: CmsCvDocument | null };
+}
 
 interface ClientLocalePageProps {
   initialProjects?: Project[];
   initialVideos?: PortfolioVideo[];
   initialGallery?: GalleryItem[];
+  initialPhase5?: Phase5InitialData;
   isCmsMode?: boolean;
 }
 
-export function ClientLocalePage({ initialProjects, initialVideos, initialGallery, isCmsMode = false }: ClientLocalePageProps) {
+export function ClientLocalePage({ initialProjects, initialVideos, initialGallery, initialPhase5, isCmsMode = false }: ClientLocalePageProps) {
   const params = useParams();
   const locale = (params?.locale as Locale) || "tr";
   const { setLocale } = useDesktopStore();
   const hydrateProjects = useSessionStore((s) => s.hydrateProjects);
   const hydrateVideos = useSessionStore((s) => s.hydrateVideos);
   const hydrateGallery = useSessionStore((s) => s.hydrateGallery);
+  const hydratePhase5Content = useSessionStore((s) => s.hydratePhase5Content);
 
   // Synchronous first-render hydration to prevent any flash of static fallback data
   const isHydratedRef = React.useRef<boolean | null>(null);
@@ -36,6 +55,9 @@ export function ClientLocalePage({ initialProjects, initialVideos, initialGaller
     }
     if (Array.isArray(initialProjects) && initialProjects.length > 0) {
       useSessionStore.getState().hydrateProjects(initialProjects);
+    }
+    if (initialPhase5) {
+      useSessionStore.getState().hydratePhase5Content(initialPhase5);
     }
     isHydratedRef.current = true;
   }
@@ -57,6 +79,12 @@ export function ClientLocalePage({ initialProjects, initialVideos, initialGaller
       hydrateGallery(initialGallery, isCmsMode);
     }
   }, [initialGallery, hydrateGallery, isCmsMode]);
+
+  useEffect(() => {
+    if (initialPhase5) {
+      hydratePhase5Content(initialPhase5);
+    }
+  }, [initialPhase5, hydratePhase5Content]);
 
   useEffect(() => {
     if (locale === "tr" || locale === "en") {

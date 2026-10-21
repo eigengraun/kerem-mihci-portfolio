@@ -44,7 +44,47 @@ import {
   uploadGalleryAssetToStorageAndD1 as uploadGalleryAssetLocal,
   upsertProjectInD1 as upsertProjectLocal,
   upsertVideoInD1 as upsertVideoLocal,
-  upsertGalleryItemInD1 as upsertGalleryItemLocal
+  upsertGalleryItemInD1 as upsertGalleryItemLocal,
+  getProfileFromD1 as getProfileLocal,
+  upsertProfileInD1 as upsertProfileLocal,
+  listProfileRevisionsFromD1 as listProfileRevisionsLocal,
+  rollbackProfileRevisionInD1 as rollbackProfileRevisionLocal,
+  listWorkspaceNotesForAdminFromD1 as listWorkspaceNotesForAdminLocal,
+  listPublishedWorkspaceNotesFromD1 as listPublishedWorkspaceNotesLocal,
+  getWorkspaceNoteByIdFromD1 as getWorkspaceNoteByIdLocal,
+  upsertWorkspaceNoteInD1 as upsertWorkspaceNoteLocal,
+  deleteWorkspaceNoteInD1 as deleteWorkspaceNoteLocal,
+  updateWorkspaceNotesOrderingInD1 as updateWorkspaceNotesOrderingLocal,
+  listWorkspaceNotesRevisionsFromD1 as listWorkspaceNotesRevisionsLocal,
+  rollbackWorkspaceNoteRevisionInD1 as rollbackWorkspaceNoteRevisionLocal,
+  listExperienceForAdminFromD1 as listExperienceForAdminLocal,
+  listPublishedExperienceFromD1 as listPublishedExperienceLocal,
+  getExperienceByIdFromD1 as getExperienceByIdLocal,
+  upsertExperienceInD1 as upsertExperienceLocal,
+  deleteExperienceInD1 as deleteExperienceLocal,
+  updateExperienceOrderingInD1 as updateExperienceOrderingLocal,
+  listExperienceRevisionsFromD1 as listExperienceRevisionsLocal,
+  rollbackExperienceRevisionInD1 as rollbackExperienceRevisionLocal,
+  listEducationForAdminFromD1 as listEducationForAdminLocal,
+  listPublishedEducationFromD1 as listPublishedEducationLocal,
+  getEducationByIdFromD1 as getEducationByIdLocal,
+  upsertEducationInD1 as upsertEducationLocal,
+  deleteEducationInD1 as deleteEducationLocal,
+  updateEducationOrderingInD1 as updateEducationOrderingLocal,
+  listEducationRevisionsFromD1 as listEducationRevisionsLocal,
+  rollbackEducationRevisionInD1 as rollbackEducationRevisionLocal,
+  listSkillsForAdminFromD1 as listSkillsForAdminLocal,
+  listPublishedSkillsFromD1 as listPublishedSkillsLocal,
+  getSkillByIdFromD1 as getSkillByIdLocal,
+  upsertSkillInD1 as upsertSkillLocal,
+  deleteSkillInD1 as deleteSkillLocal,
+  updateSkillsOrderingInD1 as updateSkillsOrderingLocal,
+  getCvDocumentFromD1 as getCvDocumentLocal,
+  listCvDocumentsFromD1 as listCvDocumentsLocal,
+  upsertCvDocumentInD1 as upsertCvDocumentLocal,
+  uploadCvDocumentToStorageAndD1 as uploadCvDocumentLocal,
+  listCvRevisionsFromD1 as listCvRevisionsLocal,
+  rollbackCvRevisionInD1 as rollbackCvRevisionLocal
 } from "./d1Engine";
 import {
   CmsStorageUnavailableError,
@@ -64,7 +104,27 @@ import {
   type CmsGalleryRevisionRecord,
   type UpsertProjectInput,
   type UpsertVideoInput,
-  type UpsertGalleryItemInput
+  type UpsertGalleryItemInput,
+  type CmsProfileRecord,
+  type UpsertProfileInput,
+  type CmsProfileRevisionRecord,
+  type CmsWorkspaceNote,
+  type UpsertWorkspaceNoteInput,
+  type CmsWorkspaceNoteRevisionRecord,
+  type CmsExperienceItem,
+  type UpsertExperienceInput,
+  type CmsExperienceRevisionRecord,
+  type CmsEducationItem,
+  type UpsertEducationInput,
+  type CmsEducationRevisionRecord,
+  type CmsSkillCategory,
+  type CmsSkillItem,
+  type UpsertSkillInput,
+  type CmsCvDocument,
+  type UpsertCvInput,
+  type CmsCvRevisionRecord,
+  type WorkspaceCategory,
+  validateCvPdfSignature
 } from "./types";
 
 const WORKER_TIMEOUT_MS = 8000;
@@ -1678,5 +1738,820 @@ export const deleteAdminGalleryItem = deleteGalleryItem;
 export const updateGalleryOrderingInD1 = updateGalleryOrdering;
 export const listGalleryRevisionsFromD1 = listGalleryRevisions;
 export const rollbackGalleryRevisionInD1 = rollbackGalleryRevision;
+
+// ============================================================
+// PHASE 5: PROFILE, WORKSPACE NOTES, EXPERIENCE, EDUCATION, SKILLS & CV REPOSITORY
+// ============================================================
+
+// --- 1. PROFILE & ABOUT ---
+
+export async function getPublishedProfile(): Promise<CmsProfileRecord | null> {
+  if (shouldUseWorkerApi()) {
+    try {
+      const res = await fetchWorkerJson<{ ok: boolean; profile: CmsProfileRecord | null }>(
+        "/api/v1/public/profile"
+      );
+      return res.profile || null;
+    } catch {
+      return null;
+    }
+  }
+  assertLocalSimulationAllowed("getPublishedProfile");
+  const p = getProfileLocal();
+  if (p && p.status === "published") return p;
+  return null;
+}
+
+export async function getAdminProfile(): Promise<CmsProfileRecord | null> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("getAdminProfile");
+    const res = await fetchWorkerJson<{ ok: boolean; profile: CmsProfileRecord | null }>(
+      "/api/v1/admin/profile",
+      { requireServiceAuth: true }
+    );
+    return res.profile || null;
+  }
+  assertLocalSimulationAllowed("getAdminProfile");
+  return getProfileLocal();
+}
+
+export async function saveAdminProfile(
+  input: UpsertProfileInput,
+  actorEmail: string
+): Promise<CmsProfileRecord> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("saveAdminProfile");
+    const res = await fetchWorkerJson<{ ok: boolean; profile: CmsProfileRecord }>(
+      "/api/v1/admin/profile",
+      {
+        method: "PUT",
+        body: JSON.stringify(input),
+        requireServiceAuth: true,
+        actorEmail,
+        headers: { "Content-Type": "application/json" }
+      }
+    );
+    return res.profile;
+  }
+  assertLocalSimulationAllowed("saveAdminProfile");
+  return upsertProfileLocal(input, actorEmail);
+}
+
+export async function listProfileRevisions(): Promise<CmsProfileRevisionRecord[]> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("listProfileRevisions");
+    const res = await fetchWorkerJson<{ ok: boolean; revisions: CmsProfileRevisionRecord[] }>(
+      "/api/v1/admin/profile/revisions",
+      { requireServiceAuth: true }
+    );
+    return res.revisions || [];
+  }
+  assertLocalSimulationAllowed("listProfileRevisions");
+  return listProfileRevisionsLocal();
+}
+
+export async function rollbackProfileRevision(
+  revisionNumber: number,
+  actorEmail: string
+): Promise<CmsProfileRecord> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("rollbackProfileRevision");
+    const res = await fetchWorkerJson<{ ok: boolean; profile: CmsProfileRecord }>(
+      "/api/v1/admin/profile/rollback",
+      {
+        method: "POST",
+        body: JSON.stringify({ revisionNumber }),
+        requireServiceAuth: true,
+        actorEmail,
+        headers: { "Content-Type": "application/json" }
+      }
+    );
+    return res.profile;
+  }
+  assertLocalSimulationAllowed("rollbackProfileRevision");
+  return rollbackProfileRevisionLocal(revisionNumber, actorEmail);
+}
+
+export const listProfileRevisionsFromD1 = listProfileRevisions;
+export const rollbackProfileRevisionInD1 = rollbackProfileRevision;
+
+// --- 2. WORKSPACE NOTES ---
+
+export async function getPublishedWorkspaceNotes(
+  workspaceId: WorkspaceCategory
+): Promise<CmsWorkspaceNote[]> {
+  if (shouldUseWorkerApi()) {
+    try {
+      const res = await fetchWorkerJson<{ ok: boolean; notes: CmsWorkspaceNote[] }>(
+        `/api/v1/public/notes/${encodeURIComponent(workspaceId)}`
+      );
+      return res.notes || [];
+    } catch {
+      return [];
+    }
+  }
+  assertLocalSimulationAllowed("getPublishedWorkspaceNotes");
+  return listPublishedWorkspaceNotesLocal(workspaceId);
+}
+
+export async function getAdminWorkspaceNotes(
+  workspaceId?: WorkspaceCategory
+): Promise<CmsWorkspaceNote[]> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("getAdminWorkspaceNotes");
+    const path = workspaceId ? `/api/v1/admin/notes?workspaceId=${encodeURIComponent(workspaceId)}` : "/api/v1/admin/notes";
+    const res = await fetchWorkerJson<{ ok: boolean; notes: CmsWorkspaceNote[] }>(
+      path,
+      { requireServiceAuth: true }
+    );
+    return res.notes || [];
+  }
+  assertLocalSimulationAllowed("getAdminWorkspaceNotes");
+  return listWorkspaceNotesForAdminLocal(workspaceId);
+}
+
+export async function getAdminWorkspaceNoteById(id: string): Promise<CmsWorkspaceNote | null> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("getAdminWorkspaceNoteById");
+    const res = await fetchWorkerJson<{ ok: boolean; note: CmsWorkspaceNote | null }>(
+      `/api/v1/admin/notes/${encodeURIComponent(id)}`,
+      { requireServiceAuth: true }
+    );
+    return res.note || null;
+  }
+  assertLocalSimulationAllowed("getAdminWorkspaceNoteById");
+  return getWorkspaceNoteByIdLocal(id);
+}
+
+export async function saveAdminWorkspaceNote(
+  input: UpsertWorkspaceNoteInput,
+  actorEmail: string
+): Promise<CmsWorkspaceNote> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("saveAdminWorkspaceNote");
+    const isCreate = !input.id;
+    const url = isCreate ? "/api/v1/admin/notes" : `/api/v1/admin/notes/${encodeURIComponent(input.id!)}`;
+    const method = isCreate ? "POST" : "PUT";
+    const res = await fetchWorkerJson<{ ok: boolean; note: CmsWorkspaceNote }>(url, {
+      method,
+      body: JSON.stringify(input),
+      requireServiceAuth: true,
+      actorEmail,
+      headers: { "Content-Type": "application/json" }
+    });
+    return res.note;
+  }
+  assertLocalSimulationAllowed("saveAdminWorkspaceNote");
+  return upsertWorkspaceNoteLocal(input, actorEmail);
+}
+
+export async function deleteAdminWorkspaceNote(
+  id: string,
+  actorEmail: string
+): Promise<{ deletedId: string }> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("deleteAdminWorkspaceNote");
+    const res = await fetchWorkerJson<{ ok: boolean; deletedId: string }>(
+      `/api/v1/admin/notes/${encodeURIComponent(id)}`,
+      {
+        method: "DELETE",
+        requireServiceAuth: true,
+        actorEmail
+      }
+    );
+    return { deletedId: res.deletedId || id };
+  }
+  assertLocalSimulationAllowed("deleteAdminWorkspaceNote");
+  return deleteWorkspaceNoteLocal(id, actorEmail);
+}
+
+export async function updateWorkspaceNotesOrdering(
+  items: Array<{ id: string; sortOrder: number }>,
+  actorEmail: string
+): Promise<{ updated: number }> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("updateWorkspaceNotesOrdering");
+    const res = await fetchWorkerJson<{ ok: boolean; updated: number }>(
+      "/api/v1/admin/notes/reorder",
+      {
+        method: "POST",
+        body: JSON.stringify({ items }),
+        requireServiceAuth: true,
+        actorEmail,
+        headers: { "Content-Type": "application/json" }
+      }
+    );
+    return { updated: res.updated || items.length };
+  }
+  assertLocalSimulationAllowed("updateWorkspaceNotesOrdering");
+  updateWorkspaceNotesOrderingLocal(items, actorEmail);
+  return { updated: items.length };
+}
+
+export async function listWorkspaceNotesRevisions(
+  workspaceId: string
+): Promise<CmsWorkspaceNoteRevisionRecord[]> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("listWorkspaceNotesRevisions");
+    const res = await fetchWorkerJson<{ ok: boolean; revisions: CmsWorkspaceNoteRevisionRecord[] }>(
+      `/api/v1/admin/notes/revisions?workspaceId=${encodeURIComponent(workspaceId)}`,
+      { requireServiceAuth: true }
+    );
+    return res.revisions || [];
+  }
+  assertLocalSimulationAllowed("listWorkspaceNotesRevisions");
+  return listWorkspaceNotesRevisionsLocal(workspaceId);
+}
+
+export async function rollbackWorkspaceNoteRevision(
+  workspaceId: string,
+  revisionNumber: number,
+  actorEmail: string
+): Promise<void> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("rollbackWorkspaceNoteRevision");
+    await fetchWorkerJson<{ ok: boolean }>(
+      "/api/v1/admin/notes/rollback",
+      {
+        method: "POST",
+        body: JSON.stringify({ workspaceId, revisionNumber }),
+        requireServiceAuth: true,
+        actorEmail,
+        headers: { "Content-Type": "application/json" }
+      }
+    );
+    return;
+  }
+  assertLocalSimulationAllowed("rollbackWorkspaceNoteRevision");
+  rollbackWorkspaceNoteRevisionLocal(workspaceId, revisionNumber, actorEmail);
+}
+
+export const updateWorkspaceNotesOrderingInD1 = updateWorkspaceNotesOrdering;
+export const listWorkspaceNotesRevisionsFromD1 = listWorkspaceNotesRevisions;
+export const rollbackWorkspaceNoteRevisionInD1 = rollbackWorkspaceNoteRevision;
+
+// --- 3. EXPERIENCE ---
+
+export async function getPublishedExperience(category?: string): Promise<CmsExperienceItem[]> {
+  if (shouldUseWorkerApi()) {
+    try {
+      const path = category ? `/api/v1/public/experience?category=${encodeURIComponent(category)}` : "/api/v1/public/experience";
+      const res = await fetchWorkerJson<{ ok: boolean; experience: CmsExperienceItem[] }>(path);
+      return res.experience || [];
+    } catch {
+      return [];
+    }
+  }
+  assertLocalSimulationAllowed("getPublishedExperience");
+  return listPublishedExperienceLocal(category);
+}
+
+export async function getAdminExperience(category?: string): Promise<CmsExperienceItem[]> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("getAdminExperience");
+    const path = category ? `/api/v1/admin/experience?category=${encodeURIComponent(category)}` : "/api/v1/admin/experience";
+    const res = await fetchWorkerJson<{ ok: boolean; experience: CmsExperienceItem[] }>(
+      path,
+      { requireServiceAuth: true }
+    );
+    return res.experience || [];
+  }
+  assertLocalSimulationAllowed("getAdminExperience");
+  return listExperienceForAdminLocal(category);
+}
+
+export async function getAdminExperienceById(id: string): Promise<CmsExperienceItem | null> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("getAdminExperienceById");
+    const res = await fetchWorkerJson<{ ok: boolean; experience: CmsExperienceItem | null }>(
+      `/api/v1/admin/experience/${encodeURIComponent(id)}`,
+      { requireServiceAuth: true }
+    );
+    return res.experience || null;
+  }
+  assertLocalSimulationAllowed("getAdminExperienceById");
+  return getExperienceByIdLocal(id);
+}
+
+export async function saveAdminExperience(
+  input: UpsertExperienceInput,
+  actorEmail: string
+): Promise<CmsExperienceItem> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("saveAdminExperience");
+    const isCreate = !input.id;
+    const url = isCreate ? "/api/v1/admin/experience" : `/api/v1/admin/experience/${encodeURIComponent(input.id!)}`;
+    const method = isCreate ? "POST" : "PUT";
+    const res = await fetchWorkerJson<{ ok: boolean; experience: CmsExperienceItem }>(url, {
+      method,
+      body: JSON.stringify(input),
+      requireServiceAuth: true,
+      actorEmail,
+      headers: { "Content-Type": "application/json" }
+    });
+    return res.experience;
+  }
+  assertLocalSimulationAllowed("saveAdminExperience");
+  return upsertExperienceLocal(input, actorEmail);
+}
+
+export async function deleteAdminExperience(
+  id: string,
+  actorEmail: string
+): Promise<{ deletedId: string }> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("deleteAdminExperience");
+    const res = await fetchWorkerJson<{ ok: boolean; deletedId: string }>(
+      `/api/v1/admin/experience/${encodeURIComponent(id)}`,
+      {
+        method: "DELETE",
+        requireServiceAuth: true,
+        actorEmail
+      }
+    );
+    return { deletedId: res.deletedId || id };
+  }
+  assertLocalSimulationAllowed("deleteAdminExperience");
+  return deleteExperienceLocal(id, actorEmail);
+}
+
+export async function updateExperienceOrdering(
+  items: Array<{ id: string; sortOrder: number }>,
+  actorEmail: string
+): Promise<{ updated: number }> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("updateExperienceOrdering");
+    const res = await fetchWorkerJson<{ ok: boolean; updated: number }>(
+      "/api/v1/admin/experience/reorder",
+      {
+        method: "POST",
+        body: JSON.stringify({ items }),
+        requireServiceAuth: true,
+        actorEmail,
+        headers: { "Content-Type": "application/json" }
+      }
+    );
+    return { updated: res.updated || items.length };
+  }
+  assertLocalSimulationAllowed("updateExperienceOrdering");
+  updateExperienceOrderingLocal(items, actorEmail);
+  return { updated: items.length };
+}
+
+export async function listExperienceRevisions(
+  experienceId: string
+): Promise<CmsExperienceRevisionRecord[]> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("listExperienceRevisions");
+    const res = await fetchWorkerJson<{ ok: boolean; revisions: CmsExperienceRevisionRecord[] }>(
+      `/api/v1/admin/experience/${encodeURIComponent(experienceId)}/revisions`,
+      { requireServiceAuth: true }
+    );
+    return res.revisions || [];
+  }
+  assertLocalSimulationAllowed("listExperienceRevisions");
+  return listExperienceRevisionsLocal(experienceId);
+}
+
+export async function rollbackExperienceRevision(
+  experienceId: string,
+  revisionNumber: number,
+  actorEmail: string
+): Promise<CmsExperienceItem> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("rollbackExperienceRevision");
+    const res = await fetchWorkerJson<{ ok: boolean; experience: CmsExperienceItem }>(
+      `/api/v1/admin/experience/${encodeURIComponent(experienceId)}/rollback`,
+      {
+        method: "POST",
+        body: JSON.stringify({ revisionNumber }),
+        requireServiceAuth: true,
+        actorEmail,
+        headers: { "Content-Type": "application/json" }
+      }
+    );
+    return res.experience;
+  }
+  assertLocalSimulationAllowed("rollbackExperienceRevision");
+  return rollbackExperienceRevisionLocal(experienceId, revisionNumber, actorEmail);
+}
+
+export const updateExperienceOrderingInD1 = updateExperienceOrdering;
+export const listExperienceRevisionsFromD1 = listExperienceRevisions;
+export const rollbackExperienceRevisionInD1 = rollbackExperienceRevision;
+
+// --- 4. EDUCATION ---
+
+export async function getPublishedEducation(): Promise<CmsEducationItem[]> {
+  if (shouldUseWorkerApi()) {
+    try {
+      const res = await fetchWorkerJson<{ ok: boolean; education: CmsEducationItem[] }>(
+        "/api/v1/public/education"
+      );
+      return res.education || [];
+    } catch {
+      return [];
+    }
+  }
+  assertLocalSimulationAllowed("getPublishedEducation");
+  return listPublishedEducationLocal();
+}
+
+export async function getAdminEducation(): Promise<CmsEducationItem[]> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("getAdminEducation");
+    const res = await fetchWorkerJson<{ ok: boolean; education: CmsEducationItem[] }>(
+      "/api/v1/admin/education",
+      { requireServiceAuth: true }
+    );
+    return res.education || [];
+  }
+  assertLocalSimulationAllowed("getAdminEducation");
+  return listEducationForAdminLocal();
+}
+
+export async function getAdminEducationById(id: string): Promise<CmsEducationItem | null> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("getAdminEducationById");
+    const res = await fetchWorkerJson<{ ok: boolean; education: CmsEducationItem | null }>(
+      `/api/v1/admin/education/${encodeURIComponent(id)}`,
+      { requireServiceAuth: true }
+    );
+    return res.education || null;
+  }
+  assertLocalSimulationAllowed("getAdminEducationById");
+  return getEducationByIdLocal(id);
+}
+
+export async function saveAdminEducation(
+  input: UpsertEducationInput,
+  actorEmail: string
+): Promise<CmsEducationItem> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("saveAdminEducation");
+    const isCreate = !input.id;
+    const url = isCreate ? "/api/v1/admin/education" : `/api/v1/admin/education/${encodeURIComponent(input.id!)}`;
+    const method = isCreate ? "POST" : "PUT";
+    const res = await fetchWorkerJson<{ ok: boolean; education: CmsEducationItem }>(url, {
+      method,
+      body: JSON.stringify(input),
+      requireServiceAuth: true,
+      actorEmail,
+      headers: { "Content-Type": "application/json" }
+    });
+    return res.education;
+  }
+  assertLocalSimulationAllowed("saveAdminEducation");
+  return upsertEducationLocal(input, actorEmail);
+}
+
+export async function deleteAdminEducation(
+  id: string,
+  actorEmail: string
+): Promise<{ deletedId: string }> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("deleteAdminEducation");
+    const res = await fetchWorkerJson<{ ok: boolean; deletedId: string }>(
+      `/api/v1/admin/education/${encodeURIComponent(id)}`,
+      {
+        method: "DELETE",
+        requireServiceAuth: true,
+        actorEmail
+      }
+    );
+    return { deletedId: res.deletedId || id };
+  }
+  assertLocalSimulationAllowed("deleteAdminEducation");
+  return deleteEducationLocal(id, actorEmail);
+}
+
+export async function updateEducationOrdering(
+  items: Array<{ id: string; sortOrder: number }>,
+  actorEmail: string
+): Promise<{ updated: number }> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("updateEducationOrdering");
+    const res = await fetchWorkerJson<{ ok: boolean; updated: number }>(
+      "/api/v1/admin/education/reorder",
+      {
+        method: "POST",
+        body: JSON.stringify({ items }),
+        requireServiceAuth: true,
+        actorEmail,
+        headers: { "Content-Type": "application/json" }
+      }
+    );
+    return { updated: res.updated || items.length };
+  }
+  assertLocalSimulationAllowed("updateEducationOrdering");
+  updateEducationOrderingLocal(items, actorEmail);
+  return { updated: items.length };
+}
+
+export async function listEducationRevisions(
+  educationId: string
+): Promise<CmsEducationRevisionRecord[]> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("listEducationRevisions");
+    const res = await fetchWorkerJson<{ ok: boolean; revisions: CmsEducationRevisionRecord[] }>(
+      `/api/v1/admin/education/${encodeURIComponent(educationId)}/revisions`,
+      { requireServiceAuth: true }
+    );
+    return res.revisions || [];
+  }
+  assertLocalSimulationAllowed("listEducationRevisions");
+  return listEducationRevisionsLocal(educationId);
+}
+
+export async function rollbackEducationRevision(
+  educationId: string,
+  revisionNumber: number,
+  actorEmail: string
+): Promise<CmsEducationItem> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("rollbackEducationRevision");
+    const res = await fetchWorkerJson<{ ok: boolean; education: CmsEducationItem }>(
+      `/api/v1/admin/education/${encodeURIComponent(educationId)}/rollback`,
+      {
+        method: "POST",
+        body: JSON.stringify({ revisionNumber }),
+        requireServiceAuth: true,
+        actorEmail,
+        headers: { "Content-Type": "application/json" }
+      }
+    );
+    return res.education;
+  }
+  assertLocalSimulationAllowed("rollbackEducationRevision");
+  return rollbackEducationRevisionLocal(educationId, revisionNumber, actorEmail);
+}
+
+export const updateEducationOrderingInD1 = updateEducationOrdering;
+export const listEducationRevisionsFromD1 = listEducationRevisions;
+export const rollbackEducationRevisionInD1 = rollbackEducationRevision;
+
+// --- 5. SKILLS ---
+
+export async function getPublishedSkills(category?: CmsSkillCategory): Promise<CmsSkillItem[]> {
+  if (shouldUseWorkerApi()) {
+    try {
+      const path = category ? `/api/v1/public/skills?category=${encodeURIComponent(category)}` : "/api/v1/public/skills";
+      const res = await fetchWorkerJson<{ ok: boolean; skills: CmsSkillItem[] }>(path);
+      return res.skills || [];
+    } catch {
+      return [];
+    }
+  }
+  assertLocalSimulationAllowed("getPublishedSkills");
+  return listPublishedSkillsLocal(category);
+}
+
+export async function getAdminSkills(category?: CmsSkillCategory): Promise<CmsSkillItem[]> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("getAdminSkills");
+    const path = category ? `/api/v1/admin/skills?category=${encodeURIComponent(category)}` : "/api/v1/admin/skills";
+    const res = await fetchWorkerJson<{ ok: boolean; skills: CmsSkillItem[] }>(
+      path,
+      { requireServiceAuth: true }
+    );
+    return res.skills || [];
+  }
+  assertLocalSimulationAllowed("getAdminSkills");
+  return listSkillsForAdminLocal(category);
+}
+
+export async function getAdminSkillById(id: string): Promise<CmsSkillItem | null> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("getAdminSkillById");
+    const res = await fetchWorkerJson<{ ok: boolean; skill: CmsSkillItem | null }>(
+      `/api/v1/admin/skills/${encodeURIComponent(id)}`,
+      { requireServiceAuth: true }
+    );
+    return res.skill || null;
+  }
+  assertLocalSimulationAllowed("getAdminSkillById");
+  return getSkillByIdLocal(id);
+}
+
+export async function saveAdminSkill(
+  input: UpsertSkillInput,
+  actorEmail: string
+): Promise<CmsSkillItem> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("saveAdminSkill");
+    const isCreate = !input.id;
+    const url = isCreate ? "/api/v1/admin/skills" : `/api/v1/admin/skills/${encodeURIComponent(input.id!)}`;
+    const method = isCreate ? "POST" : "PUT";
+    const res = await fetchWorkerJson<{ ok: boolean; skill: CmsSkillItem }>(url, {
+      method,
+      body: JSON.stringify(input),
+      requireServiceAuth: true,
+      actorEmail,
+      headers: { "Content-Type": "application/json" }
+    });
+    return res.skill;
+  }
+  assertLocalSimulationAllowed("saveAdminSkill");
+  return upsertSkillLocal(input, actorEmail);
+}
+
+export async function deleteAdminSkill(
+  id: string,
+  actorEmail: string
+): Promise<{ deletedId: string }> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("deleteAdminSkill");
+    const res = await fetchWorkerJson<{ ok: boolean; deletedId: string }>(
+      `/api/v1/admin/skills/${encodeURIComponent(id)}`,
+      {
+        method: "DELETE",
+        requireServiceAuth: true,
+        actorEmail
+      }
+    );
+    return { deletedId: res.deletedId || id };
+  }
+  assertLocalSimulationAllowed("deleteAdminSkill");
+  return deleteSkillLocal(id, actorEmail);
+}
+
+export async function updateSkillsOrdering(
+  items: Array<{ id: string; sortOrder: number }>,
+  actorEmail: string
+): Promise<{ updated: number }> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("updateSkillsOrdering");
+    const res = await fetchWorkerJson<{ ok: boolean; updated: number }>(
+      "/api/v1/admin/skills/reorder",
+      {
+        method: "POST",
+        body: JSON.stringify({ items }),
+        requireServiceAuth: true,
+        actorEmail,
+        headers: { "Content-Type": "application/json" }
+      }
+    );
+    return { updated: res.updated || items.length };
+  }
+  assertLocalSimulationAllowed("updateSkillsOrdering");
+  updateSkillsOrderingLocal(items, actorEmail);
+  return { updated: items.length };
+}
+
+export const updateSkillsOrderingInD1 = updateSkillsOrdering;
+
+// --- 6. CV DOCUMENTS ---
+
+export async function getPublishedCv(locale: "tr" | "en"): Promise<CmsCvDocument | null> {
+  if (shouldUseWorkerApi()) {
+    try {
+      const res = await fetchWorkerJson<{ ok: boolean; cv: CmsCvDocument | null }>(
+        `/api/v1/public/cv/${encodeURIComponent(locale)}`
+      );
+      return res.cv || null;
+    } catch {
+      return null;
+    }
+  }
+  assertLocalSimulationAllowed("getPublishedCv");
+  const doc = getCvDocumentLocal(locale);
+  if (doc && doc.status === "published") return doc;
+  return null;
+}
+
+export async function getAdminCvDocuments(): Promise<CmsCvDocument[]> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("getAdminCvDocuments");
+    const res = await fetchWorkerJson<{ ok: boolean; documents: CmsCvDocument[] }>(
+      "/api/v1/admin/cv",
+      { requireServiceAuth: true }
+    );
+    return res.documents || [];
+  }
+  assertLocalSimulationAllowed("getAdminCvDocuments");
+  return listCvDocumentsLocal();
+}
+
+export async function getAdminCvDocument(locale: "tr" | "en"): Promise<CmsCvDocument | null> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("getAdminCvDocument");
+    const res = await fetchWorkerJson<{ ok: boolean; cv: CmsCvDocument | null }>(
+      `/api/v1/admin/cv/${encodeURIComponent(locale)}`,
+      { requireServiceAuth: true }
+    );
+    return res.cv || null;
+  }
+  assertLocalSimulationAllowed("getAdminCvDocument");
+  return getCvDocumentLocal(locale);
+}
+
+export async function saveAdminCvDocument(
+  input: UpsertCvInput,
+  actorEmail: string,
+  actionLabel = "update_cv"
+): Promise<CmsCvDocument> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("saveAdminCvDocument");
+    const res = await fetchWorkerJson<{ ok: boolean; cv: CmsCvDocument }>(
+      `/api/v1/admin/cv/${encodeURIComponent(input.locale)}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(input),
+        requireServiceAuth: true,
+        actorEmail,
+        headers: { "Content-Type": "application/json" }
+      }
+    );
+    return res.cv;
+  }
+  assertLocalSimulationAllowed("saveAdminCvDocument");
+  return upsertCvDocumentLocal(input, actorEmail, actionLabel);
+}
+
+export async function uploadCvDocument(params: {
+  buffer: Buffer;
+  filename: string;
+  locale: "tr" | "en";
+  actorEmail: string;
+}): Promise<CmsCvDocument> {
+  const sigCheck = validateCvPdfSignature(params.buffer, params.filename);
+  if (!sigCheck.valid) {
+    throw new Error(sigCheck.error || "Invalid CV PDF file.");
+  }
+
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("uploadCvDocument");
+    const formData = new FormData();
+    const blob = new Blob([new Uint8Array(params.buffer)], { type: "application/pdf" });
+    formData.append("file", blob, params.filename);
+    formData.append("locale", params.locale);
+
+    const workerUrl = `${process.env.CLOUDFLARE_CMS_API_URL!.replace(/\/+$/, "")}/api/v1/admin/cv/upload`;
+    const serviceToken = (process.env.CLOUDFLARE_API_SERVICE_TOKEN || "").trim();
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${serviceToken}`,
+      "X-Actor-Email": params.actorEmail
+    };
+    const accessClientId = (process.env.CLOUDFLARE_ACCESS_CLIENT_ID || process.env.CF_ACCESS_CLIENT_ID || "").trim();
+    const accessClientSecret = (process.env.CLOUDFLARE_ACCESS_CLIENT_SECRET || process.env.CF_ACCESS_CLIENT_SECRET || "").trim();
+    if (accessClientId && accessClientSecret) {
+      headers["CF-Access-Client-Id"] = accessClientId;
+      headers["CF-Access-Client-Secret"] = accessClientSecret;
+    }
+
+    const response = await fetch(workerUrl, {
+      method: "POST",
+      headers,
+      body: formData
+    });
+    if (!response.ok) {
+      throw new Error(`Worker CV upload failed: HTTP ${response.status}`);
+    }
+    const data = (await response.json()) as { ok: boolean; cv: CmsCvDocument };
+    return data.cv;
+  }
+
+  assertLocalSimulationAllowed("uploadCvDocument");
+  return uploadCvDocumentLocal(params);
+}
+
+export async function listCvRevisions(locale: "tr" | "en"): Promise<CmsCvRevisionRecord[]> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("listCvRevisions");
+    const res = await fetchWorkerJson<{ ok: boolean; revisions: CmsCvRevisionRecord[] }>(
+      `/api/v1/admin/cv/${encodeURIComponent(locale)}/revisions`,
+      { requireServiceAuth: true }
+    );
+    return res.revisions || [];
+  }
+  assertLocalSimulationAllowed("listCvRevisions");
+  return listCvRevisionsLocal(locale);
+}
+
+export async function rollbackCvRevision(
+  locale: "tr" | "en",
+  revisionNumber: number,
+  actorEmail: string
+): Promise<CmsCvDocument> {
+  if (shouldUseWorkerApi()) {
+    requireWorkerConfigForMutation("rollbackCvRevision");
+    const res = await fetchWorkerJson<{ ok: boolean; cv: CmsCvDocument }>(
+      `/api/v1/admin/cv/${encodeURIComponent(locale)}/rollback`,
+      {
+        method: "POST",
+        body: JSON.stringify({ revisionNumber }),
+        requireServiceAuth: true,
+        actorEmail,
+        headers: { "Content-Type": "application/json" }
+      }
+    );
+    return res.cv;
+  }
+  assertLocalSimulationAllowed("rollbackCvRevision");
+  return rollbackCvRevisionLocal(locale, revisionNumber, actorEmail);
+}
+
+export const listCvRevisionsFromD1 = listCvRevisions;
+export const rollbackCvRevisionInD1 = rollbackCvRevision;
 
 export { getCmsStorageMode, getCmsDataSource };

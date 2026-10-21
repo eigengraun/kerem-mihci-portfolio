@@ -20,7 +20,8 @@ const MIME_BY_EXT: Record<string, string> = {
   ".svg": "image/svg+xml",
   ".gif": "image/gif",
   ".mp4": "video/mp4",
-  ".webm": "video/webm"
+  ".webm": "video/webm",
+  ".pdf": "application/pdf"
 };
 
 export async function GET(

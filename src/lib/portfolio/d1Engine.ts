@@ -38,10 +38,31 @@ import {
   type CmsGalleryAssetRecord,
   type CmsGalleryRevisionRecord,
   type UpsertGalleryItemInput,
+  type CmsProfileRecord,
+  type UpsertProfileInput,
+  type CmsProfileRevisionRecord,
+  type ProfileStat,
+  type CmsWorkspaceNote,
+  type UpsertWorkspaceNoteInput,
+  type CmsWorkspaceNoteRevisionRecord,
+  type CmsExperienceItem,
+  type UpsertExperienceInput,
+  type CmsExperienceRevisionRecord,
+  type CmsEducationItem,
+  type UpsertEducationInput,
+  type CmsEducationRevisionRecord,
+  type CmsSkillItem,
+  type UpsertSkillInput,
+  type CmsSkillCategory,
+  type CmsCvDocument,
+  type UpsertCvInput,
+  type CmsCvRevisionRecord,
+  type WorkspaceCategory,
   normalizeSlug,
   validateMediaFileSignature,
   validateVideoAssetSignature,
-  validateGalleryImageSignature
+  validateGalleryImageSignature,
+  validateCvPdfSignature
 } from "./types";
 
 interface SqliteStatement {
@@ -420,6 +441,199 @@ CREATE INDEX IF NOT EXISTS idx_portfolio_gallery_translations_lookup ON portfoli
 CREATE INDEX IF NOT EXISTS idx_portfolio_gallery_assets_lookup ON portfolio_gallery_assets(item_id, asset_status);
 CREATE INDEX IF NOT EXISTS idx_portfolio_gallery_assets_storage_key ON portfolio_gallery_assets(storage_key);
 CREATE INDEX IF NOT EXISTS idx_portfolio_gallery_revisions_lookup ON portfolio_gallery_revisions(item_id, revision_number DESC);
+
+-- Phase 5: Profile, Workspace Notes, Experience, Education, Skills & CV Schema (Additive)
+CREATE TABLE IF NOT EXISTS portfolio_profile (
+  id TEXT PRIMARY KEY DEFAULT 'main',
+  status TEXT NOT NULL DEFAULT 'published' CHECK (status IN ('draft', 'published')),
+  name TEXT NOT NULL DEFAULT 'Kerem Mıhçı',
+  email TEXT NOT NULL DEFAULT 'info@keremmihci.com',
+  image_url TEXT NOT NULL DEFAULT '/profile/kerem-mihci-profile.webp',
+  avatar_url TEXT NOT NULL DEFAULT '/profile/kerem-mihci-avatar.webp',
+  stats_json TEXT NOT NULL DEFAULT '[]',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  published_at TEXT
+);
+CREATE TABLE IF NOT EXISTS portfolio_profile_translations (
+  id TEXT PRIMARY KEY,
+  profile_id TEXT NOT NULL REFERENCES portfolio_profile(id) ON DELETE CASCADE,
+  locale TEXT NOT NULL CHECK (locale IN ('tr', 'en')),
+  headline TEXT NOT NULL DEFAULT '',
+  location TEXT NOT NULL DEFAULT '',
+  image_alt TEXT NOT NULL DEFAULT '',
+  summary_paragraphs_json TEXT NOT NULL DEFAULT '[]',
+  focus_areas_json TEXT NOT NULL DEFAULT '[]',
+  updated_at TEXT NOT NULL,
+  UNIQUE(profile_id, locale)
+);
+CREATE TABLE IF NOT EXISTS portfolio_profile_revisions (
+  id TEXT PRIMARY KEY,
+  profile_id TEXT NOT NULL REFERENCES portfolio_profile(id) ON DELETE CASCADE,
+  revision_number INTEGER NOT NULL,
+  action TEXT NOT NULL,
+  snapshot_json TEXT NOT NULL,
+  actor_email TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS portfolio_workspace_notes (
+  id TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL CHECK (workspace_id IN ('design', 'web', 'motion-ai')),
+  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'published', 'archived')),
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  filename TEXT NOT NULL DEFAULT 'system.txt',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  published_at TEXT,
+  archived_at TEXT
+);
+CREATE TABLE IF NOT EXISTS portfolio_workspace_notes_translations (
+  id TEXT PRIMARY KEY,
+  note_id TEXT NOT NULL REFERENCES portfolio_workspace_notes(id) ON DELETE CASCADE,
+  locale TEXT NOT NULL CHECK (locale IN ('tr', 'en')),
+  title TEXT NOT NULL DEFAULT '',
+  content TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL,
+  UNIQUE(note_id, locale)
+);
+CREATE TABLE IF NOT EXISTS portfolio_workspace_notes_revisions (
+  id TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL,
+  revision_number INTEGER NOT NULL,
+  action TEXT NOT NULL,
+  snapshot_json TEXT NOT NULL,
+  actor_email TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS portfolio_experience (
+  id TEXT PRIMARY KEY,
+  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'published', 'archived')),
+  organization TEXT NOT NULL,
+  start_date TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'work' CHECK (category IN ('work', 'freelance', 'ai', 'creative', 'volunteer')),
+  skills_json TEXT NOT NULL DEFAULT '[]',
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  published_at TEXT,
+  archived_at TEXT
+);
+CREATE TABLE IF NOT EXISTS portfolio_experience_translations (
+  id TEXT PRIMARY KEY,
+  experience_id TEXT NOT NULL REFERENCES portfolio_experience(id) ON DELETE CASCADE,
+  locale TEXT NOT NULL CHECK (locale IN ('tr', 'en')),
+  role TEXT NOT NULL DEFAULT '',
+  end_date TEXT NOT NULL DEFAULT '',
+  location TEXT,
+  employment_type TEXT,
+  description TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL,
+  UNIQUE(experience_id, locale)
+);
+CREATE TABLE IF NOT EXISTS portfolio_experience_revisions (
+  id TEXT PRIMARY KEY,
+  experience_id TEXT NOT NULL REFERENCES portfolio_experience(id) ON DELETE CASCADE,
+  revision_number INTEGER NOT NULL,
+  action TEXT NOT NULL,
+  snapshot_json TEXT NOT NULL,
+  actor_email TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS portfolio_education (
+  id TEXT PRIMARY KEY,
+  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'published', 'archived')),
+  start_year TEXT,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  published_at TEXT,
+  archived_at TEXT
+);
+CREATE TABLE IF NOT EXISTS portfolio_education_translations (
+  id TEXT PRIMARY KEY,
+  education_id TEXT NOT NULL REFERENCES portfolio_education(id) ON DELETE CASCADE,
+  locale TEXT NOT NULL CHECK (locale IN ('tr', 'en')),
+  institution TEXT NOT NULL DEFAULT '',
+  program TEXT NOT NULL DEFAULT '',
+  end_year TEXT NOT NULL DEFAULT '',
+  status_label TEXT NOT NULL DEFAULT '',
+  description TEXT,
+  updated_at TEXT NOT NULL,
+  UNIQUE(education_id, locale)
+);
+CREATE TABLE IF NOT EXISTS portfolio_education_revisions (
+  id TEXT PRIMARY KEY,
+  education_id TEXT NOT NULL REFERENCES portfolio_education(id) ON DELETE CASCADE,
+  revision_number INTEGER NOT NULL,
+  action TEXT NOT NULL,
+  snapshot_json TEXT NOT NULL,
+  actor_email TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS portfolio_skills (
+  id TEXT PRIMARY KEY,
+  category TEXT NOT NULL CHECK (category IN ('design', 'web', 'production', 'ai', 'strategy', 'tools')),
+  status TEXT NOT NULL DEFAULT 'published' CHECK (status IN ('draft', 'published', 'archived')),
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS portfolio_skill_translations (
+  id TEXT PRIMARY KEY,
+  skill_id TEXT NOT NULL REFERENCES portfolio_skills(id) ON DELETE CASCADE,
+  locale TEXT NOT NULL CHECK (locale IN ('tr', 'en')),
+  name TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE(skill_id, locale)
+);
+
+CREATE TABLE IF NOT EXISTS portfolio_cv_documents (
+  id TEXT PRIMARY KEY,
+  locale TEXT NOT NULL UNIQUE CHECK (locale IN ('tr', 'en')),
+  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'published', 'archived')),
+  storage_mode TEXT NOT NULL DEFAULT 'local_static' CHECK (storage_mode IN ('local_static', 'r2', 'external')),
+  storage_key TEXT NOT NULL DEFAULT '',
+  public_url TEXT NOT NULL DEFAULT '',
+  filename TEXT NOT NULL DEFAULT '',
+  mime_type TEXT NOT NULL DEFAULT 'application/pdf' CHECK (mime_type = 'application/pdf'),
+  byte_size INTEGER NOT NULL DEFAULT 0,
+  sha256 TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  published_at TEXT,
+  archived_at TEXT
+);
+CREATE TABLE IF NOT EXISTS portfolio_cv_revisions (
+  id TEXT PRIMARY KEY,
+  cv_id TEXT NOT NULL REFERENCES portfolio_cv_documents(id) ON DELETE CASCADE,
+  revision_number INTEGER NOT NULL,
+  action TEXT NOT NULL,
+  snapshot_json TEXT NOT NULL,
+  actor_email TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_portfolio_workspace_notes_lookup ON portfolio_workspace_notes(workspace_id, status, sort_order ASC, id ASC);
+CREATE INDEX IF NOT EXISTS idx_portfolio_workspace_notes_tr_lookup ON portfolio_workspace_notes_translations(note_id, locale);
+CREATE INDEX IF NOT EXISTS idx_portfolio_workspace_notes_rev ON portfolio_workspace_notes_revisions(workspace_id, revision_number DESC);
+
+CREATE INDEX IF NOT EXISTS idx_portfolio_experience_status_sort ON portfolio_experience(status, sort_order ASC, id ASC);
+CREATE INDEX IF NOT EXISTS idx_portfolio_experience_tr_lookup ON portfolio_experience_translations(experience_id, locale);
+CREATE INDEX IF NOT EXISTS idx_portfolio_experience_rev ON portfolio_experience_revisions(experience_id, revision_number DESC);
+
+CREATE INDEX IF NOT EXISTS idx_portfolio_education_status_sort ON portfolio_education(status, sort_order ASC, id ASC);
+CREATE INDEX IF NOT EXISTS idx_portfolio_education_tr_lookup ON portfolio_education_translations(education_id, locale);
+CREATE INDEX IF NOT EXISTS idx_portfolio_education_rev ON portfolio_education_revisions(education_id, revision_number DESC);
+
+CREATE INDEX IF NOT EXISTS idx_portfolio_skills_category_sort ON portfolio_skills(category, status, sort_order ASC, id ASC);
+CREATE INDEX IF NOT EXISTS idx_portfolio_skill_tr_lookup ON portfolio_skill_translations(skill_id, locale);
+
+CREATE INDEX IF NOT EXISTS idx_portfolio_cv_locale ON portfolio_cv_documents(locale, status);
+CREATE INDEX IF NOT EXISTS idx_portfolio_cv_rev ON portfolio_cv_revisions(cv_id, revision_number DESC);
 `;
 
 let cachedDb: SqliteDatabase | null = null;
@@ -1880,10 +2094,32 @@ export function isMediaKeyPubliclyAccessibleInLocalD1(storageKey: string): boole
       )
       .get(storageKey, `/api/media/${storageKey}`) as { id: string; item_status: string } | undefined;
 
-    return Boolean(galleryRow && galleryRow.item_status === "published");
+    if (galleryRow && galleryRow.item_status === "published") {
+      return true;
+    }
   } catch {
-    return false;
+    // continue
   }
+
+  // Check CV documents
+  try {
+    const cvRow = db
+      .prepare(
+        `SELECT id, status
+         FROM portfolio_cv_documents
+         WHERE (storage_key = ? OR public_url = ?)
+         LIMIT 1`
+      )
+      .get(storageKey, `/api/media/${storageKey}`) as { id: string; status: string } | undefined;
+
+    if (cvRow && cvRow.status === "published") {
+      return true;
+    }
+  } catch {
+    // continue
+  }
+
+  return false;
 }
 
 export function listMediaFromD1(projectId?: string): CmsMediaRecord[] {
@@ -4271,5 +4507,1564 @@ export function uploadGalleryAssetToStorageAndD1(params: {
     throw err;
   }
 }
+
+// ============================================================
+// PHASE 5: PROFILE, WORKSPACE NOTES, EXPERIENCE, EDUCATION, SKILLS & CV ENGINE
+// ============================================================
+
+// --- 1. PROFILE & ABOUT ---
+
+export function getProfileFromD1(): CmsProfileRecord | null {
+  assertLocalSimulationAllowed("getProfileFromD1");
+  const db = getD1Database();
+  const row = db.prepare("SELECT * FROM portfolio_profile WHERE id = 'main'").get() as Record<string, unknown> | undefined;
+  if (!row) return null;
+
+  const transRows = db.prepare("SELECT * FROM portfolio_profile_translations WHERE profile_id = 'main'").all() as Record<string, unknown>[];
+  const trTrans = transRows.find((r) => r.locale === "tr");
+  const enTrans = transRows.find((r) => r.locale === "en");
+
+  let stats: ProfileStat[] = [];
+  try {
+    stats = JSON.parse(String(row.stats_json || "[]"));
+  } catch {
+    stats = [];
+  }
+
+  let trSummary: string[] = [];
+  let enSummary: string[] = [];
+  try {
+    trSummary = JSON.parse(String(trTrans?.summary_paragraphs_json || "[]"));
+  } catch {
+    trSummary = [];
+  }
+  try {
+    enSummary = JSON.parse(String(enTrans?.summary_paragraphs_json || "[]"));
+  } catch {
+    enSummary = [];
+  }
+
+  let trFocus: string[] = [];
+  let enFocus: string[] = [];
+  try {
+    trFocus = JSON.parse(String(trTrans?.focus_areas_json || "[]"));
+  } catch {
+    trFocus = [];
+  }
+  try {
+    enFocus = JSON.parse(String(enTrans?.focus_areas_json || "[]"));
+  } catch {
+    enFocus = [];
+  }
+
+  return {
+    id: String(row.id),
+    status: (row.status === "draft" ? "draft" : "published") as "draft" | "published",
+    name: String(row.name || "Kerem Mıhçı"),
+    email: String(row.email || "info@keremmihci.com"),
+    image: String(row.image_url || "/profile/kerem-mihci-profile.webp"),
+    avatar: String(row.avatar_url || "/profile/kerem-mihci-avatar.webp"),
+    headline: {
+      tr: String(trTrans?.headline || ""),
+      en: String(enTrans?.headline || "")
+    },
+    location: {
+      tr: String(trTrans?.location || ""),
+      en: String(enTrans?.location || "")
+    },
+    alt: {
+      tr: String(trTrans?.image_alt || ""),
+      en: String(enTrans?.image_alt || "")
+    },
+    summary: {
+      tr: trSummary,
+      en: enSummary
+    },
+    stats,
+    focusAreas: {
+      tr: trFocus,
+      en: enFocus
+    },
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+    publishedAt: row.published_at ? String(row.published_at) : null
+  };
+}
+
+export function upsertProfileInD1(input: UpsertProfileInput, actorEmail: string): CmsProfileRecord {
+  assertLocalSimulationAllowed("upsertProfileInD1");
+  const db = getD1Database();
+  const existing = getProfileFromD1();
+  const now = new Date().toISOString();
+
+  const name = input.name !== undefined ? input.name : (existing?.name || "Kerem Mıhçı");
+  const email = input.email !== undefined ? input.email : (existing?.email || "info@keremmihci.com");
+  const image = input.image !== undefined ? input.image : (existing?.image || "/profile/kerem-mihci-profile.webp");
+  const avatar = input.avatar !== undefined ? input.avatar : (existing?.avatar || "/profile/kerem-mihci-avatar.webp");
+  const status = input.status !== undefined ? input.status : (existing?.status || "published");
+  const stats = input.stats !== undefined ? input.stats : (existing?.stats || []);
+
+  const publishedAt = status === "published" ? (existing?.publishedAt || now) : null;
+
+  db.prepare(`
+    INSERT INTO portfolio_profile (id, status, name, email, image_url, avatar_url, stats_json, created_at, updated_at, published_at)
+    VALUES ('main', ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      status = excluded.status,
+      name = excluded.name,
+      email = excluded.email,
+      image_url = excluded.image_url,
+      avatar_url = excluded.avatar_url,
+      stats_json = excluded.stats_json,
+      updated_at = excluded.updated_at,
+      published_at = excluded.published_at
+  `).run(
+    status,
+    name,
+    email,
+    image,
+    avatar,
+    JSON.stringify(stats),
+    existing ? existing.createdAt : now,
+    now,
+    publishedAt
+  );
+
+  // Translations
+  const trHeadline = input.headlineTR !== undefined ? input.headlineTR : (existing?.headline.tr || "");
+  const enHeadline = input.headlineEN !== undefined ? input.headlineEN : (existing?.headline.en || "");
+  const trLocation = input.locationTR !== undefined ? input.locationTR : (existing?.location.tr || "");
+  const enLocation = input.locationEN !== undefined ? input.locationEN : (existing?.location.en || "");
+  const trAlt = input.altTR !== undefined ? input.altTR : (existing?.alt.tr || "");
+  const enAlt = input.altEN !== undefined ? input.altEN : (existing?.alt.en || "");
+  const trSummary = input.summaryTR !== undefined ? input.summaryTR : (existing?.summary.tr || []);
+  const enSummary = input.summaryEN !== undefined ? input.summaryEN : (existing?.summary.en || []);
+  const trFocus = input.focusAreasTR !== undefined ? input.focusAreasTR : (existing?.focusAreas.tr || []);
+  const enFocus = input.focusAreasEN !== undefined ? input.focusAreasEN : (existing?.focusAreas.en || []);
+
+  // TR translation
+  db.prepare(`
+    INSERT INTO portfolio_profile_translations (id, profile_id, locale, headline, location, image_alt, summary_paragraphs_json, focus_areas_json, updated_at)
+    VALUES ('prof-tr', 'main', 'tr', ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(profile_id, locale) DO UPDATE SET
+      headline = excluded.headline,
+      location = excluded.location,
+      image_alt = excluded.image_alt,
+      summary_paragraphs_json = excluded.summary_paragraphs_json,
+      focus_areas_json = excluded.focus_areas_json,
+      updated_at = excluded.updated_at
+  `).run(
+    trHeadline,
+    trLocation,
+    trAlt,
+    JSON.stringify(trSummary),
+    JSON.stringify(trFocus),
+    now
+  );
+
+  // EN translation
+  db.prepare(`
+    INSERT INTO portfolio_profile_translations (id, profile_id, locale, headline, location, image_alt, summary_paragraphs_json, focus_areas_json, updated_at)
+    VALUES ('prof-en', 'main', 'en', ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(profile_id, locale) DO UPDATE SET
+      headline = excluded.headline,
+      location = excluded.location,
+      image_alt = excluded.image_alt,
+      summary_paragraphs_json = excluded.summary_paragraphs_json,
+      focus_areas_json = excluded.focus_areas_json,
+      updated_at = excluded.updated_at
+  `).run(
+    enHeadline,
+    enLocation,
+    enAlt,
+    JSON.stringify(enSummary),
+    JSON.stringify(enFocus),
+    now
+  );
+
+  const updated = getProfileFromD1()!;
+
+  // Revision tracking
+  const revRow = db.prepare("SELECT MAX(revision_number) as max_rev FROM portfolio_profile_revisions WHERE profile_id = 'main'").get() as { max_rev: number | null } | undefined;
+  const nextRev = (revRow?.max_rev ?? 0) + 1;
+  db.prepare(`
+    INSERT INTO portfolio_profile_revisions (id, profile_id, revision_number, action, snapshot_json, actor_email, created_at)
+    VALUES (?, 'main', ?, 'update_profile', ?, ?, ?)
+  `).run(
+    `prev-main-${Date.now()}-${nextRev}`,
+    nextRev,
+    JSON.stringify(updated),
+    actorEmail,
+    now
+  );
+
+  // Audit log
+  db.prepare(`
+    INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+    VALUES (?, ?, 'update_profile', 'profile', 'main', ?, ?)
+  `).run(
+    `log-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`,
+    actorEmail,
+    JSON.stringify({ status, name }),
+    now
+  );
+
+  return updated;
+}
+
+export function listProfileRevisionsFromD1(): CmsProfileRevisionRecord[] {
+  assertLocalSimulationAllowed("listProfileRevisionsFromD1");
+  const db = getD1Database();
+  const rows = db.prepare("SELECT * FROM portfolio_profile_revisions WHERE profile_id = 'main' ORDER BY revision_number DESC").all() as Record<string, unknown>[];
+  return rows.map((r) => ({
+    id: String(r.id),
+    profileId: String(r.profile_id),
+    revisionNumber: Number(r.revision_number),
+    action: String(r.action),
+    snapshotJson: String(r.snapshot_json),
+    actorEmail: String(r.actor_email),
+    createdAt: String(r.created_at)
+  }));
+}
+
+export function rollbackProfileRevisionInD1(revisionNumber: number, actorEmail: string): CmsProfileRecord {
+  assertLocalSimulationAllowed("rollbackProfileRevisionInD1");
+  const db = getD1Database();
+  const rev = db.prepare("SELECT snapshot_json FROM portfolio_profile_revisions WHERE profile_id = 'main' AND revision_number = ? LIMIT 1").get(revisionNumber) as { snapshot_json: string } | undefined;
+  if (!rev) {
+    throw new Error(`Profile revision #${revisionNumber} not found.`);
+  }
+
+  const snapshot = JSON.parse(rev.snapshot_json) as CmsProfileRecord;
+  return upsertProfileInD1({
+    name: snapshot.name,
+    email: snapshot.email,
+    image: snapshot.image,
+    avatar: snapshot.avatar,
+    status: snapshot.status,
+    stats: snapshot.stats,
+    headlineTR: snapshot.headline.tr,
+    headlineEN: snapshot.headline.en,
+    locationTR: snapshot.location.tr,
+    locationEN: snapshot.location.en,
+    altTR: snapshot.alt.tr,
+    altEN: snapshot.alt.en,
+    summaryTR: snapshot.summary.tr,
+    summaryEN: snapshot.summary.en,
+    focusAreasTR: snapshot.focusAreas.tr,
+    focusAreasEN: snapshot.focusAreas.en
+  }, actorEmail);
+}
+
+// --- 2. WORKSPACE NOTES ---
+
+function mapNoteRowsToCmsWorkspaceNotes(
+  noteRows: Record<string, unknown>[],
+  transRows: Record<string, unknown>[]
+): CmsWorkspaceNote[] {
+  const transByNoteId = new Map<string, { tr?: Record<string, unknown>; en?: Record<string, unknown> }>();
+  for (const t of transRows) {
+    const noteId = String(t.note_id);
+    let entry = transByNoteId.get(noteId);
+    if (!entry) {
+      entry = {};
+      transByNoteId.set(noteId, entry);
+    }
+    if (t.locale === "tr") entry.tr = t;
+    if (t.locale === "en") entry.en = t;
+  }
+
+  return noteRows.map((r) => {
+    const id = String(r.id);
+    const trans = transByNoteId.get(id);
+    return {
+      id,
+      workspaceId: String(r.workspace_id) as WorkspaceCategory,
+      status: String(r.status) as CmsPublishStatus,
+      sortOrder: Number(r.sort_order || 0),
+      filename: String(r.filename || "system.txt"),
+      title: {
+        tr: String(trans?.tr?.title || ""),
+        en: String(trans?.en?.title || "")
+      },
+      content: {
+        tr: String(trans?.tr?.content || ""),
+        en: String(trans?.en?.content || "")
+      },
+      createdAt: String(r.created_at),
+      updatedAt: String(r.updated_at),
+      publishedAt: r.published_at ? String(r.published_at) : null,
+      archivedAt: r.archived_at ? String(r.archived_at) : null
+    };
+  });
+}
+
+export function listWorkspaceNotesForAdminFromD1(workspaceId?: WorkspaceCategory): CmsWorkspaceNote[] {
+  assertLocalSimulationAllowed("listWorkspaceNotesForAdminFromD1");
+  const db = getD1Database();
+  const notesQuery = workspaceId
+    ? db.prepare("SELECT * FROM portfolio_workspace_notes WHERE workspace_id = ? ORDER BY sort_order ASC, id ASC").all(workspaceId)
+    : db.prepare("SELECT * FROM portfolio_workspace_notes ORDER BY workspace_id ASC, sort_order ASC, id ASC").all();
+
+  const transQuery = db.prepare("SELECT * FROM portfolio_workspace_notes_translations").all();
+  return mapNoteRowsToCmsWorkspaceNotes(notesQuery, transQuery);
+}
+
+export function listPublishedWorkspaceNotesFromD1(workspaceId: WorkspaceCategory): CmsWorkspaceNote[] {
+  assertLocalSimulationAllowed("listPublishedWorkspaceNotesFromD1");
+  const db = getD1Database();
+  const notesQuery = db.prepare(
+    "SELECT * FROM portfolio_workspace_notes WHERE workspace_id = ? AND status = 'published' ORDER BY sort_order ASC, id ASC"
+  ).all(workspaceId);
+
+  const transQuery = db.prepare("SELECT * FROM portfolio_workspace_notes_translations").all();
+  return mapNoteRowsToCmsWorkspaceNotes(notesQuery, transQuery);
+}
+
+export function getWorkspaceNoteByIdFromD1(id: string): CmsWorkspaceNote | null {
+  assertLocalSimulationAllowed("getWorkspaceNoteByIdFromD1");
+  const db = getD1Database();
+  const noteRow = db.prepare("SELECT * FROM portfolio_workspace_notes WHERE id = ?").get(id) as Record<string, unknown> | undefined;
+  if (!noteRow) return null;
+
+  const transRows = db.prepare("SELECT * FROM portfolio_workspace_notes_translations WHERE note_id = ?").all(id) as Record<string, unknown>[];
+  return mapNoteRowsToCmsWorkspaceNotes([noteRow], transRows)[0] || null;
+}
+
+export function upsertWorkspaceNoteInD1(
+  input: UpsertWorkspaceNoteInput,
+  actorEmail: string
+): CmsWorkspaceNote {
+  assertLocalSimulationAllowed("upsertWorkspaceNoteInD1");
+  const db = getD1Database();
+  const now = new Date().toISOString();
+  const noteId = input.id || `note-${input.workspaceId}-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`;
+  const existing = getWorkspaceNoteByIdFromD1(noteId);
+
+  const status = input.status || (existing?.status || "draft");
+  const sortOrder = input.sortOrder !== undefined ? input.sortOrder : (existing?.sortOrder ?? 0);
+  const filename = input.filename || (existing?.filename || "system.txt");
+
+  const publishedAt = status === "published" ? (existing?.publishedAt || now) : null;
+  const archivedAt = status === "archived" ? (existing?.archivedAt || now) : null;
+
+  db.prepare(`
+    INSERT INTO portfolio_workspace_notes (id, workspace_id, status, sort_order, filename, created_at, updated_at, published_at, archived_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      workspace_id = excluded.workspace_id,
+      status = excluded.status,
+      sort_order = excluded.sort_order,
+      filename = excluded.filename,
+      updated_at = excluded.updated_at,
+      published_at = excluded.published_at,
+      archived_at = excluded.archived_at
+  `).run(
+    noteId,
+    input.workspaceId,
+    status,
+    sortOrder,
+    filename,
+    existing ? existing.createdAt : now,
+    now,
+    publishedAt,
+    archivedAt
+  );
+
+  // Translations
+  const trTitle = input.titleTR !== undefined ? input.titleTR : (existing?.title.tr || "");
+  const enTitle = input.titleEN !== undefined ? input.titleEN : (existing?.title.en || "");
+  const trContent = input.contentTR !== undefined ? input.contentTR : (existing?.content.tr || "");
+  const enContent = input.contentEN !== undefined ? input.contentEN : (existing?.content.en || "");
+
+  db.prepare(`
+    INSERT INTO portfolio_workspace_notes_translations (id, note_id, locale, title, content, updated_at)
+    VALUES (?, ?, 'tr', ?, ?, ?)
+    ON CONFLICT(note_id, locale) DO UPDATE SET
+      title = excluded.title,
+      content = excluded.content,
+      updated_at = excluded.updated_at
+  `).run(`wn-tr-${noteId}`, noteId, trTitle, trContent, now);
+
+  db.prepare(`
+    INSERT INTO portfolio_workspace_notes_translations (id, note_id, locale, title, content, updated_at)
+    VALUES (?, ?, 'en', ?, ?, ?)
+    ON CONFLICT(note_id, locale) DO UPDATE SET
+      title = excluded.title,
+      content = excluded.content,
+      updated_at = excluded.updated_at
+  `).run(`wn-en-${noteId}`, noteId, enTitle, enContent, now);
+
+  const updatedNote = getWorkspaceNoteByIdFromD1(noteId)!;
+
+  // Workspace snapshot revision
+  const allWorkspaceNotes = listWorkspaceNotesForAdminFromD1(input.workspaceId);
+  const revRow = db.prepare("SELECT MAX(revision_number) as max_rev FROM portfolio_workspace_notes_revisions WHERE workspace_id = ?").get(input.workspaceId) as { max_rev: number | null } | undefined;
+  const nextRev = (revRow?.max_rev ?? 0) + 1;
+
+  db.prepare(`
+    INSERT INTO portfolio_workspace_notes_revisions (id, workspace_id, revision_number, action, snapshot_json, actor_email, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    `wnrev-${input.workspaceId}-${Date.now()}-${nextRev}`,
+    input.workspaceId,
+    nextRev,
+    existing ? "update_note" : "create_note",
+    JSON.stringify(allWorkspaceNotes),
+    actorEmail,
+    now
+  );
+
+  // Audit log
+  db.prepare(`
+    INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+    VALUES (?, ?, ?, 'workspace_note', ?, ?, ?)
+  `).run(
+    `log-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`,
+    actorEmail,
+    existing ? "update_note" : "create_note",
+    noteId,
+    JSON.stringify({ workspaceId: input.workspaceId, status, filename }),
+    now
+  );
+
+  return updatedNote;
+}
+
+export function deleteWorkspaceNoteInD1(id: string, actorEmail: string): { deletedId: string } {
+  assertLocalSimulationAllowed("deleteWorkspaceNoteInD1");
+  const db = getD1Database();
+  const existing = getWorkspaceNoteByIdFromD1(id);
+  if (!existing) {
+    throw new Error(`Workspace note "${id}" not found.`);
+  }
+
+  const workspaceId = existing.workspaceId;
+  const now = new Date().toISOString();
+
+  db.prepare("DELETE FROM portfolio_workspace_notes WHERE id = ?").run(id);
+
+  // Revision after deletion
+  const remaining = listWorkspaceNotesForAdminFromD1(workspaceId);
+  const revRow = db.prepare("SELECT MAX(revision_number) as max_rev FROM portfolio_workspace_notes_revisions WHERE workspace_id = ?").get(workspaceId) as { max_rev: number | null } | undefined;
+  const nextRev = (revRow?.max_rev ?? 0) + 1;
+
+  db.prepare(`
+    INSERT INTO portfolio_workspace_notes_revisions (id, workspace_id, revision_number, action, snapshot_json, actor_email, created_at)
+    VALUES (?, ?, ?, 'delete_note', ?, ?, ?)
+  `).run(
+    `wnrev-${workspaceId}-${Date.now()}-${nextRev}`,
+    workspaceId,
+    nextRev,
+    JSON.stringify(remaining),
+    actorEmail,
+    now
+  );
+
+  // Audit log
+  db.prepare(`
+    INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+    VALUES (?, ?, 'delete_note', 'workspace_note', ?, ?, ?)
+  `).run(
+    `log-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`,
+    actorEmail,
+    id,
+    JSON.stringify({ workspaceId }),
+    now
+  );
+
+  return { deletedId: id };
+}
+
+export function updateWorkspaceNotesOrderingInD1(
+  items: { id: string; sortOrder: number }[],
+  actorEmail: string
+): void {
+  assertLocalSimulationAllowed("updateWorkspaceNotesOrderingInD1");
+  const db = getD1Database();
+  const now = new Date().toISOString();
+
+  const updateStmt = db.prepare("UPDATE portfolio_workspace_notes SET sort_order = ?, updated_at = ? WHERE id = ?");
+  for (const item of items) {
+    updateStmt.run(item.sortOrder, now, item.id);
+  }
+
+  // Audit log
+  db.prepare(`
+    INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+    VALUES (?, ?, 'reorder_notes', 'workspace_note', 'multiple', ?, ?)
+  `).run(
+    `log-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`,
+    actorEmail,
+    JSON.stringify(items),
+    now
+  );
+}
+
+export function listWorkspaceNotesRevisionsFromD1(workspaceId: string): CmsWorkspaceNoteRevisionRecord[] {
+  assertLocalSimulationAllowed("listWorkspaceNotesRevisionsFromD1");
+  const db = getD1Database();
+  const rows = db.prepare("SELECT * FROM portfolio_workspace_notes_revisions WHERE workspace_id = ? ORDER BY revision_number DESC").all(workspaceId) as Record<string, unknown>[];
+  return rows.map((r) => ({
+    id: String(r.id),
+    workspaceId: String(r.workspace_id),
+    revisionNumber: Number(r.revision_number),
+    action: String(r.action),
+    snapshotJson: String(r.snapshot_json),
+    actorEmail: String(r.actor_email),
+    createdAt: String(r.created_at)
+  }));
+}
+
+export function rollbackWorkspaceNoteRevisionInD1(
+  workspaceId: string,
+  revisionNumber: number,
+  actorEmail: string
+): void {
+  assertLocalSimulationAllowed("rollbackWorkspaceNoteRevisionInD1");
+  const db = getD1Database();
+  const rev = db.prepare("SELECT snapshot_json FROM portfolio_workspace_notes_revisions WHERE workspace_id = ? AND revision_number = ? LIMIT 1").get(workspaceId, revisionNumber) as { snapshot_json: string } | undefined;
+  if (!rev) {
+    throw new Error(`Workspace notes revision #${revisionNumber} not found for workspace "${workspaceId}".`);
+  }
+
+  const snapshotNotes = JSON.parse(rev.snapshot_json) as CmsWorkspaceNote[];
+  const now = new Date().toISOString();
+
+  // Delete current notes in workspace
+  db.prepare("DELETE FROM portfolio_workspace_notes WHERE workspace_id = ?").run(workspaceId);
+
+  // Re-insert snapshot notes
+  for (const note of snapshotNotes) {
+    upsertWorkspaceNoteInD1({
+      id: note.id,
+      workspaceId: note.workspaceId,
+      status: note.status,
+      sortOrder: note.sortOrder,
+      filename: note.filename,
+      titleTR: note.title.tr,
+      titleEN: note.title.en,
+      contentTR: note.content.tr,
+      contentEN: note.content.en
+    }, actorEmail);
+  }
+
+  // Audit log
+  db.prepare(`
+    INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+    VALUES (?, ?, 'rollback_notes_revision', 'workspace_note', ?, ?, ?)
+  `).run(
+    `log-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`,
+    actorEmail,
+    workspaceId,
+    JSON.stringify({ revisionNumber }),
+    now
+  );
+}
+
+// --- 3. EXPERIENCE ---
+
+function mapExperienceRowsToCms(
+  rows: Record<string, unknown>[],
+  transRows: Record<string, unknown>[]
+): CmsExperienceItem[] {
+  const transByExpId = new Map<string, { tr?: Record<string, unknown>; en?: Record<string, unknown> }>();
+  for (const t of transRows) {
+    const expId = String(t.experience_id);
+    let entry = transByExpId.get(expId);
+    if (!entry) {
+      entry = {};
+      transByExpId.set(expId, entry);
+    }
+    if (t.locale === "tr") entry.tr = t;
+    if (t.locale === "en") entry.en = t;
+  }
+
+  return rows.map((r) => {
+    const id = String(r.id);
+    const trans = transByExpId.get(id);
+
+    let skills: string[] = [];
+    try {
+      skills = JSON.parse(String(r.skills_json || "[]"));
+    } catch {
+      skills = [];
+    }
+
+    return {
+      id,
+      status: String(r.status) as CmsPublishStatus,
+      organization: String(r.organization || ""),
+      startDate: String(r.start_date || ""),
+      category: (r.category || "work") as "work" | "freelance" | "ai" | "creative" | "volunteer",
+      skills,
+      sortOrder: Number(r.sort_order || 0),
+      role: {
+        tr: String(trans?.tr?.role || ""),
+        en: String(trans?.en?.role || "")
+      },
+      endDate: {
+        tr: String(trans?.tr?.end_date || ""),
+        en: String(trans?.en?.end_date || "")
+      },
+      location: {
+        tr: trans?.tr?.location ? String(trans.tr.location) : undefined,
+        en: trans?.en?.location ? String(trans.en.location) : undefined
+      },
+      employmentType: {
+        tr: trans?.tr?.employment_type ? String(trans.tr.employment_type) : undefined,
+        en: trans?.en?.employment_type ? String(trans.en.employment_type) : undefined
+      },
+      description: {
+        tr: String(trans?.tr?.description || ""),
+        en: String(trans?.en?.description || "")
+      },
+      createdAt: String(r.created_at),
+      updatedAt: String(r.updated_at),
+      publishedAt: r.published_at ? String(r.published_at) : null,
+      archivedAt: r.archived_at ? String(r.archived_at) : null
+    };
+  });
+}
+
+export function listExperienceForAdminFromD1(category?: string): CmsExperienceItem[] {
+  assertLocalSimulationAllowed("listExperienceForAdminFromD1");
+  const db = getD1Database();
+  const rows = category
+    ? db.prepare("SELECT * FROM portfolio_experience WHERE category = ? ORDER BY sort_order ASC, start_date DESC, id ASC").all(category)
+    : db.prepare("SELECT * FROM portfolio_experience ORDER BY sort_order ASC, start_date DESC, id ASC").all();
+
+  const trans = db.prepare("SELECT * FROM portfolio_experience_translations").all();
+  return mapExperienceRowsToCms(rows, trans);
+}
+
+export function listPublishedExperienceFromD1(category?: string): CmsExperienceItem[] {
+  assertLocalSimulationAllowed("listPublishedExperienceFromD1");
+  const db = getD1Database();
+  const rows = category
+    ? db.prepare("SELECT * FROM portfolio_experience WHERE category = ? AND status = 'published' ORDER BY sort_order ASC, start_date DESC, id ASC").all(category)
+    : db.prepare("SELECT * FROM portfolio_experience WHERE status = 'published' ORDER BY sort_order ASC, start_date DESC, id ASC").all();
+
+  const trans = db.prepare("SELECT * FROM portfolio_experience_translations").all();
+  return mapExperienceRowsToCms(rows, trans);
+}
+
+export function getExperienceByIdFromD1(id: string): CmsExperienceItem | null {
+  assertLocalSimulationAllowed("getExperienceByIdFromD1");
+  const db = getD1Database();
+  const row = db.prepare("SELECT * FROM portfolio_experience WHERE id = ?").get(id) as Record<string, unknown> | undefined;
+  if (!row) return null;
+
+  const trans = db.prepare("SELECT * FROM portfolio_experience_translations WHERE experience_id = ?").all(id);
+  return mapExperienceRowsToCms([row], trans)[0] || null;
+}
+
+export function upsertExperienceInD1(
+  input: UpsertExperienceInput,
+  actorEmail: string
+): CmsExperienceItem {
+  assertLocalSimulationAllowed("upsertExperienceInD1");
+  const db = getD1Database();
+  const now = new Date().toISOString();
+  const expId = input.id || `exp-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`;
+  const existing = getExperienceByIdFromD1(expId);
+
+  const status = input.status || (existing?.status || "draft");
+  const sortOrder = input.sortOrder !== undefined ? input.sortOrder : (existing?.sortOrder ?? 0);
+  const category = input.category || (existing?.category || "work");
+  const skills = input.skills || (existing?.skills || []);
+
+  const publishedAt = status === "published" ? (existing?.publishedAt || now) : null;
+  const archivedAt = status === "archived" ? (existing?.archivedAt || now) : null;
+
+  db.prepare(`
+    INSERT INTO portfolio_experience (id, status, organization, start_date, category, skills_json, sort_order, created_at, updated_at, published_at, archived_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      status = excluded.status,
+      organization = excluded.organization,
+      start_date = excluded.start_date,
+      category = excluded.category,
+      skills_json = excluded.skills_json,
+      sort_order = excluded.sort_order,
+      updated_at = excluded.updated_at,
+      published_at = excluded.published_at,
+      archived_at = excluded.archived_at
+  `).run(
+    expId,
+    status,
+    input.organization,
+    input.startDate,
+    category,
+    JSON.stringify(skills),
+    sortOrder,
+    existing ? existing.createdAt : now,
+    now,
+    publishedAt,
+    archivedAt
+  );
+
+  // Translations
+  db.prepare(`
+    INSERT INTO portfolio_experience_translations (id, experience_id, locale, role, end_date, location, employment_type, description, updated_at)
+    VALUES (?, ?, 'tr', ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(experience_id, locale) DO UPDATE SET
+      role = excluded.role,
+      end_date = excluded.end_date,
+      location = excluded.location,
+      employment_type = excluded.employment_type,
+      description = excluded.description,
+      updated_at = excluded.updated_at
+  `).run(
+    `exp-tr-${expId}`,
+    expId,
+    input.roleTR,
+    input.endDateTR,
+    input.locationTR || null,
+    input.employmentTypeTR || null,
+    input.descriptionTR,
+    now
+  );
+
+  db.prepare(`
+    INSERT INTO portfolio_experience_translations (id, experience_id, locale, role, end_date, location, employment_type, description, updated_at)
+    VALUES (?, ?, 'en', ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(experience_id, locale) DO UPDATE SET
+      role = excluded.role,
+      end_date = excluded.end_date,
+      location = excluded.location,
+      employment_type = excluded.employment_type,
+      description = excluded.description,
+      updated_at = excluded.updated_at
+  `).run(
+    `exp-en-${expId}`,
+    expId,
+    input.roleEN,
+    input.endDateEN,
+    input.locationEN || null,
+    input.employmentTypeEN || null,
+    input.descriptionEN,
+    now
+  );
+
+  const updatedExp = getExperienceByIdFromD1(expId)!;
+
+  // Revisions tracking
+  const revRow = db.prepare("SELECT MAX(revision_number) as max_rev FROM portfolio_experience_revisions WHERE experience_id = ?").get(expId) as { max_rev: number | null } | undefined;
+  const nextRev = (revRow?.max_rev ?? 0) + 1;
+  db.prepare(`
+    INSERT INTO portfolio_experience_revisions (id, experience_id, revision_number, action, snapshot_json, actor_email, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    `exprev-${expId}-${Date.now()}-${nextRev}`,
+    expId,
+    nextRev,
+    existing ? "update_experience" : "create_experience",
+    JSON.stringify(updatedExp),
+    actorEmail,
+    now
+  );
+
+  // Audit log
+  db.prepare(`
+    INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+    VALUES (?, ?, ?, 'experience', ?, ?, ?)
+  `).run(
+    `log-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`,
+    actorEmail,
+    existing ? "update_experience" : "create_experience",
+    expId,
+    JSON.stringify({ organization: input.organization, status }),
+    now
+  );
+
+  return updatedExp;
+}
+
+export function deleteExperienceInD1(id: string, actorEmail: string): { deletedId: string } {
+  assertLocalSimulationAllowed("deleteExperienceInD1");
+  const db = getD1Database();
+  const existing = getExperienceByIdFromD1(id);
+  if (!existing) {
+    throw new Error(`Experience item "${id}" not found.`);
+  }
+
+  const now = new Date().toISOString();
+  db.prepare("DELETE FROM portfolio_experience WHERE id = ?").run(id);
+
+  // Audit log
+  db.prepare(`
+    INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+    VALUES (?, ?, 'delete_experience', 'experience', ?, ?, ?)
+  `).run(
+    `log-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`,
+    actorEmail,
+    id,
+    JSON.stringify({ organization: existing.organization }),
+    now
+  );
+
+  return { deletedId: id };
+}
+
+export function updateExperienceOrderingInD1(
+  items: { id: string; sortOrder: number }[],
+  actorEmail: string
+): void {
+  assertLocalSimulationAllowed("updateExperienceOrderingInD1");
+  const db = getD1Database();
+  const now = new Date().toISOString();
+
+  const updateStmt = db.prepare("UPDATE portfolio_experience SET sort_order = ?, updated_at = ? WHERE id = ?");
+  for (const item of items) {
+    updateStmt.run(item.sortOrder, now, item.id);
+  }
+
+  // Audit log
+  db.prepare(`
+    INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+    VALUES (?, ?, 'reorder_experience', 'experience', 'multiple', ?, ?)
+  `).run(
+    `log-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`,
+    actorEmail,
+    JSON.stringify(items),
+    now
+  );
+}
+
+export function listExperienceRevisionsFromD1(experienceId: string): CmsExperienceRevisionRecord[] {
+  assertLocalSimulationAllowed("listExperienceRevisionsFromD1");
+  const db = getD1Database();
+  const rows = db.prepare("SELECT * FROM portfolio_experience_revisions WHERE experience_id = ? ORDER BY revision_number DESC").all(experienceId) as Record<string, unknown>[];
+  return rows.map((r) => ({
+    id: String(r.id),
+    experienceId: String(r.experience_id),
+    revisionNumber: Number(r.revision_number),
+    action: String(r.action),
+    snapshotJson: String(r.snapshot_json),
+    actorEmail: String(r.actor_email),
+    createdAt: String(r.created_at)
+  }));
+}
+
+export function rollbackExperienceRevisionInD1(
+  experienceId: string,
+  revisionNumber: number,
+  actorEmail: string
+): CmsExperienceItem {
+  assertLocalSimulationAllowed("rollbackExperienceRevisionInD1");
+  const db = getD1Database();
+  const rev = db.prepare("SELECT snapshot_json FROM portfolio_experience_revisions WHERE experience_id = ? AND revision_number = ? LIMIT 1").get(experienceId, revisionNumber) as { snapshot_json: string } | undefined;
+  if (!rev) {
+    throw new Error(`Experience revision #${revisionNumber} not found for id "${experienceId}".`);
+  }
+
+  const snapshot = JSON.parse(rev.snapshot_json) as CmsExperienceItem;
+  return upsertExperienceInD1({
+    id: snapshot.id,
+    organization: snapshot.organization,
+    startDate: snapshot.startDate,
+    category: snapshot.category,
+    skills: snapshot.skills,
+    sortOrder: snapshot.sortOrder,
+    status: snapshot.status,
+    roleTR: snapshot.role.tr,
+    roleEN: snapshot.role.en,
+    endDateTR: snapshot.endDate.tr,
+    endDateEN: snapshot.endDate.en,
+    locationTR: snapshot.location?.tr,
+    locationEN: snapshot.location?.en,
+    employmentTypeTR: snapshot.employmentType?.tr,
+    employmentTypeEN: snapshot.employmentType?.en,
+    descriptionTR: snapshot.description.tr,
+    descriptionEN: snapshot.description.en
+  }, actorEmail);
+}
+
+// --- 4. EDUCATION ---
+
+function mapEducationRowsToCms(
+  rows: Record<string, unknown>[],
+  transRows: Record<string, unknown>[]
+): CmsEducationItem[] {
+  const transByEduId = new Map<string, { tr?: Record<string, unknown>; en?: Record<string, unknown> }>();
+  for (const t of transRows) {
+    const eduId = String(t.education_id);
+    let entry = transByEduId.get(eduId);
+    if (!entry) {
+      entry = {};
+      transByEduId.set(eduId, entry);
+    }
+    if (t.locale === "tr") entry.tr = t;
+    if (t.locale === "en") entry.en = t;
+  }
+
+  return rows.map((r) => {
+    const id = String(r.id);
+    const trans = transByEduId.get(id);
+
+    return {
+      id,
+      status: String(r.status) as CmsPublishStatus,
+      startYear: r.start_year ? String(r.start_year) : undefined,
+      sortOrder: Number(r.sort_order || 0),
+      institution: {
+        tr: String(trans?.tr?.institution || ""),
+        en: String(trans?.en?.institution || "")
+      },
+      program: {
+        tr: String(trans?.tr?.program || ""),
+        en: String(trans?.en?.program || "")
+      },
+      endYear: {
+        tr: String(trans?.tr?.end_year || ""),
+        en: String(trans?.en?.end_year || "")
+      },
+      statusLabel: {
+        tr: String(trans?.tr?.status_label || ""),
+        en: String(trans?.en?.status_label || "")
+      },
+      description: {
+        tr: trans?.tr?.description ? String(trans.tr.description) : undefined,
+        en: trans?.en?.description ? String(trans.en.description) : undefined
+      },
+      createdAt: String(r.created_at),
+      updatedAt: String(r.updated_at),
+      publishedAt: r.published_at ? String(r.published_at) : null,
+      archivedAt: r.archived_at ? String(r.archived_at) : null
+    };
+  });
+}
+
+export function listEducationForAdminFromD1(): CmsEducationItem[] {
+  assertLocalSimulationAllowed("listEducationForAdminFromD1");
+  const db = getD1Database();
+  const rows = db.prepare("SELECT * FROM portfolio_education ORDER BY sort_order ASC, start_year DESC, id ASC").all();
+  const trans = db.prepare("SELECT * FROM portfolio_education_translations").all();
+  return mapEducationRowsToCms(rows, trans);
+}
+
+export function listPublishedEducationFromD1(): CmsEducationItem[] {
+  assertLocalSimulationAllowed("listPublishedEducationFromD1");
+  const db = getD1Database();
+  const rows = db.prepare("SELECT * FROM portfolio_education WHERE status = 'published' ORDER BY sort_order ASC, start_year DESC, id ASC").all();
+  const trans = db.prepare("SELECT * FROM portfolio_education_translations").all();
+  return mapEducationRowsToCms(rows, trans);
+}
+
+export function getEducationByIdFromD1(id: string): CmsEducationItem | null {
+  assertLocalSimulationAllowed("getEducationByIdFromD1");
+  const db = getD1Database();
+  const row = db.prepare("SELECT * FROM portfolio_education WHERE id = ?").get(id) as Record<string, unknown> | undefined;
+  if (!row) return null;
+
+  const trans = db.prepare("SELECT * FROM portfolio_education_translations WHERE education_id = ?").all(id);
+  return mapEducationRowsToCms([row], trans)[0] || null;
+}
+
+export function upsertEducationInD1(
+  input: UpsertEducationInput,
+  actorEmail: string
+): CmsEducationItem {
+  assertLocalSimulationAllowed("upsertEducationInD1");
+  const db = getD1Database();
+  const now = new Date().toISOString();
+  const eduId = input.id || `edu-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`;
+  const existing = getEducationByIdFromD1(eduId);
+
+  const status = input.status || (existing?.status || "draft");
+  const sortOrder = input.sortOrder !== undefined ? input.sortOrder : (existing?.sortOrder ?? 0);
+  const startYear = input.startYear !== undefined ? input.startYear : (existing?.startYear || null);
+
+  const publishedAt = status === "published" ? (existing?.publishedAt || now) : null;
+  const archivedAt = status === "archived" ? (existing?.archivedAt || now) : null;
+
+  db.prepare(`
+    INSERT INTO portfolio_education (id, status, start_year, sort_order, created_at, updated_at, published_at, archived_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      status = excluded.status,
+      start_year = excluded.start_year,
+      sort_order = excluded.sort_order,
+      updated_at = excluded.updated_at,
+      published_at = excluded.published_at,
+      archived_at = excluded.archived_at
+  `).run(
+    eduId,
+    status,
+    startYear,
+    sortOrder,
+    existing ? existing.createdAt : now,
+    now,
+    publishedAt,
+    archivedAt
+  );
+
+  // Translations
+  db.prepare(`
+    INSERT INTO portfolio_education_translations (id, education_id, locale, institution, program, end_year, status_label, description, updated_at)
+    VALUES (?, ?, 'tr', ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(education_id, locale) DO UPDATE SET
+      institution = excluded.institution,
+      program = excluded.program,
+      end_year = excluded.end_year,
+      status_label = excluded.status_label,
+      description = excluded.description,
+      updated_at = excluded.updated_at
+  `).run(
+    `edu-tr-${eduId}`,
+    eduId,
+    input.institutionTR,
+    input.programTR,
+    input.endYearTR,
+    input.statusLabelTR,
+    input.descriptionTR || null,
+    now
+  );
+
+  db.prepare(`
+    INSERT INTO portfolio_education_translations (id, education_id, locale, institution, program, end_year, status_label, description, updated_at)
+    VALUES (?, ?, 'en', ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(education_id, locale) DO UPDATE SET
+      institution = excluded.institution,
+      program = excluded.program,
+      end_year = excluded.end_year,
+      status_label = excluded.status_label,
+      description = excluded.description,
+      updated_at = excluded.updated_at
+  `).run(
+    `edu-en-${eduId}`,
+    eduId,
+    input.institutionEN,
+    input.programEN,
+    input.endYearEN,
+    input.statusLabelEN,
+    input.descriptionEN || null,
+    now
+  );
+
+  const updatedEdu = getEducationByIdFromD1(eduId)!;
+
+  // Revisions tracking
+  const revRow = db.prepare("SELECT MAX(revision_number) as max_rev FROM portfolio_education_revisions WHERE education_id = ?").get(eduId) as { max_rev: number | null } | undefined;
+  const nextRev = (revRow?.max_rev ?? 0) + 1;
+  db.prepare(`
+    INSERT INTO portfolio_education_revisions (id, education_id, revision_number, action, snapshot_json, actor_email, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    `edurev-${eduId}-${Date.now()}-${nextRev}`,
+    eduId,
+    nextRev,
+    existing ? "update_education" : "create_education",
+    JSON.stringify(updatedEdu),
+    actorEmail,
+    now
+  );
+
+  // Audit log
+  db.prepare(`
+    INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+    VALUES (?, ?, ?, 'education', ?, ?, ?)
+  `).run(
+    `log-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`,
+    actorEmail,
+    existing ? "update_education" : "create_education",
+    eduId,
+    JSON.stringify({ institution: input.institutionTR, status }),
+    now
+  );
+
+  return updatedEdu;
+}
+
+export function deleteEducationInD1(id: string, actorEmail: string): { deletedId: string } {
+  assertLocalSimulationAllowed("deleteEducationInD1");
+  const db = getD1Database();
+  const existing = getEducationByIdFromD1(id);
+  if (!existing) {
+    throw new Error(`Education item "${id}" not found.`);
+  }
+
+  const now = new Date().toISOString();
+  db.prepare("DELETE FROM portfolio_education WHERE id = ?").run(id);
+
+  // Audit log
+  db.prepare(`
+    INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+    VALUES (?, ?, 'delete_education', 'education', ?, ?, ?)
+  `).run(
+    `log-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`,
+    actorEmail,
+    id,
+    JSON.stringify({ institution: existing.institution.tr }),
+    now
+  );
+
+  return { deletedId: id };
+}
+
+export function updateEducationOrderingInD1(
+  items: { id: string; sortOrder: number }[],
+  actorEmail: string
+): void {
+  assertLocalSimulationAllowed("updateEducationOrderingInD1");
+  const db = getD1Database();
+  const now = new Date().toISOString();
+
+  const updateStmt = db.prepare("UPDATE portfolio_education SET sort_order = ?, updated_at = ? WHERE id = ?");
+  for (const item of items) {
+    updateStmt.run(item.sortOrder, now, item.id);
+  }
+
+  // Audit log
+  db.prepare(`
+    INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+    VALUES (?, ?, 'reorder_education', 'education', 'multiple', ?, ?)
+  `).run(
+    `log-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`,
+    actorEmail,
+    JSON.stringify(items),
+    now
+  );
+}
+
+export function listEducationRevisionsFromD1(educationId: string): CmsEducationRevisionRecord[] {
+  assertLocalSimulationAllowed("listEducationRevisionsFromD1");
+  const db = getD1Database();
+  const rows = db.prepare("SELECT * FROM portfolio_education_revisions WHERE education_id = ? ORDER BY revision_number DESC").all(educationId) as Record<string, unknown>[];
+  return rows.map((r) => ({
+    id: String(r.id),
+    educationId: String(r.education_id),
+    revisionNumber: Number(r.revision_number),
+    action: String(r.action),
+    snapshotJson: String(r.snapshot_json),
+    actorEmail: String(r.actor_email),
+    createdAt: String(r.created_at)
+  }));
+}
+
+export function rollbackEducationRevisionInD1(
+  educationId: string,
+  revisionNumber: number,
+  actorEmail: string
+): CmsEducationItem {
+  assertLocalSimulationAllowed("rollbackEducationRevisionInD1");
+  const db = getD1Database();
+  const rev = db.prepare("SELECT snapshot_json FROM portfolio_education_revisions WHERE education_id = ? AND revision_number = ? LIMIT 1").get(educationId, revisionNumber) as { snapshot_json: string } | undefined;
+  if (!rev) {
+    throw new Error(`Education revision #${revisionNumber} not found for id "${educationId}".`);
+  }
+
+  const snapshot = JSON.parse(rev.snapshot_json) as CmsEducationItem;
+  return upsertEducationInD1({
+    id: snapshot.id,
+    startYear: snapshot.startYear,
+    sortOrder: snapshot.sortOrder,
+    status: snapshot.status,
+    institutionTR: snapshot.institution.tr,
+    institutionEN: snapshot.institution.en,
+    programTR: snapshot.program.tr,
+    programEN: snapshot.program.en,
+    endYearTR: snapshot.endYear.tr,
+    endYearEN: snapshot.endYear.en,
+    statusLabelTR: snapshot.statusLabel.tr,
+    statusLabelEN: snapshot.statusLabel.en,
+    descriptionTR: snapshot.description?.tr,
+    descriptionEN: snapshot.description?.en
+  }, actorEmail);
+}
+
+// --- 5. SKILLS ---
+
+function mapSkillsRowsToCms(
+  rows: Record<string, unknown>[],
+  transRows: Record<string, unknown>[]
+): CmsSkillItem[] {
+  const transBySkillId = new Map<string, { tr?: Record<string, unknown>; en?: Record<string, unknown> }>();
+  for (const t of transRows) {
+    const skillId = String(t.skill_id);
+    let entry = transBySkillId.get(skillId);
+    if (!entry) {
+      entry = {};
+      transBySkillId.set(skillId, entry);
+    }
+    if (t.locale === "tr") entry.tr = t;
+    if (t.locale === "en") entry.en = t;
+  }
+
+  return rows.map((r) => {
+    const id = String(r.id);
+    const trans = transBySkillId.get(id);
+
+    return {
+      id,
+      category: String(r.category) as CmsSkillCategory,
+      status: String(r.status) as CmsPublishStatus,
+      sortOrder: Number(r.sort_order || 0),
+      name: {
+        tr: String(trans?.tr?.name || ""),
+        en: String(trans?.en?.name || "")
+      },
+      createdAt: String(r.created_at),
+      updatedAt: String(r.updated_at)
+    };
+  });
+}
+
+export function listSkillsForAdminFromD1(category?: CmsSkillCategory): CmsSkillItem[] {
+  assertLocalSimulationAllowed("listSkillsForAdminFromD1");
+  const db = getD1Database();
+  const rows = category
+    ? db.prepare("SELECT * FROM portfolio_skills WHERE category = ? ORDER BY sort_order ASC, id ASC").all(category)
+    : db.prepare("SELECT * FROM portfolio_skills ORDER BY category ASC, sort_order ASC, id ASC").all();
+
+  const trans = db.prepare("SELECT * FROM portfolio_skill_translations").all();
+  return mapSkillsRowsToCms(rows, trans);
+}
+
+export function listPublishedSkillsFromD1(category?: CmsSkillCategory): CmsSkillItem[] {
+  assertLocalSimulationAllowed("listPublishedSkillsFromD1");
+  const db = getD1Database();
+  const rows = category
+    ? db.prepare("SELECT * FROM portfolio_skills WHERE category = ? AND status = 'published' ORDER BY sort_order ASC, id ASC").all(category)
+    : db.prepare("SELECT * FROM portfolio_skills WHERE status = 'published' ORDER BY category ASC, sort_order ASC, id ASC").all();
+
+  const trans = db.prepare("SELECT * FROM portfolio_skill_translations").all();
+  return mapSkillsRowsToCms(rows, trans);
+}
+
+export function getSkillByIdFromD1(id: string): CmsSkillItem | null {
+  assertLocalSimulationAllowed("getSkillByIdFromD1");
+  const db = getD1Database();
+  const row = db.prepare("SELECT * FROM portfolio_skills WHERE id = ?").get(id) as Record<string, unknown> | undefined;
+  if (!row) return null;
+
+  const trans = db.prepare("SELECT * FROM portfolio_skill_translations WHERE skill_id = ?").all(id);
+  return mapSkillsRowsToCms([row], trans)[0] || null;
+}
+
+export function upsertSkillInD1(
+  input: UpsertSkillInput,
+  actorEmail: string
+): CmsSkillItem {
+  assertLocalSimulationAllowed("upsertSkillInD1");
+  const db = getD1Database();
+  const now = new Date().toISOString();
+  const skillId = input.id || `skill-${input.category}-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`;
+  const existing = getSkillByIdFromD1(skillId);
+
+  const status = input.status || (existing?.status || "published");
+  const sortOrder = input.sortOrder !== undefined ? input.sortOrder : (existing?.sortOrder ?? 0);
+
+  db.prepare(`
+    INSERT INTO portfolio_skills (id, category, status, sort_order, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      category = excluded.category,
+      status = excluded.status,
+      sort_order = excluded.sort_order,
+      updated_at = excluded.updated_at
+  `).run(
+    skillId,
+    input.category,
+    status,
+    sortOrder,
+    existing ? existing.createdAt : now,
+    now
+  );
+
+  // Translations
+  db.prepare(`
+    INSERT INTO portfolio_skill_translations (id, skill_id, locale, name, updated_at)
+    VALUES (?, ?, 'tr', ?, ?)
+    ON CONFLICT(skill_id, locale) DO UPDATE SET
+      name = excluded.name,
+      updated_at = excluded.updated_at
+  `).run(`sk-tr-${skillId}`, skillId, input.nameTR, now);
+
+  db.prepare(`
+    INSERT INTO portfolio_skill_translations (id, skill_id, locale, name, updated_at)
+    VALUES (?, ?, 'en', ?, ?)
+    ON CONFLICT(skill_id, locale) DO UPDATE SET
+      name = excluded.name,
+      updated_at = excluded.updated_at
+  `).run(`sk-en-${skillId}`, skillId, input.nameEN, now);
+
+  const updatedSkill = getSkillByIdFromD1(skillId)!;
+
+  // Audit log
+  db.prepare(`
+    INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+    VALUES (?, ?, ?, 'skill', ?, ?, ?)
+  `).run(
+    `log-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`,
+    actorEmail,
+    existing ? "update_skill" : "create_skill",
+    skillId,
+    JSON.stringify({ name: input.nameTR, category: input.category }),
+    now
+  );
+
+  return updatedSkill;
+}
+
+export function deleteSkillInD1(id: string, actorEmail: string): { deletedId: string } {
+  assertLocalSimulationAllowed("deleteSkillInD1");
+  const db = getD1Database();
+  const existing = getSkillByIdFromD1(id);
+  if (!existing) {
+    throw new Error(`Skill "${id}" not found.`);
+  }
+
+  const now = new Date().toISOString();
+  db.prepare("DELETE FROM portfolio_skills WHERE id = ?").run(id);
+
+  // Audit log
+  db.prepare(`
+    INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+    VALUES (?, ?, 'delete_skill', 'skill', ?, ?, ?)
+  `).run(
+    `log-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`,
+    actorEmail,
+    id,
+    JSON.stringify({ category: existing.category, name: existing.name.tr }),
+    now
+  );
+
+  return { deletedId: id };
+}
+
+export function updateSkillsOrderingInD1(
+  items: { id: string; sortOrder: number }[],
+  actorEmail: string
+): void {
+  assertLocalSimulationAllowed("updateSkillsOrderingInD1");
+  const db = getD1Database();
+  const now = new Date().toISOString();
+
+  const updateStmt = db.prepare("UPDATE portfolio_skills SET sort_order = ?, updated_at = ? WHERE id = ?");
+  for (const item of items) {
+    updateStmt.run(item.sortOrder, now, item.id);
+  }
+
+  // Audit log
+  db.prepare(`
+    INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+    VALUES (?, ?, 'reorder_skills', 'skill', 'multiple', ?, ?)
+  `).run(
+    `log-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`,
+    actorEmail,
+    JSON.stringify(items),
+    now
+  );
+}
+
+// --- 6. CV DOCUMENTS ---
+
+function mapCvRowToCms(row: Record<string, unknown>): CmsCvDocument {
+  return {
+    id: String(row.id),
+    locale: (row.locale === "tr" ? "tr" : "en") as "tr" | "en",
+    status: (row.status || "draft") as CmsPublishStatus,
+    storageMode: (row.storage_mode || "local_static") as "local_static" | "r2" | "external",
+    storageKey: String(row.storage_key || ""),
+    publicUrl: String(row.public_url || ""),
+    filename: String(row.filename || ""),
+    mimeType: String(row.mime_type || "application/pdf"),
+    byteSize: Number(row.byte_size || 0),
+    sha256: String(row.sha256 || ""),
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+    publishedAt: row.published_at ? String(row.published_at) : null,
+    archivedAt: row.archived_at ? String(row.archived_at) : null
+  };
+}
+
+export function getCvDocumentFromD1(locale: "tr" | "en"): CmsCvDocument | null {
+  assertLocalSimulationAllowed("getCvDocumentFromD1");
+  const db = getD1Database();
+  const row = db.prepare("SELECT * FROM portfolio_cv_documents WHERE locale = ?").get(locale) as Record<string, unknown> | undefined;
+  if (!row) return null;
+  return mapCvRowToCms(row);
+}
+
+export function listCvDocumentsFromD1(): CmsCvDocument[] {
+  assertLocalSimulationAllowed("listCvDocumentsFromD1");
+  const db = getD1Database();
+  const rows = db.prepare("SELECT * FROM portfolio_cv_documents ORDER BY locale ASC").all() as Record<string, unknown>[];
+  return rows.map(mapCvRowToCms);
+}
+
+export function upsertCvDocumentInD1(
+  input: UpsertCvInput,
+  actorEmail: string,
+  actionLabel = "upsert_cv"
+): CmsCvDocument {
+  assertLocalSimulationAllowed("upsertCvDocumentInD1");
+  const db = getD1Database();
+  const now = new Date().toISOString();
+  const locale = input.locale;
+  const cvId = `cv-${locale}`;
+  const existing = getCvDocumentFromD1(locale);
+
+  const status = input.status !== undefined ? input.status : (existing?.status || "draft");
+  const storageMode = input.storageMode !== undefined ? input.storageMode : (existing?.storageMode || "local_static");
+  const storageKey = input.storageKey !== undefined ? input.storageKey : (existing?.storageKey || "");
+  const publicUrl = input.publicUrl !== undefined ? input.publicUrl : (existing?.publicUrl || "");
+  const filename = input.filename !== undefined ? input.filename : (existing?.filename || "");
+  const mimeType = input.mimeType !== undefined ? input.mimeType : (existing?.mimeType || "application/pdf");
+  const byteSize = input.byteSize !== undefined ? input.byteSize : (existing?.byteSize || 0);
+  const sha256 = input.sha256 !== undefined ? input.sha256 : (existing?.sha256 || "");
+
+  const publishedAt = status === "published" ? (existing?.publishedAt || now) : null;
+  const archivedAt = status === "archived" ? (existing?.archivedAt || now) : null;
+
+  db.prepare(`
+    INSERT INTO portfolio_cv_documents (
+      id, locale, status, storage_mode, storage_key, public_url, filename, mime_type, byte_size, sha256, created_at, updated_at, published_at, archived_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(locale) DO UPDATE SET
+      status = excluded.status,
+      storage_mode = excluded.storage_mode,
+      storage_key = excluded.storage_key,
+      public_url = excluded.public_url,
+      filename = excluded.filename,
+      mime_type = excluded.mime_type,
+      byte_size = excluded.byte_size,
+      sha256 = excluded.sha256,
+      updated_at = excluded.updated_at,
+      published_at = excluded.published_at,
+      archived_at = excluded.archived_at
+  `).run(
+    cvId,
+    locale,
+    status,
+    storageMode,
+    storageKey,
+    publicUrl,
+    filename,
+    mimeType,
+    byteSize,
+    sha256,
+    existing ? existing.createdAt : now,
+    now,
+    publishedAt,
+    archivedAt
+  );
+
+  const updated = getCvDocumentFromD1(locale)!;
+
+  // Revision snapshot
+  const revRow = db.prepare("SELECT MAX(revision_number) as max_rev FROM portfolio_cv_revisions WHERE cv_id = ?").get(cvId) as { max_rev: number | null } | undefined;
+  const nextRev = (revRow?.max_rev ?? 0) + 1;
+  db.prepare(`
+    INSERT INTO portfolio_cv_revisions (id, cv_id, revision_number, action, snapshot_json, actor_email, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    `cvrev-${cvId}-${Date.now()}-${nextRev}`,
+    cvId,
+    nextRev,
+    actionLabel,
+    JSON.stringify(updated),
+    actorEmail,
+    now
+  );
+
+  // Audit log
+  db.prepare(`
+    INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+    VALUES (?, ?, ?, 'cv_document', ?, ?, ?)
+  `).run(
+    `log-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`,
+    actorEmail,
+    actionLabel,
+    cvId,
+    JSON.stringify({ locale, status, filename }),
+    now
+  );
+
+  return updated;
+}
+
+export function uploadCvDocumentToStorageAndD1(params: {
+  buffer: Buffer;
+  filename: string;
+  locale: "tr" | "en";
+  actorEmail: string;
+}): CmsCvDocument {
+  assertLocalSimulationAllowed("uploadCvDocumentToStorageAndD1");
+  const validation = validateCvPdfSignature(params.buffer, params.filename);
+  if (!validation.valid) {
+    throw new Error(validation.error || "Invalid CV PDF document.");
+  }
+
+  const sha256 = crypto.createHash("sha256").update(params.buffer).digest("hex");
+  const safeFilename = path.basename(params.filename).replace(/[^a-zA-Z0-9._-]/g, "_");
+  const storageKey = `cv/${params.locale}/${Date.now()}-${safeFilename}`;
+  const r2BaseDir = getLocalR2DirPath();
+  const r2FilePath = path.join(r2BaseDir, storageKey);
+
+  fs.mkdirSync(path.dirname(r2FilePath), { recursive: true });
+  fs.writeFileSync(r2FilePath, params.buffer);
+
+  const existing = getCvDocumentFromD1(params.locale);
+  const nextStatus = existing?.status === "published" ? "published" : "draft";
+
+  return upsertCvDocumentInD1({
+    locale: params.locale,
+    status: nextStatus,
+    storageMode: "r2",
+    storageKey,
+    publicUrl: `/api/media/${storageKey}`,
+    filename: safeFilename,
+    mimeType: "application/pdf",
+    byteSize: params.buffer.byteLength,
+    sha256
+  }, params.actorEmail, "upload_cv_pdf");
+}
+
+export function listCvRevisionsFromD1(locale: "tr" | "en"): CmsCvRevisionRecord[] {
+  assertLocalSimulationAllowed("listCvRevisionsFromD1");
+  const db = getD1Database();
+  const cvId = `cv-${locale}`;
+  const rows = db.prepare("SELECT * FROM portfolio_cv_revisions WHERE cv_id = ? ORDER BY revision_number DESC").all(cvId) as Record<string, unknown>[];
+  return rows.map((r) => ({
+    id: String(r.id),
+    cvId: String(r.cv_id),
+    revisionNumber: Number(r.revision_number),
+    action: String(r.action),
+    snapshotJson: String(r.snapshot_json),
+    actorEmail: String(r.actor_email),
+    createdAt: String(r.created_at)
+  }));
+}
+
+export function rollbackCvRevisionInD1(
+  locale: "tr" | "en",
+  revisionNumber: number,
+  actorEmail: string
+): CmsCvDocument {
+  assertLocalSimulationAllowed("rollbackCvRevisionInD1");
+  const db = getD1Database();
+  const cvId = `cv-${locale}`;
+  const rev = db.prepare("SELECT snapshot_json FROM portfolio_cv_revisions WHERE cv_id = ? AND revision_number = ? LIMIT 1").get(cvId, revisionNumber) as { snapshot_json: string } | undefined;
+  if (!rev) {
+    throw new Error(`CV revision #${revisionNumber} not found for locale "${locale}".`);
+  }
+
+  const snapshot = JSON.parse(rev.snapshot_json) as CmsCvDocument;
+  return upsertCvDocumentInD1({
+    locale,
+    status: snapshot.status,
+    storageMode: snapshot.storageMode,
+    storageKey: snapshot.storageKey,
+    publicUrl: snapshot.publicUrl,
+    filename: snapshot.filename,
+    mimeType: snapshot.mimeType,
+    byteSize: snapshot.byteSize,
+    sha256: snapshot.sha256
+  }, actorEmail, `rollback_rev_${revisionNumber}`);
+}
+
 
 

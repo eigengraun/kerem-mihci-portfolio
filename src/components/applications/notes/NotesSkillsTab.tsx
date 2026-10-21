@@ -4,6 +4,7 @@ import React from "react";
 import { profileData } from "@/data/profile";
 import { Locale } from "@/data/translations";
 import { toLocaleUpper } from "@/lib/casing";
+import { useSessionStore } from "@/store/sessionStore";
 
 interface NotesSkillsTabProps {
   locale: Locale;
@@ -12,44 +13,70 @@ interface NotesSkillsTabProps {
 
 export const NotesSkillsTab: React.FC<NotesSkillsTabProps> = ({ locale, isLight }) => {
   const isEn = locale === "en";
-  const { skills } = profileData;
+  const { sessionSkills } = useSessionStore();
+
+  const hasCms = sessionSkills && sessionSkills.length > 0;
 
   const categories = [
     {
       titleTR: "TASARIM",
       titleEN: "DESIGN",
       icon: "🎨",
-      items: skills.design.map((s) => (isEn ? s.en : s.tr))
+      items: hasCms
+        ? sessionSkills
+            .filter((s) => s.category === "design")
+            .map((s) => (isEn ? (s.name.en || s.name.tr) : (s.name.tr || s.name.en)))
+        : profileData.skills.design.map((s) => (isEn ? s.en : s.tr))
     },
     {
       titleTR: "WEB",
       titleEN: "WEB",
       icon: "🌐",
-      items: skills.web.map((s) => (isEn ? s.en : s.tr))
+      items: hasCms
+        ? sessionSkills
+            .filter((s) => s.category === "web")
+            .map((s) => (isEn ? (s.name.en || s.name.tr) : (s.name.tr || s.name.en)))
+        : profileData.skills.web.map((s) => (isEn ? s.en : s.tr))
     },
     {
       titleTR: "PRODÜKSİYON",
       titleEN: "PRODUCTION",
       icon: "🎬",
-      items: skills.production.map((s) => (isEn ? s.en : s.tr))
+      items: hasCms
+        ? sessionSkills
+            .filter((s) => s.category === "production")
+            .map((s) => (isEn ? (s.name.en || s.name.tr) : (s.name.tr || s.name.en)))
+        : profileData.skills.production.map((s) => (isEn ? s.en : s.tr))
     },
     {
       titleTR: "AI & YARATICI ÜRETİM",
       titleEN: "AI & CREATIVE PRODUCTION",
       icon: "✨",
-      items: skills.ai.map((s) => (isEn ? s.en : s.tr))
+      items: hasCms
+        ? sessionSkills
+            .filter((s) => s.category === "ai")
+            .map((s) => (isEn ? (s.name.en || s.name.tr) : (s.name.tr || s.name.en)))
+        : profileData.skills.ai.map((s) => (isEn ? s.en : s.tr))
     },
     {
       titleTR: "DİJİTAL & STRATEJİ",
       titleEN: "DIGITAL & STRATEGY",
       icon: "📈",
-      items: skills.strategy.map((s) => (isEn ? s.en : s.tr))
+      items: hasCms
+        ? sessionSkills
+            .filter((s) => s.category === "strategy")
+            .map((s) => (isEn ? (s.name.en || s.name.tr) : (s.name.tr || s.name.en)))
+        : profileData.skills.strategy.map((s) => (isEn ? s.en : s.tr))
     },
     {
       titleTR: "ARAÇLAR & YAZILIMLAR",
       titleEN: "TOOLS & SOFTWARE",
       icon: "🛠️",
-      items: skills.tools
+      items: hasCms
+        ? sessionSkills
+            .filter((s) => s.category === "tools")
+            .map((s) => (isEn ? (s.name.en || s.name.tr) : (s.name.tr || s.name.en)))
+        : profileData.skills.tools
     }
   ];
 

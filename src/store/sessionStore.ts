@@ -6,6 +6,14 @@ import { videosData, PortfolioVideo } from "@/data/videos";
 import { galleryItems, GalleryItem } from "@/data/gallery";
 import { getResolvedDesktopPlacements, ResolvedDesktopPosition } from "@/lib/desktopPlacement";
 import { workspacesData } from "@/data/workspaces";
+import type {
+  CmsProfileRecord,
+  CmsWorkspaceNote,
+  CmsExperienceItem,
+  CmsEducationItem,
+  CmsSkillItem,
+  CmsCvDocument
+} from "@/lib/portfolio/types";
 
 /**
  * Deterministic PRNG based on Mulberry32
@@ -69,6 +77,12 @@ export interface SessionStoreState {
   sessionProjects: Project[];
   sessionVideos: PortfolioVideo[];
   sessionGallery: GalleryItem[];
+  sessionProfile: CmsProfileRecord | null;
+  sessionWorkspaceNotes: Record<string, CmsWorkspaceNote[]>;
+  sessionExperience: CmsExperienceItem[];
+  sessionEducation: CmsEducationItem[];
+  sessionSkills: CmsSkillItem[];
+  sessionCv: { tr: CmsCvDocument | null; en: CmsCvDocument | null };
   desktopPlacements: Record<string, Record<string, ResolvedDesktopPosition>>;
   manualPlacements: Record<string, Record<string, ResolvedDesktopPosition>>;
   isDraggingProject: boolean;
@@ -76,6 +90,14 @@ export interface SessionStoreState {
   hydrateProjects: (projects: Project[]) => void;
   hydrateVideos: (videos: PortfolioVideo[], isCmsMode?: boolean) => void;
   hydrateGallery: (gallery: GalleryItem[], isCmsMode?: boolean) => void;
+  hydratePhase5Content: (payload: {
+    profile?: CmsProfileRecord | null;
+    notes?: Record<string, CmsWorkspaceNote[]>;
+    experience?: CmsExperienceItem[];
+    education?: CmsEducationItem[];
+    skills?: CmsSkillItem[];
+    cv?: { tr: CmsCvDocument | null; en: CmsCvDocument | null };
+  }) => void;
   updateDesktopPosition: (workspaceId: string, projectId: string, pos: { x: number; y: number }) => void;
 }
 
@@ -85,6 +107,16 @@ export const useSessionStore = create<SessionStoreState>((set) => ({
   sessionProjects: initialProjects,
   sessionVideos: initialVideos,
   sessionGallery: initialGallery,
+  sessionProfile: null,
+  sessionWorkspaceNotes: {
+    design: [],
+    web: [],
+    "motion-ai": []
+  },
+  sessionExperience: [],
+  sessionEducation: [],
+  sessionSkills: [],
+  sessionCv: { tr: null, en: null },
   desktopPlacements: initialPlacements,
   manualPlacements: {},
   isDraggingProject: false,
@@ -148,6 +180,16 @@ export const useSessionStore = create<SessionStoreState>((set) => ({
         sessionGallery: shuffleArray(gallery, createMulberry32(state.sessionSeed + 2))
       };
     });
+  },
+  hydratePhase5Content: (payload) => {
+    set((state) => ({
+      sessionProfile: payload.profile !== undefined ? payload.profile : state.sessionProfile,
+      sessionWorkspaceNotes: payload.notes !== undefined ? { ...state.sessionWorkspaceNotes, ...payload.notes } : state.sessionWorkspaceNotes,
+      sessionExperience: payload.experience !== undefined ? payload.experience : state.sessionExperience,
+      sessionEducation: payload.education !== undefined ? payload.education : state.sessionEducation,
+      sessionSkills: payload.skills !== undefined ? payload.skills : state.sessionSkills,
+      sessionCv: payload.cv !== undefined ? { ...state.sessionCv, ...payload.cv } : state.sessionCv
+    }));
   },
   updateDesktopPosition: (workspaceId: string, projectId: string, pos: { x: number; y: number }) => {
     set((state) => {

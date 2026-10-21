@@ -1,0 +1,801 @@
+{
+  "suite": "Portfolio OS Phase 5 Profile, Notes, Skills & CV CMS Verification",
+  "timestamp": "2026-10-21T21:34:16.461Z",
+  "commit": "94de33d0e831d81da43620a5216ac4ec1ee24031",
+  "total": 144,
+  "passed": 144,
+  "failed": 0,
+  "failures": [],
+  "groups": {
+    "A: D1 Migration 0004 Schema & Relational Integrity": {
+      "total": 41,
+      "passed": 41,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Migration file 0004_profile_notes_cv_schema.sql exists",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Migration contains table portfolio_profile",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Migration contains table portfolio_profile_translations",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Migration contains table portfolio_profile_revisions",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Migration contains table portfolio_workspace_notes",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Migration contains table portfolio_workspace_notes_translations",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Migration contains table portfolio_workspace_notes_revisions",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Migration contains table portfolio_experience",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Migration contains table portfolio_experience_translations",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Migration contains table portfolio_experience_revisions",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Migration contains table portfolio_education",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Migration contains table portfolio_education_translations",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Migration contains table portfolio_education_revisions",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Migration contains table portfolio_skills",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Migration contains table portfolio_skill_translations",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Migration contains table portfolio_cv_documents",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Migration contains table portfolio_cv_revisions",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Table portfolio_profile exists in isolated test D1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Table portfolio_profile_translations exists in isolated test D1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Table portfolio_profile_revisions exists in isolated test D1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Table portfolio_workspace_notes exists in isolated test D1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Table portfolio_workspace_notes_translations exists in isolated test D1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Table portfolio_workspace_notes_revisions exists in isolated test D1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Table portfolio_experience exists in isolated test D1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Table portfolio_experience_translations exists in isolated test D1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Table portfolio_experience_revisions exists in isolated test D1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Table portfolio_education exists in isolated test D1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Table portfolio_education_translations exists in isolated test D1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Table portfolio_education_revisions exists in isolated test D1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Table portfolio_skills exists in isolated test D1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Table portfolio_skill_translations exists in isolated test D1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Table portfolio_cv_documents exists in isolated test D1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Table portfolio_cv_revisions exists in isolated test D1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Existing 30 canonical projects preserved intact (found 30)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Existing 21 canonical videos preserved intact (found 21)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Existing gallery items preserved intact (found 3)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "FK cascade deletes note translations when note deleted",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "FK cascade deletes experience translations when item deleted",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "FK cascade deletes experience revisions when item deleted",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Admin authenticated successfully as staging-admin@local.test",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "CSRF token returned by auth endpoint",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "B: Profile & Bio Management": {
+      "total": 11,
+      "passed": 11,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "GET /api/admin/profile returns HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Initial profile seeded with name Kerem Mıhçı",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "PUT /api/admin/profile succeeds with HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "PUT /api/admin/profile returns ok: true",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Updated headlineEN persisted correctly",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Updated summaryTR persisted correctly",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "GET /api/admin/profile/revisions returns HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Profile update recorded at least 1 revision",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "POST /api/admin/profile/rollback succeeds with HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Rollback returns ok: true",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "PUT /api/admin/profile rejects empty name with HTTP 400",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "C: Workspace Notes & Strict Workspace Isolation": {
+      "total": 16,
+      "passed": 16,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "GET /api/admin/notes?workspace=design returns HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "GET /api/admin/notes?workspace=web returns HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "POST /api/admin/notes creates note with HTTP 201",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Created note returns valid ID",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "New note is present in design workspace query",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Design note count incremented by 1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "WORKSPACE ISOLATION: Note does NOT appear in web workspace",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Web workspace note count completely unchanged",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "WORKSPACE ISOLATION: Note does NOT appear in motion-ai workspace",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "PUT /api/admin/notes/:id updates note with HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Updated title persisted correctly",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "GET /api/admin/notes/revisions returns HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Note update created revision snapshot",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "POST /api/admin/notes/rollback succeeds with HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "POST /api/admin/notes/reorder succeeds with HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "DELETE /api/admin/notes/:id succeeds with HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "D: Experience Items CMS": {
+      "total": 10,
+      "passed": 10,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "GET /api/admin/experience returns HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Experience list returned as array",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "POST /api/admin/experience creates item with HTTP 201",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Created experience item returns valid ID",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "PUT /api/admin/experience/:id updates item with HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "GET /api/admin/experience/:id/revisions returns HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Experience update created revision",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "POST /api/admin/experience/:id/rollback succeeds with HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "POST /api/admin/experience/reorder succeeds with HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "DELETE /api/admin/experience/:id succeeds with HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "E: Education Items CMS": {
+      "total": 9,
+      "passed": 9,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "GET /api/admin/education returns HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Education list returned as array",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "POST /api/admin/education creates item with HTTP 201",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Created education item returns valid ID",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "PUT /api/admin/education/:id updates item with HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "GET /api/admin/education/:id/revisions returns HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Education update created revision",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "POST /api/admin/education/:id/rollback succeeds with HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "DELETE /api/admin/education/:id succeeds with HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "F: Skills Catalog CMS & Categories": {
+      "total": 13,
+      "passed": 13,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "GET /api/admin/skills returns HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Skills list returned as array",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Seeded skills present in catalog (found 39)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Category design present",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Category web present",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Category production present",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Category ai present",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Category strategy present",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Category tools present",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "POST /api/admin/skills creates skill with HTTP 201",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Created skill returns valid ID",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Invalid skill category rejected with HTTP 400",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "DELETE /api/admin/skills/:id succeeds with HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "G: CV Document Management & PDF Magic Byte Security": {
+      "total": 11,
+      "passed": 11,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "GET /api/admin/cv returns HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "CV documents list contains both TR and EN records",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Corrupted PDF magic bytes rejected with HTTP 400",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Error message explicitly cites %PDF- magic signature requirement",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Valid %PDF- upload accepted with HTTP 201",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Valid upload returned storageKey",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "CV document status is draft or published",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "PUT /api/admin/cv/en updates CV with HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "GET /api/admin/cv/en/revisions returns HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "CV revisions recorded in history",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "POST /api/admin/cv/en/rollback succeeds with HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "H: Public API Access Control & Empty State Invariants": {
+      "total": 13,
+      "passed": 13,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Public GET /api/v1/public/profile returns HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Public profile payload valid",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Public GET /api/v1/public/notes/design returns HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Public notes returns array",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Public GET /api/v1/public/experience returns HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Public GET /api/v1/public/education returns HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Public GET /api/v1/public/skills returns HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "PREMATURE LEAKAGE PREVENTED: Draft CV returns HTTP 404 to public visitors",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Draft CV 404 response enforces Cache-Control: no-store",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Published CV returns HTTP 200 to public visitors",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Published CV returns storageKey",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Published CV binary media delivers HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Published CV delivery returns application/pdf Content-Type",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "I: Public Frontend Hydration, NotesApp Integration & Non-Regression": {
+      "total": 19,
+      "passed": 19,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "GET /tr renders HTTP 200 without server crash",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Public TR page contains Kerem brand identity",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "GET /en renders HTTP 200 without server crash",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "GET /admin renders HTTP 200 for authenticated admin",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Admin dashboard contains admin-overview-section",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Admin overview contains Profile & Notes navigation button",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "sessionStore exposes hydratePhase5Content",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "sessionStore tracks sessionWorkspaceNotes",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "sessionStore tracks sessionExperience",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "sessionStore tracks sessionEducation",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "sessionStore tracks sessionSkills",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "sessionStore tracks sessionCv",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "NotesOverviewTab dynamically filters by activeWorkspace",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "NotesCvTab consumes CMS sessionCv",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Cloudflare Worker index.ts implements public profile endpoint",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Cloudflare Worker index.ts implements public notes endpoint",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Cloudflare Worker index.ts implements public cv endpoint",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Cloudflare Worker index.ts implements admin profile endpoint",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Cloudflare Worker index.ts implements admin cv upload endpoint",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "J: Test Fixture Isolation & Zero Host Database Mutation": {
+      "total": 1,
+      "passed": 1,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Zero host mutations: .local-d1/portfolio.sqlite SHA256 is 100% identical before and after suite",
+          "status": "PASS",
+          "detail": "SHA256: 470d8f14ce1237cc..."
+        }
+      ]
+    }
+  }
+}

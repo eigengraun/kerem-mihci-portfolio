@@ -3,6 +3,7 @@
 import React from "react";
 import { profileData } from "@/data/profile";
 import { Locale } from "@/data/translations";
+import { useSessionStore } from "@/store/sessionStore";
 
 interface NotesCvTabProps {
   locale: Locale;
@@ -11,7 +12,15 @@ interface NotesCvTabProps {
 
 export const NotesCvTab: React.FC<NotesCvTabProps> = ({ locale, isLight }) => {
   const isEn = locale === "en";
-  const { cv } = profileData;
+  const { sessionCv } = useSessionStore();
+
+  const trCms = sessionCv?.tr;
+  const trAvailable = Boolean(trCms && trCms.status === "published" && trCms.publicUrl) || profileData.cv.trAvailable;
+  const trPath = (trCms && trCms.status === "published" && trCms.publicUrl) ? trCms.publicUrl : profileData.cv.trPath;
+
+  const enCms = sessionCv?.en;
+  const enAvailable = Boolean(enCms && enCms.status === "published" && enCms.publicUrl) || profileData.cv.enAvailable;
+  const enPath = (enCms && enCms.status === "published" && enCms.publicUrl) ? enCms.publicUrl : profileData.cv.enPath;
 
   return (
     <div className="space-y-4 animate-in fade-in duration-200">
@@ -64,10 +73,10 @@ export const NotesCvTab: React.FC<NotesCvTabProps> = ({ locale, isLight }) => {
             </p>
           </div>
 
-          {cv.trAvailable ? (
+          {trAvailable ? (
             <div className="flex items-center gap-2 font-mono text-xs pt-1">
               <a
-                href={cv.trPath}
+                href={trPath}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={`flex-1 text-center py-1.5 px-3 rounded font-medium border transition-colors cursor-pointer ${
@@ -79,7 +88,7 @@ export const NotesCvTab: React.FC<NotesCvTabProps> = ({ locale, isLight }) => {
                 {isEn ? "Preview" : "Önizle"}
               </a>
               <a
-                href={cv.trPath}
+                href={trPath}
                 download="kerem-mihci-cv-tr.pdf"
                 className={`flex-1 text-center py-1.5 px-3 rounded font-medium border transition-colors cursor-pointer ${
                   isLight
@@ -129,10 +138,10 @@ export const NotesCvTab: React.FC<NotesCvTabProps> = ({ locale, isLight }) => {
             </p>
           </div>
 
-          {cv.enAvailable ? (
+          {enAvailable ? (
             <div className="flex items-center gap-2 font-mono text-xs pt-1">
               <a
-                href={cv.enPath}
+                href={enPath}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={`flex-1 text-center py-1.5 px-3 rounded font-medium border transition-colors cursor-pointer ${
@@ -144,7 +153,7 @@ export const NotesCvTab: React.FC<NotesCvTabProps> = ({ locale, isLight }) => {
                 {isEn ? "Preview" : "Önizle"}
               </a>
               <a
-                href={cv.enPath}
+                href={enPath}
                 download="kerem-mihci-cv-en.pdf"
                 className={`flex-1 text-center py-1.5 px-3 rounded font-medium border transition-colors cursor-pointer ${
                   isLight

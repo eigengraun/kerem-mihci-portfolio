@@ -3,6 +3,7 @@
 import React from "react";
 import { profileData } from "@/data/profile";
 import { Locale } from "@/data/translations";
+import { useSessionStore } from "@/store/sessionStore";
 
 interface NotesEducationTabProps {
   locale: Locale;
@@ -11,7 +12,28 @@ interface NotesEducationTabProps {
 
 export const NotesEducationTab: React.FC<NotesEducationTabProps> = ({ locale, isLight }) => {
   const isEn = locale === "en";
-  const { education } = profileData;
+  const { sessionEducation } = useSessionStore();
+
+  const hasCms = sessionEducation && sessionEducation.length > 0;
+  const items = hasCms
+    ? sessionEducation.map((item) => ({
+        id: item.id,
+        institution: isEn ? (item.institution.en || item.institution.tr) : (item.institution.tr || item.institution.en),
+        program: isEn ? (item.program.en || item.program.tr) : (item.program.tr || item.program.en),
+        endYear: isEn ? (item.endYear.en || item.endYear.tr) : (item.endYear.tr || item.endYear.en),
+        description: isEn ? (item.description?.en || item.description?.tr) : (item.description?.tr || item.description?.en),
+        status: isEn ? (item.statusLabel.en || item.statusLabel.tr) : (item.statusLabel.tr || item.statusLabel.en),
+        startYear: item.startYear
+      }))
+    : profileData.education.map((item) => ({
+        id: item.id,
+        institution: isEn ? item.institutionEN : item.institutionTR,
+        program: isEn ? item.programEN : item.programTR,
+        endYear: isEn ? item.endYearEN : item.endYearTR,
+        description: isEn ? item.descriptionEN : item.descriptionTR,
+        status: isEn ? item.statusEN : item.statusTR,
+        startYear: item.startYear
+      }));
 
   return (
     <div className="space-y-4 animate-in fade-in duration-200">
@@ -29,13 +51,8 @@ export const NotesEducationTab: React.FC<NotesEducationTabProps> = ({ locale, is
 
       {/* Education Feed */}
       <div className="space-y-3">
-        {education.map((item) => {
-          const institution = isEn ? item.institutionEN : item.institutionTR;
-          const program = isEn ? item.programEN : item.programTR;
-          const endYear = isEn ? item.endYearEN : item.endYearTR;
-          const description = isEn ? item.descriptionEN : item.descriptionTR;
-          const status = isEn ? item.statusEN : item.statusTR;
-          const dateRange = item.startYear && endYear ? `${item.startYear} — ${endYear}` : endYear || item.startYear;
+        {items.map((item) => {
+          const dateRange = item.startYear && item.endYear ? `${item.startYear} — ${item.endYear}` : item.endYear || item.startYear;
 
           return (
             <div
@@ -53,7 +70,7 @@ export const NotesEducationTab: React.FC<NotesEducationTabProps> = ({ locale, is
                     isLight ? "text-neutral-900" : "text-white"
                   }`}
                 >
-                  {program}
+                  {item.program}
                 </h3>
                 {dateRange && (
                   <span className="font-mono text-[11px] font-semibold text-amber-500 flex-shrink-0">
@@ -68,11 +85,11 @@ export const NotesEducationTab: React.FC<NotesEducationTabProps> = ({ locale, is
                   isLight ? "text-neutral-700" : "text-neutral-300"
                 }`}
               >
-                🏫 {institution}
+                🏫 {item.institution}
               </div>
 
               {/* Status Badge */}
-              {status && (
+              {item.status && (
                 <div className="mb-2.5">
                   <span
                     className={`inline-block px-2 py-0.5 rounded text-[10px] font-mono font-medium border ${
@@ -81,19 +98,19 @@ export const NotesEducationTab: React.FC<NotesEducationTabProps> = ({ locale, is
                         : "bg-amber-500/20 border-amber-500/30 text-amber-300"
                     }`}
                   >
-                    {status}
+                    {item.status}
                   </span>
                 </div>
               )}
 
               {/* Description */}
-              {description && (
+              {item.description && (
                 <p
                   className={`font-sans text-xs leading-relaxed ${
                     isLight ? "text-neutral-700" : "text-neutral-300"
                   }`}
                 >
-                  {description}
+                  {item.description}
                 </p>
               )}
             </div>

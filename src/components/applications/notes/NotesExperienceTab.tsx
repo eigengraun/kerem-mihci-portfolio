@@ -3,6 +3,7 @@
 import React from "react";
 import { profileData } from "@/data/profile";
 import { Locale } from "@/data/translations";
+import { useSessionStore } from "@/store/sessionStore";
 
 interface NotesExperienceTabProps {
   locale: Locale;
@@ -11,7 +12,28 @@ interface NotesExperienceTabProps {
 
 export const NotesExperienceTab: React.FC<NotesExperienceTabProps> = ({ locale, isLight }) => {
   const isEn = locale === "en";
-  const { experience } = profileData;
+  const { sessionExperience } = useSessionStore();
+
+  const hasCms = sessionExperience && sessionExperience.length > 0;
+  const items = hasCms
+    ? sessionExperience.map((item) => ({
+        id: item.id,
+        role: isEn ? (item.role.en || item.role.tr) : (item.role.tr || item.role.en),
+        endDate: isEn ? (item.endDate.en || item.endDate.tr) : (item.endDate.tr || item.endDate.en),
+        description: isEn ? (item.description.en || item.description.tr) : (item.description.tr || item.description.en),
+        organization: item.organization,
+        startDate: item.startDate,
+        skills: item.skills
+      }))
+    : profileData.experience.map((item) => ({
+        id: item.id,
+        role: isEn ? item.roleEN : item.roleTR,
+        endDate: isEn ? item.endDateEN : item.endDateTR,
+        description: isEn ? item.descriptionEN : item.descriptionTR,
+        organization: item.organization,
+        startDate: item.startDate,
+        skills: item.skills
+      }));
 
   return (
     <div className="space-y-4 animate-in fade-in duration-200">
@@ -29,11 +51,8 @@ export const NotesExperienceTab: React.FC<NotesExperienceTabProps> = ({ locale, 
 
       {/* Experience Feed */}
       <div className="space-y-3">
-        {experience.map((item) => {
-          const role = isEn ? item.roleEN : item.roleTR;
-          const endDate = isEn ? item.endDateEN : item.endDateTR;
-          const description = isEn ? item.descriptionEN : item.descriptionTR;
-          const dateRange = `${item.startDate} — ${endDate}`;
+        {items.map((item) => {
+          const dateRange = `${item.startDate} — ${item.endDate}`;
 
           return (
             <div
@@ -51,7 +70,7 @@ export const NotesExperienceTab: React.FC<NotesExperienceTabProps> = ({ locale, 
                     isLight ? "text-neutral-900" : "text-white"
                   }`}
                 >
-                  {role}
+                  {item.role}
                 </h3>
                 <span className="font-mono text-[11px] font-semibold text-amber-500 flex-shrink-0">
                   {dateRange}
@@ -73,7 +92,7 @@ export const NotesExperienceTab: React.FC<NotesExperienceTabProps> = ({ locale, 
                   isLight ? "text-neutral-700" : "text-neutral-300"
                 }`}
               >
-                {description}
+                {item.description}
               </p>
 
               {/* Skill Chips */}

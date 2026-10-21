@@ -3,7 +3,18 @@ import { notFound } from "next/navigation";
 import { siteConfig } from "@/lib/siteConfig";
 import { generatePersonJsonLd, generateWebSiteJsonLd } from "@/lib/seo";
 import { isValidLocale } from "@/lib/i18n";
-import { getPublishedProjects, getPublishedVideos, getPublishedGallery, getCmsDataSource } from "@/lib/portfolio/repository";
+import {
+  getPublishedProjects,
+  getPublishedVideos,
+  getPublishedGallery,
+  getCmsDataSource,
+  getPublishedProfile,
+  getPublishedWorkspaceNotes,
+  getPublishedExperience,
+  getPublishedEducation,
+  getPublishedSkills,
+  getPublishedCv
+} from "@/lib/portfolio/repository";
 import { ClientLocalePage } from "./ClientLocalePage";
 
 export const dynamic = "force-dynamic";
@@ -69,10 +80,32 @@ export default async function LocaleDesktopPage({
     notFound();
   }
 
-  const [publishedProjects, publishedVideos, publishedGallery] = await Promise.all([
+  const [
+    publishedProjects,
+    publishedVideos,
+    publishedGallery,
+    publishedProfile,
+    designNotes,
+    webNotes,
+    motionAiNotes,
+    publishedExperience,
+    publishedEducation,
+    publishedSkills,
+    cvTr,
+    cvEn
+  ] = await Promise.all([
     getPublishedProjects(),
     getPublishedVideos(),
-    getPublishedGallery()
+    getPublishedGallery(),
+    getPublishedProfile().catch(() => null),
+    getPublishedWorkspaceNotes("design").catch(() => []),
+    getPublishedWorkspaceNotes("web").catch(() => []),
+    getPublishedWorkspaceNotes("motion-ai").catch(() => []),
+    getPublishedExperience().catch(() => []),
+    getPublishedEducation().catch(() => []),
+    getPublishedSkills().catch(() => []),
+    getPublishedCv("tr").catch(() => null),
+    getPublishedCv("en").catch(() => null)
   ]);
   const isCmsMode = getCmsDataSource() !== "legacy";
   const personJsonLd = generatePersonJsonLd(locale);
@@ -92,6 +125,18 @@ export default async function LocaleDesktopPage({
         initialProjects={publishedProjects}
         initialVideos={publishedVideos}
         initialGallery={publishedGallery}
+        initialPhase5={{
+          profile: publishedProfile,
+          notes: {
+            design: designNotes,
+            web: webNotes,
+            "motion-ai": motionAiNotes
+          },
+          experience: publishedExperience,
+          education: publishedEducation,
+          skills: publishedSkills,
+          cv: { tr: cvTr, en: cvEn }
+        }}
         isCmsMode={isCmsMode}
       />
     </>

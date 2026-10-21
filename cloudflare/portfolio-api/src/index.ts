@@ -2389,6 +2389,1087 @@ export async function rollbackGalleryRevisionInWorkerD1(
   return upsertGalleryItemInWorkerD1(db, snapshot, actorEmail, `rollback_rev_${revisionNumber}`);
 }
 
+// ============================================================
+// PHASE 5: PROFILE, NOTES, EXPERIENCE, EDUCATION, SKILLS & CV D1 HELPERS
+// ============================================================
+
+export function validateWorkerCvPdfSignature(
+  bytes: Uint8Array,
+  filename: string
+): { valid: boolean; error?: string } {
+  if (bytes.byteLength === 0) return { valid: false, error: "Uploaded CV file is empty." };
+  if (bytes.byteLength > 15 * 1024 * 1024) return { valid: false, error: "CV file exceeds 15 MB." };
+  if (!filename.toLowerCase().endsWith(".pdf")) return { valid: false, error: "CV file must have a .pdf extension." };
+  if (
+    bytes.byteLength < 5 ||
+    bytes[0] !== 0x25 ||
+    bytes[1] !== 0x50 ||
+    bytes[2] !== 0x44 ||
+    bytes[3] !== 0x46 ||
+    bytes[4] !== 0x2d
+  ) {
+    return { valid: false, error: "Invalid PDF signature: file header does not match %PDF- magic bytes." };
+  }
+  return { valid: true };
+}
+
+// 1. Profile
+export async function queryCmsProfileFromWorkerD1(
+  db: D1Database
+): Promise<Record<string, unknown> | null> {
+  const row = await db.prepare("SELECT * FROM portfolio_profile WHERE id = 'main'").first<Record<string, unknown>>();
+  if (!row) return null;
+
+  const { results: transRows } = await db.prepare("SELECT * FROM portfolio_profile_translations WHERE profile_id = 'main'").all<Record<string, unknown>>();
+  const tr = (transRows || []).find((r) => r.locale === "tr");
+  const en = (transRows || []).find((r) => r.locale === "en");
+
+  let stats: unknown[] = [];
+  try { stats = JSON.parse(String(row.stats_json || "[]")); } catch { stats = []; }
+
+  let trSummary: string[] = [];
+  let enSummary: string[] = [];
+  try { trSummary = JSON.parse(String(tr?.summary_paragraphs_json || "[]")); } catch { trSummary = []; }
+  try { enSummary = JSON.parse(String(en?.summary_paragraphs_json || "[]")); } catch { enSummary = []; }
+
+  let trFocus: string[] = [];
+  let enFocus: string[] = [];
+  try { trFocus = JSON.parse(String(tr?.focus_areas_json || "[]")); } catch { trFocus = []; }
+  try { enFocus = JSON.parse(String(en?.focus_areas_json || "[]")); } catch { enFocus = []; }
+
+  return {
+    id: String(row.id),
+    status: row.status,
+    name: row.name,
+    email: row.email,
+    image: row.image_url,
+    avatar: row.avatar_url,
+    headline: { tr: String(tr?.headline || ""), en: String(en?.headline || "") },
+    location: { tr: String(tr?.location || ""), en: String(en?.location || "") },
+    alt: { tr: String(tr?.image_alt || ""), en: String(en?.image_alt || "") },
+    summary: { tr: trSummary, en: enSummary },
+    stats,
+    focusAreas: { tr: trFocus, en: enFocus },
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    publishedAt: row.published_at || null
+  };
+}
+
+export async function upsertProfileInWorkerD1(
+  db: D1Database,
+  input: Record<string, unknown>,
+  actorEmail: string
+): Promise<Record<string, unknown>> {
+  const existing = await queryCmsProfileFromWorkerD1(db);
+  const now = new Date().toISOString();
+
+  const name = input.name !== undefined ? String(input.name) : (existing?.name ? String(existing.name) : "Kerem Mıhçı");
+  const email = input.email !== undefined ? String(input.email) : (existing?.email ? String(existing.email) : "info@keremmihci.com");
+  const image = input.image !== undefined ? String(input.image) : (existing?.image ? String(existing.image) : "/profile/kerem-mihci-profile.webp");
+  const avatar = input.avatar !== undefined ? String(input.avatar) : (existing?.avatar ? String(existing.avatar) : "/profile/kerem-mihci-avatar.webp");
+  const status = input.status !== undefined ? String(input.status) : (existing?.status ? String(existing.status) : "published");
+  const stats = input.stats !== undefined ? input.stats : (existing?.stats || []);
+
+  const publishedAt = status === "published" ? (existing?.publishedAt ? String(existing.publishedAt) : now) : null;
+
+  await db.prepare(`
+    INSERT INTO portfolio_profile (id, status, name, email, image_url, avatar_url, stats_json, created_at, updated_at, published_at)
+    VALUES ('main', ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      status = excluded.status,
+      name = excluded.name,
+      email = excluded.email,
+      image_url = excluded.image_url,
+      avatar_url = excluded.avatar_url,
+      stats_json = excluded.stats_json,
+      updated_at = excluded.updated_at,
+      published_at = excluded.published_at
+  `).bind(
+    status,
+    name,
+    email,
+    image,
+    avatar,
+    JSON.stringify(stats),
+    existing?.createdAt ? String(existing.createdAt) : now,
+    now,
+    publishedAt
+  ).run();
+
+  const existingHeadline = (existing?.headline as Record<string, string> | undefined);
+  const existingLoc = (existing?.location as Record<string, string> | undefined);
+  const existingAlt = (existing?.alt as Record<string, string> | undefined);
+  const existingSummary = (existing?.summary as Record<string, string[]> | undefined);
+  const existingFocus = (existing?.focusAreas as Record<string, string[]> | undefined);
+
+  const trHeadline = input.headlineTR !== undefined ? String(input.headlineTR) : (existingHeadline?.tr || "");
+  const enHeadline = input.headlineEN !== undefined ? String(input.headlineEN) : (existingHeadline?.en || "");
+  const trLocation = input.locationTR !== undefined ? String(input.locationTR) : (existingLoc?.tr || "");
+  const enLocation = input.locationEN !== undefined ? String(input.locationEN) : (existingLoc?.en || "");
+  const trAlt = input.altTR !== undefined ? String(input.altTR) : (existingAlt?.tr || "");
+  const enAlt = input.altEN !== undefined ? String(input.altEN) : (existingAlt?.en || "");
+  const trSummary = input.summaryTR !== undefined ? input.summaryTR : (existingSummary?.tr || []);
+  const enSummary = input.summaryEN !== undefined ? input.summaryEN : (existingSummary?.en || []);
+  const trFocus = input.focusAreasTR !== undefined ? input.focusAreasTR : (existingFocus?.tr || []);
+  const enFocus = input.focusAreasEN !== undefined ? input.focusAreasEN : (existingFocus?.en || []);
+
+  await db.batch([
+    db.prepare(`
+      INSERT INTO portfolio_profile_translations (id, profile_id, locale, headline, location, image_alt, summary_paragraphs_json, focus_areas_json, updated_at)
+      VALUES ('prof-tr', 'main', 'tr', ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(profile_id, locale) DO UPDATE SET
+        headline = excluded.headline,
+        location = excluded.location,
+        image_alt = excluded.image_alt,
+        summary_paragraphs_json = excluded.summary_paragraphs_json,
+        focus_areas_json = excluded.focus_areas_json,
+        updated_at = excluded.updated_at
+    `).bind(trHeadline, trLocation, trAlt, JSON.stringify(trSummary), JSON.stringify(trFocus), now),
+    db.prepare(`
+      INSERT INTO portfolio_profile_translations (id, profile_id, locale, headline, location, image_alt, summary_paragraphs_json, focus_areas_json, updated_at)
+      VALUES ('prof-en', 'main', 'en', ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(profile_id, locale) DO UPDATE SET
+        headline = excluded.headline,
+        location = excluded.location,
+        image_alt = excluded.image_alt,
+        summary_paragraphs_json = excluded.summary_paragraphs_json,
+        focus_areas_json = excluded.focus_areas_json,
+        updated_at = excluded.updated_at
+    `).bind(enHeadline, enLocation, enAlt, JSON.stringify(enSummary), JSON.stringify(enFocus), now)
+  ]);
+
+  const updated = (await queryCmsProfileFromWorkerD1(db))!;
+
+  const revRow = await db.prepare("SELECT MAX(revision_number) as max_rev FROM portfolio_profile_revisions WHERE profile_id = 'main'").first<{ max_rev: number | null }>();
+  const nextRev = (revRow?.max_rev ?? 0) + 1;
+  await db.prepare(`
+    INSERT INTO portfolio_profile_revisions (id, profile_id, revision_number, action, snapshot_json, actor_email, created_at)
+    VALUES (?, 'main', ?, 'update_profile', ?, ?, ?)
+  `).bind(`prev-main-${Date.now()}-${nextRev}`, nextRev, JSON.stringify(updated), actorEmail, now).run();
+
+  await db.prepare(`
+    INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+    VALUES (?, ?, 'update_profile', 'profile', 'main', ?, ?)
+  `).bind(`log-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`, actorEmail, JSON.stringify({ status, name }), now).run();
+
+  return updated;
+}
+
+export async function listProfileRevisionsInWorkerD1(db: D1Database) {
+  const { results } = await db.prepare("SELECT * FROM portfolio_profile_revisions WHERE profile_id = 'main' ORDER BY revision_number DESC LIMIT 50").all<Record<string, unknown>>();
+  return (results || []).map((r) => ({
+    id: String(r.id),
+    profileId: String(r.profile_id),
+    revisionNumber: Number(r.revision_number),
+    action: String(r.action),
+    snapshotJson: String(r.snapshot_json),
+    actorEmail: String(r.actor_email),
+    createdAt: String(r.created_at)
+  }));
+}
+
+export async function rollbackProfileRevisionInWorkerD1(
+  db: D1Database,
+  revisionNumber: number,
+  actorEmail: string
+) {
+  const rev = await db.prepare("SELECT snapshot_json FROM portfolio_profile_revisions WHERE profile_id = 'main' AND revision_number = ? LIMIT 1").bind(revisionNumber).first<{ snapshot_json: string }>();
+  if (!rev) throw new Error(`Profile revision #${revisionNumber} not found.`);
+  const snapshot = JSON.parse(rev.snapshot_json) as Record<string, unknown>;
+  const headline = snapshot.headline as Record<string, string> | undefined;
+  const location = snapshot.location as Record<string, string> | undefined;
+  const alt = snapshot.alt as Record<string, string> | undefined;
+  const summary = snapshot.summary as Record<string, string[]> | undefined;
+  const focusAreas = snapshot.focusAreas as Record<string, string[]> | undefined;
+
+  return upsertProfileInWorkerD1(db, {
+    name: snapshot.name,
+    email: snapshot.email,
+    image: snapshot.image,
+    avatar: snapshot.avatar,
+    status: snapshot.status,
+    stats: snapshot.stats,
+    headlineTR: headline?.tr,
+    headlineEN: headline?.en,
+    locationTR: location?.tr,
+    locationEN: location?.en,
+    altTR: alt?.tr,
+    altEN: alt?.en,
+    summaryTR: summary?.tr,
+    summaryEN: summary?.en,
+    focusAreasTR: focusAreas?.tr,
+    focusAreasEN: focusAreas?.en
+  }, actorEmail);
+}
+
+// 2. Workspace Notes
+export async function queryCmsNotesFromWorkerD1(
+  db: D1Database,
+  whereClause = "",
+  params: unknown[] = []
+): Promise<Record<string, unknown>[]> {
+  const stmt = db.prepare(`SELECT * FROM portfolio_workspace_notes ${whereClause} ORDER BY sort_order ASC, id ASC`).bind(...params);
+  const { results: notes } = await stmt.all<Record<string, unknown>>();
+  if (!notes || notes.length === 0) return [];
+
+  const { results: trans } = await db.prepare("SELECT * FROM portfolio_workspace_notes_translations").all<Record<string, unknown>>();
+  const transByNoteId = new Map<string, { tr?: Record<string, unknown>; en?: Record<string, unknown> }>();
+  for (const t of trans || []) {
+    const noteId = String(t.note_id);
+    let entry = transByNoteId.get(noteId);
+    if (!entry) { entry = {}; transByNoteId.set(noteId, entry); }
+    if (t.locale === "tr") entry.tr = t;
+    if (t.locale === "en") entry.en = t;
+  }
+
+  return notes.map((r) => {
+    const id = String(r.id);
+    const t = transByNoteId.get(id);
+    return {
+      id,
+      workspaceId: r.workspace_id,
+      status: r.status,
+      sortOrder: Number(r.sort_order || 0),
+      filename: r.filename,
+      title: { tr: String(t?.tr?.title || ""), en: String(t?.en?.title || "") },
+      content: { tr: String(t?.tr?.content || ""), en: String(t?.en?.content || "") },
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
+      publishedAt: r.published_at || null,
+      archivedAt: r.archived_at || null
+    };
+  });
+}
+
+export async function upsertNoteInWorkerD1(
+  db: D1Database,
+  input: Record<string, unknown>,
+  actorEmail: string
+): Promise<Record<string, unknown>> {
+  const now = new Date().toISOString();
+  const workspaceId = String(input.workspaceId || "design");
+  const noteId = input.id ? String(input.id) : `note-${workspaceId}-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`;
+
+  const existingList = await queryCmsNotesFromWorkerD1(db, "WHERE id = ?", [noteId]);
+  const existing = existingList[0] || null;
+
+  const status = String(input.status || existing?.status || "draft");
+  const sortOrder = input.sortOrder !== undefined ? Number(input.sortOrder) : Number(existing?.sortOrder ?? 0);
+  const filename = input.filename ? String(input.filename) : String(existing?.filename || "system.txt");
+
+  const publishedAt = status === "published" ? (existing?.publishedAt ? String(existing.publishedAt) : now) : null;
+  const archivedAt = status === "archived" ? (existing?.archivedAt ? String(existing.archivedAt) : now) : null;
+
+  await db.prepare(`
+    INSERT INTO portfolio_workspace_notes (id, workspace_id, status, sort_order, filename, created_at, updated_at, published_at, archived_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      workspace_id = excluded.workspace_id,
+      status = excluded.status,
+      sort_order = excluded.sort_order,
+      filename = excluded.filename,
+      updated_at = excluded.updated_at,
+      published_at = excluded.published_at,
+      archived_at = excluded.archived_at
+  `).bind(noteId, workspaceId, status, sortOrder, filename, existing?.createdAt ? String(existing.createdAt) : now, now, publishedAt, archivedAt).run();
+
+  const exTitle = existing?.title as Record<string, string> | undefined;
+  const exContent = existing?.content as Record<string, string> | undefined;
+
+  const trTitle = input.titleTR !== undefined ? String(input.titleTR) : (exTitle?.tr || "");
+  const enTitle = input.titleEN !== undefined ? String(input.titleEN) : (exTitle?.en || "");
+  const trContent = input.contentTR !== undefined ? String(input.contentTR) : (exContent?.tr || "");
+  const enContent = input.contentEN !== undefined ? String(input.contentEN) : (exContent?.en || "");
+
+  await db.batch([
+    db.prepare(`
+      INSERT INTO portfolio_workspace_notes_translations (id, note_id, locale, title, content, updated_at)
+      VALUES (?, ?, 'tr', ?, ?, ?)
+      ON CONFLICT(note_id, locale) DO UPDATE SET
+        title = excluded.title,
+        content = excluded.content,
+        updated_at = excluded.updated_at
+    `).bind(`wn-tr-${noteId}`, noteId, trTitle, trContent, now),
+    db.prepare(`
+      INSERT INTO portfolio_workspace_notes_translations (id, note_id, locale, title, content, updated_at)
+      VALUES (?, ?, 'en', ?, ?, ?)
+      ON CONFLICT(note_id, locale) DO UPDATE SET
+        title = excluded.title,
+        content = excluded.content,
+        updated_at = excluded.updated_at
+    `).bind(`wn-en-${noteId}`, noteId, enTitle, enContent, now)
+  ]);
+
+  const updatedNotes = await queryCmsNotesFromWorkerD1(db, "WHERE workspace_id = ?", [workspaceId]);
+  const revRow = await db.prepare("SELECT MAX(revision_number) as max_rev FROM portfolio_workspace_notes_revisions WHERE workspace_id = ?").bind(workspaceId).first<{ max_rev: number | null }>();
+  const nextRev = (revRow?.max_rev ?? 0) + 1;
+
+  await db.prepare(`
+    INSERT INTO portfolio_workspace_notes_revisions (id, workspace_id, revision_number, action, snapshot_json, actor_email, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).bind(`wnrev-${workspaceId}-${Date.now()}-${nextRev}`, workspaceId, nextRev, existing ? "update_note" : "create_note", JSON.stringify(updatedNotes), actorEmail, now).run();
+
+  await db.prepare(`
+    INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+    VALUES (?, ?, ?, 'workspace_note', ?, ?, ?)
+  `).bind(`log-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`, actorEmail, existing ? "update_note" : "create_note", noteId, JSON.stringify({ workspaceId, status, filename }), now).run();
+
+  const final = await queryCmsNotesFromWorkerD1(db, "WHERE id = ?", [noteId]);
+  return final[0]!;
+}
+
+export async function deleteNoteInWorkerD1(db: D1Database, id: string, actorEmail: string) {
+  const existingList = await queryCmsNotesFromWorkerD1(db, "WHERE id = ?", [id]);
+  const existing = existingList[0];
+  if (!existing) throw new Error(`Workspace note "${id}" not found.`);
+
+  const workspaceId = String(existing.workspaceId);
+  const now = new Date().toISOString();
+
+  await db.prepare("DELETE FROM portfolio_workspace_notes WHERE id = ?").bind(id).run();
+
+  const remaining = await queryCmsNotesFromWorkerD1(db, "WHERE workspace_id = ?", [workspaceId]);
+  const revRow = await db.prepare("SELECT MAX(revision_number) as max_rev FROM portfolio_workspace_notes_revisions WHERE workspace_id = ?").bind(workspaceId).first<{ max_rev: number | null }>();
+  const nextRev = (revRow?.max_rev ?? 0) + 1;
+
+  await db.prepare(`
+    INSERT INTO portfolio_workspace_notes_revisions (id, workspace_id, revision_number, action, snapshot_json, actor_email, created_at)
+    VALUES (?, ?, ?, 'delete_note', ?, ?, ?)
+  `).bind(`wnrev-${workspaceId}-${Date.now()}-${nextRev}`, workspaceId, nextRev, JSON.stringify(remaining), actorEmail, now).run();
+
+  await db.prepare(`
+    INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+    VALUES (?, ?, 'delete_note', 'workspace_note', ?, ?, ?)
+  `).bind(`log-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`, actorEmail, id, JSON.stringify({ workspaceId }), now).run();
+
+  return { deletedId: id };
+}
+
+export async function reorderNotesInWorkerD1(db: D1Database, items: Array<{ id: string; sortOrder: number }>, actorEmail: string) {
+  const now = new Date().toISOString();
+  const stmts = items.map((it) =>
+    db.prepare("UPDATE portfolio_workspace_notes SET sort_order = ?, updated_at = ? WHERE id = ?").bind(it.sortOrder, now, it.id)
+  );
+  await db.batch(stmts);
+
+  await db.prepare(`
+    INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+    VALUES (?, ?, 'reorder_notes', 'workspace_note', 'multiple', ?, ?)
+  `).bind(`log-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`, actorEmail, JSON.stringify(items), now).run();
+
+  return { updated: items.length };
+}
+
+export async function listNotesRevisionsInWorkerD1(db: D1Database, workspaceId: string) {
+  const { results } = await db.prepare("SELECT * FROM portfolio_workspace_notes_revisions WHERE workspace_id = ? ORDER BY revision_number DESC LIMIT 50").bind(workspaceId).all<Record<string, unknown>>();
+  return (results || []).map((r) => ({
+    id: String(r.id),
+    workspaceId: String(r.workspace_id),
+    revisionNumber: Number(r.revision_number),
+    action: String(r.action),
+    snapshotJson: String(r.snapshot_json),
+    actorEmail: String(r.actor_email),
+    createdAt: String(r.created_at)
+  }));
+}
+
+export async function rollbackNoteRevisionInWorkerD1(db: D1Database, workspaceId: string, revisionNumber: number, actorEmail: string) {
+  const rev = await db.prepare("SELECT snapshot_json FROM portfolio_workspace_notes_revisions WHERE workspace_id = ? AND revision_number = ? LIMIT 1").bind(workspaceId, revisionNumber).first<{ snapshot_json: string }>();
+  if (!rev) throw new Error(`Workspace notes revision #${revisionNumber} not found.`);
+
+  const snapshotNotes = JSON.parse(rev.snapshot_json) as Record<string, unknown>[];
+  await db.prepare("DELETE FROM portfolio_workspace_notes WHERE workspace_id = ?").bind(workspaceId).run();
+
+  for (const n of snapshotNotes) {
+    const title = n.title as Record<string, string> | undefined;
+    const content = n.content as Record<string, string> | undefined;
+    await upsertNoteInWorkerD1(db, {
+      id: n.id,
+      workspaceId: n.workspaceId,
+      status: n.status,
+      sortOrder: n.sortOrder,
+      filename: n.filename,
+      titleTR: title?.tr,
+      titleEN: title?.en,
+      contentTR: content?.tr,
+      contentEN: content?.en
+    }, actorEmail);
+  }
+}
+
+// 3. Experience
+export async function queryCmsExperienceFromWorkerD1(
+  db: D1Database,
+  whereClause = "",
+  params: unknown[] = []
+): Promise<Record<string, unknown>[]> {
+  const stmt = db.prepare(`SELECT * FROM portfolio_experience ${whereClause} ORDER BY sort_order ASC, start_date DESC, id ASC`).bind(...params);
+  const { results: rows } = await stmt.all<Record<string, unknown>>();
+  if (!rows || rows.length === 0) return [];
+
+  const { results: trans } = await db.prepare("SELECT * FROM portfolio_experience_translations").all<Record<string, unknown>>();
+  const transByExpId = new Map<string, { tr?: Record<string, unknown>; en?: Record<string, unknown> }>();
+  for (const t of trans || []) {
+    const expId = String(t.experience_id);
+    let entry = transByExpId.get(expId);
+    if (!entry) { entry = {}; transByExpId.set(expId, entry); }
+    if (t.locale === "tr") entry.tr = t;
+    if (t.locale === "en") entry.en = t;
+  }
+
+  return rows.map((r) => {
+    const id = String(r.id);
+    const t = transByExpId.get(id);
+    let skills: string[] = [];
+    try { skills = JSON.parse(String(r.skills_json || "[]")); } catch { skills = []; }
+
+    return {
+      id,
+      status: r.status,
+      organization: r.organization,
+      startDate: r.start_date,
+      category: r.category || "work",
+      skills,
+      sortOrder: Number(r.sort_order || 0),
+      role: { tr: String(t?.tr?.role || ""), en: String(t?.en?.role || "") },
+      endDate: { tr: String(t?.tr?.end_date || ""), en: String(t?.en?.end_date || "") },
+      location: { tr: t?.tr?.location ? String(t.tr.location) : undefined, en: t?.en?.location ? String(t.en.location) : undefined },
+      employmentType: { tr: t?.tr?.employment_type ? String(t.tr.employment_type) : undefined, en: t?.en?.employment_type ? String(t.en.employment_type) : undefined },
+      description: { tr: String(t?.tr?.description || ""), en: String(t?.en?.description || "") },
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
+      publishedAt: r.published_at || null,
+      archivedAt: r.archived_at || null
+    };
+  });
+}
+
+export async function upsertExperienceInWorkerD1(
+  db: D1Database,
+  input: Record<string, unknown>,
+  actorEmail: string
+): Promise<Record<string, unknown>> {
+  const now = new Date().toISOString();
+  const expId = input.id ? String(input.id) : `exp-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`;
+  const existingList = await queryCmsExperienceFromWorkerD1(db, "WHERE id = ?", [expId]);
+  const existing = existingList[0] || null;
+
+  const status = String(input.status || existing?.status || "draft");
+  const sortOrder = input.sortOrder !== undefined ? Number(input.sortOrder) : Number(existing?.sortOrder ?? 0);
+  const org = String(input.organization || existing?.organization || "");
+  const startDate = String(input.startDate || existing?.startDate || "");
+  const category = String(input.category || existing?.category || "work");
+  const skills = input.skills !== undefined ? input.skills : (existing?.skills || []);
+
+  const publishedAt = status === "published" ? (existing?.publishedAt ? String(existing.publishedAt) : now) : null;
+  const archivedAt = status === "archived" ? (existing?.archivedAt ? String(existing.archivedAt) : now) : null;
+
+  await db.prepare(`
+    INSERT INTO portfolio_experience (id, status, organization, start_date, category, skills_json, sort_order, created_at, updated_at, published_at, archived_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      status = excluded.status,
+      organization = excluded.organization,
+      start_date = excluded.start_date,
+      category = excluded.category,
+      skills_json = excluded.skills_json,
+      sort_order = excluded.sort_order,
+      updated_at = excluded.updated_at,
+      published_at = excluded.published_at,
+      archived_at = excluded.archived_at
+  `).bind(expId, status, org, startDate, category, JSON.stringify(skills), sortOrder, existing?.createdAt ? String(existing.createdAt) : now, now, publishedAt, archivedAt).run();
+
+  const exRole = existing?.role as Record<string, string> | undefined;
+  const exEnd = existing?.endDate as Record<string, string> | undefined;
+  const exDesc = existing?.description as Record<string, string> | undefined;
+  const exLoc = existing?.location as Record<string, string> | undefined;
+  const exEmp = existing?.employmentType as Record<string, string> | undefined;
+
+  const roleTR = input.roleTR !== undefined ? String(input.roleTR) : (exRole?.tr || "");
+  const roleEN = input.roleEN !== undefined ? String(input.roleEN) : (exRole?.en || "");
+  const endDateTR = input.endDateTR !== undefined ? String(input.endDateTR) : (exEnd?.tr || "");
+  const endDateEN = input.endDateEN !== undefined ? String(input.endDateEN) : (exEnd?.en || "");
+  const descTR = input.descriptionTR !== undefined ? String(input.descriptionTR) : (exDesc?.tr || "");
+  const descEN = input.descriptionEN !== undefined ? String(input.descriptionEN) : (exDesc?.en || "");
+  const locTR = input.locationTR !== undefined ? String(input.locationTR) : (exLoc?.tr || null);
+  const locEN = input.locationEN !== undefined ? String(input.locationEN) : (exLoc?.en || null);
+  const empTR = input.employmentTypeTR !== undefined ? String(input.employmentTypeTR) : (exEmp?.tr || null);
+  const empEN = input.employmentTypeEN !== undefined ? String(input.employmentTypeEN) : (exEmp?.en || null);
+
+  await db.batch([
+    db.prepare(`
+      INSERT INTO portfolio_experience_translations (id, experience_id, locale, role, end_date, location, employment_type, description, updated_at)
+      VALUES (?, ?, 'tr', ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(experience_id, locale) DO UPDATE SET
+        role = excluded.role,
+        end_date = excluded.end_date,
+        location = excluded.location,
+        employment_type = excluded.employment_type,
+        description = excluded.description,
+        updated_at = excluded.updated_at
+    `).bind(`exp-tr-${expId}`, expId, roleTR, endDateTR, locTR, empTR, descTR, now),
+    db.prepare(`
+      INSERT INTO portfolio_experience_translations (id, experience_id, locale, role, end_date, location, employment_type, description, updated_at)
+      VALUES (?, ?, 'en', ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(experience_id, locale) DO UPDATE SET
+        role = excluded.role,
+        end_date = excluded.end_date,
+        location = excluded.location,
+        employment_type = excluded.employment_type,
+        description = excluded.description,
+        updated_at = excluded.updated_at
+    `).bind(`exp-en-${expId}`, expId, roleEN, endDateEN, locEN, empEN, descEN, now)
+  ]);
+
+  const updatedList = await queryCmsExperienceFromWorkerD1(db, "WHERE id = ?", [expId]);
+  const updated = updatedList[0]!;
+
+  const revRow = await db.prepare("SELECT MAX(revision_number) as max_rev FROM portfolio_experience_revisions WHERE experience_id = ?").bind(expId).first<{ max_rev: number | null }>();
+  const nextRev = (revRow?.max_rev ?? 0) + 1;
+
+  await db.prepare(`
+    INSERT INTO portfolio_experience_revisions (id, experience_id, revision_number, action, snapshot_json, actor_email, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).bind(`exprev-${expId}-${Date.now()}-${nextRev}`, expId, nextRev, existing ? "update_experience" : "create_experience", JSON.stringify(updated), actorEmail, now).run();
+
+  await db.prepare(`
+    INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+    VALUES (?, ?, ?, 'experience', ?, ?, ?)
+  `).bind(`log-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`, actorEmail, existing ? "update_experience" : "create_experience", expId, JSON.stringify({ organization: org, status }), now).run();
+
+  return updated;
+}
+
+export async function deleteExperienceInWorkerD1(db: D1Database, id: string, actorEmail: string) {
+  const existingList = await queryCmsExperienceFromWorkerD1(db, "WHERE id = ?", [id]);
+  const existing = existingList[0];
+  if (!existing) throw new Error(`Experience item "${id}" not found.`);
+
+  const now = new Date().toISOString();
+  await db.prepare("DELETE FROM portfolio_experience WHERE id = ?").bind(id).run();
+
+  await db.prepare(`
+    INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+    VALUES (?, ?, 'delete_experience', 'experience', ?, ?, ?)
+  `).bind(`log-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`, actorEmail, id, JSON.stringify({ organization: existing.organization }), now).run();
+
+  return { deletedId: id };
+}
+
+export async function reorderExperienceInWorkerD1(db: D1Database, items: Array<{ id: string; sortOrder: number }>, actorEmail: string) {
+  const now = new Date().toISOString();
+  const stmts = items.map((it) =>
+    db.prepare("UPDATE portfolio_experience SET sort_order = ?, updated_at = ? WHERE id = ?").bind(it.sortOrder, now, it.id)
+  );
+  await db.batch(stmts);
+
+  await db.prepare(`
+    INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+    VALUES (?, ?, 'reorder_experience', 'experience', 'multiple', ?, ?)
+  `).bind(`log-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`, actorEmail, JSON.stringify(items), now).run();
+
+  return { updated: items.length };
+}
+
+export async function listExperienceRevisionsInWorkerD1(db: D1Database, experienceId: string) {
+  const { results } = await db.prepare("SELECT * FROM portfolio_experience_revisions WHERE experience_id = ? ORDER BY revision_number DESC LIMIT 50").bind(experienceId).all<Record<string, unknown>>();
+  return (results || []).map((r) => ({
+    id: String(r.id),
+    experienceId: String(r.experience_id),
+    revisionNumber: Number(r.revision_number),
+    action: String(r.action),
+    snapshotJson: String(r.snapshot_json),
+    actorEmail: String(r.actor_email),
+    createdAt: String(r.created_at)
+  }));
+}
+
+export async function rollbackExperienceRevisionInWorkerD1(db: D1Database, experienceId: string, revisionNumber: number, actorEmail: string) {
+  const rev = await db.prepare("SELECT snapshot_json FROM portfolio_experience_revisions WHERE experience_id = ? AND revision_number = ? LIMIT 1").bind(experienceId, revisionNumber).first<{ snapshot_json: string }>();
+  if (!rev) throw new Error(`Experience revision #${revisionNumber} not found.`);
+
+  const snapshot = JSON.parse(rev.snapshot_json) as Record<string, unknown>;
+  const role = snapshot.role as Record<string, string> | undefined;
+  const endDate = snapshot.endDate as Record<string, string> | undefined;
+  const desc = snapshot.description as Record<string, string> | undefined;
+  const loc = snapshot.location as Record<string, string> | undefined;
+  const emp = snapshot.employmentType as Record<string, string> | undefined;
+
+  return upsertExperienceInWorkerD1(db, {
+    id: snapshot.id,
+    organization: snapshot.organization,
+    startDate: snapshot.startDate,
+    category: snapshot.category,
+    skills: snapshot.skills,
+    sortOrder: snapshot.sortOrder,
+    status: snapshot.status,
+    roleTR: role?.tr,
+    roleEN: role?.en,
+    endDateTR: endDate?.tr,
+    endDateEN: endDate?.en,
+    locationTR: loc?.tr,
+    locationEN: loc?.en,
+    employmentTypeTR: emp?.tr,
+    employmentTypeEN: emp?.en,
+    descriptionTR: desc?.tr,
+    descriptionEN: desc?.en
+  }, actorEmail);
+}
+
+// 4. Education
+export async function queryCmsEducationFromWorkerD1(
+  db: D1Database,
+  whereClause = "",
+  params: unknown[] = []
+): Promise<Record<string, unknown>[]> {
+  const stmt = db.prepare(`SELECT * FROM portfolio_education ${whereClause} ORDER BY sort_order ASC, start_year DESC, id ASC`).bind(...params);
+  const { results: rows } = await stmt.all<Record<string, unknown>>();
+  if (!rows || rows.length === 0) return [];
+
+  const { results: trans } = await db.prepare("SELECT * FROM portfolio_education_translations").all<Record<string, unknown>>();
+  const transByEduId = new Map<string, { tr?: Record<string, unknown>; en?: Record<string, unknown> }>();
+  for (const t of trans || []) {
+    const eduId = String(t.education_id);
+    let entry = transByEduId.get(eduId);
+    if (!entry) { entry = {}; transByEduId.set(eduId, entry); }
+    if (t.locale === "tr") entry.tr = t;
+    if (t.locale === "en") entry.en = t;
+  }
+
+  return rows.map((r) => {
+    const id = String(r.id);
+    const t = transByEduId.get(id);
+    return {
+      id,
+      status: r.status,
+      startYear: r.start_year ? String(r.start_year) : undefined,
+      sortOrder: Number(r.sort_order || 0),
+      institution: { tr: String(t?.tr?.institution || ""), en: String(t?.en?.institution || "") },
+      program: { tr: String(t?.tr?.program || ""), en: String(t?.en?.program || "") },
+      endYear: { tr: String(t?.tr?.end_year || ""), en: String(t?.en?.end_year || "") },
+      statusLabel: { tr: String(t?.tr?.status_label || ""), en: String(t?.en?.status_label || "") },
+      description: { tr: t?.tr?.description ? String(t.tr.description) : undefined, en: t?.en?.description ? String(t.en.description) : undefined },
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
+      publishedAt: r.published_at || null,
+      archivedAt: r.archived_at || null
+    };
+  });
+}
+
+export async function upsertEducationInWorkerD1(
+  db: D1Database,
+  input: Record<string, unknown>,
+  actorEmail: string
+): Promise<Record<string, unknown>> {
+  const now = new Date().toISOString();
+  const eduId = input.id ? String(input.id) : `edu-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`;
+  const existingList = await queryCmsEducationFromWorkerD1(db, "WHERE id = ?", [eduId]);
+  const existing = existingList[0] || null;
+
+  const status = String(input.status || existing?.status || "draft");
+  const sortOrder = input.sortOrder !== undefined ? Number(input.sortOrder) : Number(existing?.sortOrder ?? 0);
+  const startYear = input.startYear !== undefined ? (input.startYear ? String(input.startYear) : null) : (existing?.startYear ? String(existing.startYear) : null);
+
+  const publishedAt = status === "published" ? (existing?.publishedAt ? String(existing.publishedAt) : now) : null;
+  const archivedAt = status === "archived" ? (existing?.archivedAt ? String(existing.archivedAt) : now) : null;
+
+  await db.prepare(`
+    INSERT INTO portfolio_education (id, status, start_year, sort_order, created_at, updated_at, published_at, archived_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      status = excluded.status,
+      start_year = excluded.start_year,
+      sort_order = excluded.sort_order,
+      updated_at = excluded.updated_at,
+      published_at = excluded.published_at,
+      archived_at = excluded.archived_at
+  `).bind(eduId, status, startYear, sortOrder, existing?.createdAt ? String(existing.createdAt) : now, now, publishedAt, archivedAt).run();
+
+  const exInst = existing?.institution as Record<string, string> | undefined;
+  const exProg = existing?.program as Record<string, string> | undefined;
+  const exEnd = existing?.endYear as Record<string, string> | undefined;
+  const exStat = existing?.statusLabel as Record<string, string> | undefined;
+  const exDesc = existing?.description as Record<string, string> | undefined;
+
+  const instTR = input.institutionTR !== undefined ? String(input.institutionTR) : (exInst?.tr || "");
+  const instEN = input.institutionEN !== undefined ? String(input.institutionEN) : (exInst?.en || "");
+  const progTR = input.programTR !== undefined ? String(input.programTR) : (exProg?.tr || "");
+  const progEN = input.programEN !== undefined ? String(input.programEN) : (exProg?.en || "");
+  const endTR = input.endYearTR !== undefined ? String(input.endYearTR) : (exEnd?.tr || "");
+  const endEN = input.endYearEN !== undefined ? String(input.endYearEN) : (exEnd?.en || "");
+  const statTR = input.statusLabelTR !== undefined ? String(input.statusLabelTR) : (exStat?.tr || "");
+  const statEN = input.statusLabelEN !== undefined ? String(input.statusLabelEN) : (exStat?.en || "");
+  const descTR = input.descriptionTR !== undefined ? String(input.descriptionTR) : (exDesc?.tr || null);
+  const descEN = input.descriptionEN !== undefined ? String(input.descriptionEN) : (exDesc?.en || null);
+
+  await db.batch([
+    db.prepare(`
+      INSERT INTO portfolio_education_translations (id, education_id, locale, institution, program, end_year, status_label, description, updated_at)
+      VALUES (?, ?, 'tr', ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(education_id, locale) DO UPDATE SET
+        institution = excluded.institution,
+        program = excluded.program,
+        end_year = excluded.end_year,
+        status_label = excluded.status_label,
+        description = excluded.description,
+        updated_at = excluded.updated_at
+    `).bind(`edu-tr-${eduId}`, eduId, instTR, progTR, endTR, statTR, descTR, now),
+    db.prepare(`
+      INSERT INTO portfolio_education_translations (id, education_id, locale, institution, program, end_year, status_label, description, updated_at)
+      VALUES (?, ?, 'en', ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(education_id, locale) DO UPDATE SET
+        institution = excluded.institution,
+        program = excluded.program,
+        end_year = excluded.end_year,
+        status_label = excluded.status_label,
+        description = excluded.description,
+        updated_at = excluded.updated_at
+    `).bind(`edu-en-${eduId}`, eduId, instEN, progEN, endEN, statEN, descEN, now)
+  ]);
+
+  const updatedList = await queryCmsEducationFromWorkerD1(db, "WHERE id = ?", [eduId]);
+  const updated = updatedList[0]!;
+
+  const revRow = await db.prepare("SELECT MAX(revision_number) as max_rev FROM portfolio_education_revisions WHERE education_id = ?").bind(eduId).first<{ max_rev: number | null }>();
+  const nextRev = (revRow?.max_rev ?? 0) + 1;
+
+  await db.prepare(`
+    INSERT INTO portfolio_education_revisions (id, education_id, revision_number, action, snapshot_json, actor_email, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).bind(`edurev-${eduId}-${Date.now()}-${nextRev}`, eduId, nextRev, existing ? "update_education" : "create_education", JSON.stringify(updated), actorEmail, now).run();
+
+  await db.prepare(`
+    INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+    VALUES (?, ?, ?, 'education', ?, ?, ?)
+  `).bind(`log-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`, actorEmail, existing ? "update_education" : "create_education", eduId, JSON.stringify({ institution: instTR, status }), now).run();
+
+  return updated;
+}
+
+export async function deleteEducationInWorkerD1(db: D1Database, id: string, actorEmail: string) {
+  const existingList = await queryCmsEducationFromWorkerD1(db, "WHERE id = ?", [id]);
+  const existing = existingList[0];
+  if (!existing) throw new Error(`Education item "${id}" not found.`);
+
+  const exInst = existing.institution as Record<string, string> | undefined;
+  const now = new Date().toISOString();
+  await db.prepare("DELETE FROM portfolio_education WHERE id = ?").bind(id).run();
+
+  await db.prepare(`
+    INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+    VALUES (?, ?, 'delete_education', 'education', ?, ?, ?)
+  `).bind(`log-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`, actorEmail, id, JSON.stringify({ institution: exInst?.tr }), now).run();
+
+  return { deletedId: id };
+}
+
+export async function reorderEducationInWorkerD1(db: D1Database, items: Array<{ id: string; sortOrder: number }>, actorEmail: string) {
+  const now = new Date().toISOString();
+  const stmts = items.map((it) =>
+    db.prepare("UPDATE portfolio_education SET sort_order = ?, updated_at = ? WHERE id = ?").bind(it.sortOrder, now, it.id)
+  );
+  await db.batch(stmts);
+
+  await db.prepare(`
+    INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+    VALUES (?, ?, 'reorder_education', 'education', 'multiple', ?, ?)
+  `).bind(`log-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`, actorEmail, JSON.stringify(items), now).run();
+
+  return { updated: items.length };
+}
+
+export async function listEducationRevisionsInWorkerD1(db: D1Database, educationId: string) {
+  const { results } = await db.prepare("SELECT * FROM portfolio_education_revisions WHERE education_id = ? ORDER BY revision_number DESC LIMIT 50").bind(educationId).all<Record<string, unknown>>();
+  return (results || []).map((r) => ({
+    id: String(r.id),
+    educationId: String(r.education_id),
+    revisionNumber: Number(r.revision_number),
+    action: String(r.action),
+    snapshotJson: String(r.snapshot_json),
+    actorEmail: String(r.actor_email),
+    createdAt: String(r.created_at)
+  }));
+}
+
+export async function rollbackEducationRevisionInWorkerD1(db: D1Database, educationId: string, revisionNumber: number, actorEmail: string) {
+  const rev = await db.prepare("SELECT snapshot_json FROM portfolio_education_revisions WHERE education_id = ? AND revision_number = ? LIMIT 1").bind(educationId, revisionNumber).first<{ snapshot_json: string }>();
+  if (!rev) throw new Error(`Education revision #${revisionNumber} not found.`);
+
+  const snapshot = JSON.parse(rev.snapshot_json) as Record<string, unknown>;
+  const inst = snapshot.institution as Record<string, string> | undefined;
+  const prog = snapshot.program as Record<string, string> | undefined;
+  const end = snapshot.endYear as Record<string, string> | undefined;
+  const stat = snapshot.statusLabel as Record<string, string> | undefined;
+  const desc = snapshot.description as Record<string, string> | undefined;
+
+  return upsertEducationInWorkerD1(db, {
+    id: snapshot.id,
+    startYear: snapshot.startYear,
+    sortOrder: snapshot.sortOrder,
+    status: snapshot.status,
+    institutionTR: inst?.tr,
+    institutionEN: inst?.en,
+    programTR: prog?.tr,
+    programEN: prog?.en,
+    endYearTR: end?.tr,
+    endYearEN: end?.en,
+    statusLabelTR: stat?.tr,
+    statusLabelEN: stat?.en,
+    descriptionTR: desc?.tr,
+    descriptionEN: desc?.en
+  }, actorEmail);
+}
+
+// 5. Skills
+export async function queryCmsSkillsFromWorkerD1(
+  db: D1Database,
+  whereClause = "",
+  params: unknown[] = []
+): Promise<Record<string, unknown>[]> {
+  const stmt = db.prepare(`SELECT * FROM portfolio_skills ${whereClause} ORDER BY sort_order ASC, id ASC`).bind(...params);
+  const { results: rows } = await stmt.all<Record<string, unknown>>();
+  if (!rows || rows.length === 0) return [];
+
+  const { results: trans } = await db.prepare("SELECT * FROM portfolio_skill_translations").all<Record<string, unknown>>();
+  const transBySkillId = new Map<string, { tr?: Record<string, unknown>; en?: Record<string, unknown> }>();
+  for (const t of trans || []) {
+    const skillId = String(t.skill_id);
+    let entry = transBySkillId.get(skillId);
+    if (!entry) { entry = {}; transBySkillId.set(skillId, entry); }
+    if (t.locale === "tr") entry.tr = t;
+    if (t.locale === "en") entry.en = t;
+  }
+
+  return rows.map((r) => {
+    const id = String(r.id);
+    const t = transBySkillId.get(id);
+    return {
+      id,
+      category: r.category,
+      status: r.status,
+      sortOrder: Number(r.sort_order || 0),
+      name: { tr: String(t?.tr?.name || ""), en: String(t?.en?.name || "") },
+      createdAt: r.created_at,
+      updatedAt: r.updated_at
+    };
+  });
+}
+
+export async function upsertSkillInWorkerD1(
+  db: D1Database,
+  input: Record<string, unknown>,
+  actorEmail: string
+): Promise<Record<string, unknown>> {
+  const now = new Date().toISOString();
+  const category = String(input.category || "design");
+  const skillId = input.id ? String(input.id) : `skill-${category}-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`;
+  const existingList = await queryCmsSkillsFromWorkerD1(db, "WHERE id = ?", [skillId]);
+  const existing = existingList[0] || null;
+
+  const status = String(input.status || existing?.status || "published");
+  const sortOrder = input.sortOrder !== undefined ? Number(input.sortOrder) : Number(existing?.sortOrder ?? 0);
+
+  await db.prepare(`
+    INSERT INTO portfolio_skills (id, category, status, sort_order, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      category = excluded.category,
+      status = excluded.status,
+      sort_order = excluded.sort_order,
+      updated_at = excluded.updated_at
+  `).bind(skillId, category, status, sortOrder, existing?.createdAt ? String(existing.createdAt) : now, now).run();
+
+  const exName = existing?.name as Record<string, string> | undefined;
+  const nameTR = input.nameTR !== undefined ? String(input.nameTR) : (exName?.tr || "");
+  const nameEN = input.nameEN !== undefined ? String(input.nameEN) : (exName?.en || "");
+
+  await db.batch([
+    db.prepare(`
+      INSERT INTO portfolio_skill_translations (id, skill_id, locale, name, updated_at)
+      VALUES (?, ?, 'tr', ?, ?)
+      ON CONFLICT(skill_id, locale) DO UPDATE SET
+        name = excluded.name,
+        updated_at = excluded.updated_at
+    `).bind(`sk-tr-${skillId}`, skillId, nameTR, now),
+    db.prepare(`
+      INSERT INTO portfolio_skill_translations (id, skill_id, locale, name, updated_at)
+      VALUES (?, ?, 'en', ?, ?)
+      ON CONFLICT(skill_id, locale) DO UPDATE SET
+        name = excluded.name,
+        updated_at = excluded.updated_at
+    `).bind(`sk-en-${skillId}`, skillId, nameEN, now)
+  ]);
+
+  const updatedList = await queryCmsSkillsFromWorkerD1(db, "WHERE id = ?", [skillId]);
+  const updated = updatedList[0]!;
+
+  await db.prepare(`
+    INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+    VALUES (?, ?, ?, 'skill', ?, ?, ?)
+  `).bind(`log-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`, actorEmail, existing ? "update_skill" : "create_skill", skillId, JSON.stringify({ name: nameTR, category }), now).run();
+
+  return updated;
+}
+
+export async function deleteSkillInWorkerD1(db: D1Database, id: string, actorEmail: string) {
+  const existingList = await queryCmsSkillsFromWorkerD1(db, "WHERE id = ?", [id]);
+  const existing = existingList[0];
+  if (!existing) throw new Error(`Skill "${id}" not found.`);
+
+  const exName = existing.name as Record<string, string> | undefined;
+  const now = new Date().toISOString();
+  await db.prepare("DELETE FROM portfolio_skills WHERE id = ?").bind(id).run();
+
+  await db.prepare(`
+    INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+    VALUES (?, ?, 'delete_skill', 'skill', ?, ?, ?)
+  `).bind(`log-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`, actorEmail, id, JSON.stringify({ category: existing.category, name: exName?.tr }), now).run();
+
+  return { deletedId: id };
+}
+
+export async function reorderSkillsInWorkerD1(db: D1Database, items: Array<{ id: string; sortOrder: number }>, actorEmail: string) {
+  const now = new Date().toISOString();
+  const stmts = items.map((it) =>
+    db.prepare("UPDATE portfolio_skills SET sort_order = ?, updated_at = ? WHERE id = ?").bind(it.sortOrder, now, it.id)
+  );
+  await db.batch(stmts);
+
+  await db.prepare(`
+    INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+    VALUES (?, ?, 'reorder_skills', 'skill', 'multiple', ?, ?)
+  `).bind(`log-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`, actorEmail, JSON.stringify(items), now).run();
+
+  return { updated: items.length };
+}
+
+// 6. CV Documents
+export async function queryCmsCvFromWorkerD1(
+  db: D1Database,
+  locale?: string
+): Promise<Record<string, unknown>[]> {
+  const stmt = locale
+    ? db.prepare("SELECT * FROM portfolio_cv_documents WHERE locale = ?").bind(locale)
+    : db.prepare("SELECT * FROM portfolio_cv_documents ORDER BY locale ASC");
+  const { results: rows } = await stmt.all<Record<string, unknown>>();
+  return (rows || []).map((r) => ({
+    id: String(r.id),
+    locale: r.locale,
+    status: r.status,
+    storageMode: r.storage_mode,
+    storageKey: r.storage_key,
+    publicUrl: r.public_url,
+    filename: r.filename,
+    mimeType: r.mime_type,
+    byteSize: Number(r.byte_size || 0),
+    sha256: r.sha256,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+    publishedAt: r.published_at || null,
+    archivedAt: r.archived_at || null
+  }));
+}
+
+export async function upsertCvInWorkerD1(
+  db: D1Database,
+  input: Record<string, unknown>,
+  actorEmail: string,
+  actionLabel = "upsert_cv"
+): Promise<Record<string, unknown>> {
+  const now = new Date().toISOString();
+  const locale = String(input.locale || "tr");
+  const cvId = `cv-${locale}`;
+
+  const existingList = await queryCmsCvFromWorkerD1(db, locale);
+  const existing = existingList[0] || null;
+
+  const status = input.status !== undefined ? String(input.status) : (existing?.status ? String(existing.status) : "draft");
+  const storageMode = input.storageMode !== undefined ? String(input.storageMode) : (existing?.storageMode ? String(existing.storageMode) : "local_static");
+  const storageKey = input.storageKey !== undefined ? String(input.storageKey) : (existing?.storageKey ? String(existing.storageKey) : "");
+  const publicUrl = input.publicUrl !== undefined ? String(input.publicUrl) : (existing?.publicUrl ? String(existing.publicUrl) : "");
+  const filename = input.filename !== undefined ? String(input.filename) : (existing?.filename ? String(existing.filename) : "");
+  const mimeType = input.mimeType !== undefined ? String(input.mimeType) : (existing?.mimeType ? String(existing.mimeType) : "application/pdf");
+  const byteSize = input.byteSize !== undefined ? Number(input.byteSize) : (existing?.byteSize ? Number(existing.byteSize) : 0);
+  const sha256 = input.sha256 !== undefined ? String(input.sha256) : (existing?.sha256 ? String(existing.sha256) : "");
+
+  const publishedAt = status === "published" ? (existing?.publishedAt ? String(existing.publishedAt) : now) : null;
+  const archivedAt = status === "archived" ? (existing?.archivedAt ? String(existing.archivedAt) : now) : null;
+
+  await db.prepare(`
+    INSERT INTO portfolio_cv_documents (
+      id, locale, status, storage_mode, storage_key, public_url, filename, mime_type, byte_size, sha256, created_at, updated_at, published_at, archived_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(locale) DO UPDATE SET
+      status = excluded.status,
+      storage_mode = excluded.storage_mode,
+      storage_key = excluded.storage_key,
+      public_url = excluded.public_url,
+      filename = excluded.filename,
+      mime_type = excluded.mime_type,
+      byte_size = excluded.byte_size,
+      sha256 = excluded.sha256,
+      updated_at = excluded.updated_at,
+      published_at = excluded.published_at,
+      archived_at = excluded.archived_at
+  `).bind(
+    cvId, locale, status, storageMode, storageKey, publicUrl, filename, mimeType, byteSize, sha256,
+    existing?.createdAt ? String(existing.createdAt) : now, now, publishedAt, archivedAt
+  ).run();
+
+  const updatedList = await queryCmsCvFromWorkerD1(db, locale);
+  const updated = updatedList[0]!;
+
+  const revRow = await db.prepare("SELECT MAX(revision_number) as max_rev FROM portfolio_cv_revisions WHERE cv_id = ?").bind(cvId).first<{ max_rev: number | null }>();
+  const nextRev = (revRow?.max_rev ?? 0) + 1;
+
+  await db.prepare(`
+    INSERT INTO portfolio_cv_revisions (id, cv_id, revision_number, action, snapshot_json, actor_email, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).bind(`cvrev-${cvId}-${Date.now()}-${nextRev}`, cvId, nextRev, actionLabel, JSON.stringify(updated), actorEmail, now).run();
+
+  await db.prepare(`
+    INSERT INTO admin_audit_logs (id, actor_email, action, entity_type, entity_id, details_json, created_at)
+    VALUES (?, ?, ?, 'cv_document', ?, ?, ?)
+  `).bind(`log-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`, actorEmail, actionLabel, cvId, JSON.stringify({ locale, status, filename }), now).run();
+
+  return updated;
+}
+
+export async function listCvRevisionsInWorkerD1(db: D1Database, locale: string) {
+  const cvId = `cv-${locale}`;
+  const { results } = await db.prepare("SELECT * FROM portfolio_cv_revisions WHERE cv_id = ? ORDER BY revision_number DESC LIMIT 50").bind(cvId).all<Record<string, unknown>>();
+  return (results || []).map((r) => ({
+    id: String(r.id),
+    cvId: String(r.cv_id),
+    revisionNumber: Number(r.revision_number),
+    action: String(r.action),
+    snapshotJson: String(r.snapshot_json),
+    actorEmail: String(r.actor_email),
+    createdAt: String(r.created_at)
+  }));
+}
+
+export async function rollbackCvRevisionInWorkerD1(db: D1Database, locale: string, revisionNumber: number, actorEmail: string) {
+  const cvId = `cv-${locale}`;
+  const rev = await db.prepare("SELECT snapshot_json FROM portfolio_cv_revisions WHERE cv_id = ? AND revision_number = ? LIMIT 1").bind(cvId, revisionNumber).first<{ snapshot_json: string }>();
+  if (!rev) throw new Error(`CV revision #${revisionNumber} not found.`);
+
+  const snapshot = JSON.parse(rev.snapshot_json) as Record<string, unknown>;
+  return upsertCvInWorkerD1(db, {
+    locale,
+    status: snapshot.status,
+    storageMode: snapshot.storageMode,
+    storageKey: snapshot.storageKey,
+    publicUrl: snapshot.publicUrl,
+    filename: snapshot.filename,
+    mimeType: snapshot.mimeType,
+    byteSize: snapshot.byteSize,
+    sha256: snapshot.sha256
+  }, actorEmail, `rollback_rev_${revisionNumber}`);
+}
+
 const worker = {
   async fetch(request: Request, env: Env): Promise<Response> {
     const origin = env.PUBLIC_SITE_ORIGIN || "https://keremmihci.com";
@@ -2550,6 +3631,76 @@ const worker = {
         }
       }
 
+      // --- PHASE 5 PUBLIC READ ENDPOINTS ---
+      if (pathname === "/api/v1/public/profile" && (request.method === "GET" || request.method === "HEAD")) {
+        try {
+          const profile = await queryCmsProfileFromWorkerD1(db);
+          if (!profile || profile.status !== "published") {
+            return jsonResponse({ ok: false, error: "Profile not found or not published" }, 404, origin, "no-store, no-cache, must-revalidate");
+          }
+          return jsonResponse({ ok: true, profile }, 200, origin, "no-store, no-cache, must-revalidate");
+        } catch {
+          return jsonResponse({ ok: false, error: "Failed to query profile." }, 500, origin, "no-store, no-cache, must-revalidate");
+        }
+      }
+
+      if (pathname.startsWith("/api/v1/public/notes/") && (request.method === "GET" || request.method === "HEAD")) {
+        const wsId = decodeURIComponent(pathname.replace("/api/v1/public/notes/", ""));
+        try {
+          const notes = await queryCmsNotesFromWorkerD1(db, "WHERE workspace_id = ? AND status = ?", [wsId, "published"]);
+          return jsonResponse({ ok: true, workspaceId: wsId, count: notes.length, notes }, 200, origin, "no-store, no-cache, must-revalidate");
+        } catch {
+          return jsonResponse({ ok: false, error: "Failed to query notes." }, 500, origin, "no-store, no-cache, must-revalidate");
+        }
+      }
+
+      if (pathname === "/api/v1/public/experience" && (request.method === "GET" || request.method === "HEAD")) {
+        const cat = url.searchParams.get("category");
+        try {
+          const experience = cat
+            ? await queryCmsExperienceFromWorkerD1(db, "WHERE category = ? AND status = ?", [cat, "published"])
+            : await queryCmsExperienceFromWorkerD1(db, "WHERE status = ?", ["published"]);
+          return jsonResponse({ ok: true, count: experience.length, experience }, 200, origin, "no-store, no-cache, must-revalidate");
+        } catch {
+          return jsonResponse({ ok: false, error: "Failed to query experience." }, 500, origin, "no-store, no-cache, must-revalidate");
+        }
+      }
+
+      if (pathname === "/api/v1/public/education" && (request.method === "GET" || request.method === "HEAD")) {
+        try {
+          const education = await queryCmsEducationFromWorkerD1(db, "WHERE status = ?", ["published"]);
+          return jsonResponse({ ok: true, count: education.length, education }, 200, origin, "no-store, no-cache, must-revalidate");
+        } catch {
+          return jsonResponse({ ok: false, error: "Failed to query education." }, 500, origin, "no-store, no-cache, must-revalidate");
+        }
+      }
+
+      if (pathname === "/api/v1/public/skills" && (request.method === "GET" || request.method === "HEAD")) {
+        const cat = url.searchParams.get("category");
+        try {
+          const skills = cat
+            ? await queryCmsSkillsFromWorkerD1(db, "WHERE category = ? AND status = ?", [cat, "published"])
+            : await queryCmsSkillsFromWorkerD1(db, "WHERE status = ?", ["published"]);
+          return jsonResponse({ ok: true, count: skills.length, skills }, 200, origin, "no-store, no-cache, must-revalidate");
+        } catch {
+          return jsonResponse({ ok: false, error: "Failed to query skills." }, 500, origin, "no-store, no-cache, must-revalidate");
+        }
+      }
+
+      if (pathname.startsWith("/api/v1/public/cv/") && (request.method === "GET" || request.method === "HEAD")) {
+        const loc = decodeURIComponent(pathname.replace("/api/v1/public/cv/", ""));
+        try {
+          const list = await queryCmsCvFromWorkerD1(db, loc);
+          const doc = list[0];
+          if (!doc || doc.status !== "published") {
+            return jsonResponse({ ok: false, error: "CV document not found or not published" }, 404, origin, "no-store, no-cache, must-revalidate");
+          }
+          return jsonResponse({ ok: true, cv: doc }, 200, origin, "no-store, no-cache, must-revalidate");
+        } catch {
+          return jsonResponse({ ok: false, error: "Failed to query CV." }, 500, origin, "no-store, no-cache, must-revalidate");
+        }
+      }
+
       if (
         (pathname.startsWith("/api/v1/public/media/") || pathname.startsWith("/api/media/")) &&
         request.method === "GET"
@@ -2637,6 +3788,26 @@ const worker = {
         }
 
         if (!isAuthorized) {
+          try {
+            const cvDoc = await db
+              .prepare(
+                `SELECT id, status
+                 FROM portfolio_cv_documents
+                 WHERE (storage_key = ? OR public_url = ?) AND status = 'published'
+                 LIMIT 1`
+              )
+              .bind(key, `/api/media/${key}`)
+              .first<{ id: string; status: string }>();
+
+            if (cvDoc && cvDoc.status === "published") {
+              isAuthorized = true;
+            }
+          } catch {
+            // portfolio_cv_documents might not exist yet before migration
+          }
+        }
+
+        if (!isAuthorized) {
           return jsonResponse(
             { ok: false, error: "Media asset not found or not published" },
             404,
@@ -2699,7 +3870,11 @@ const worker = {
         }
 
         const headers = new Headers();
-        headers.set("Content-Type", obj.httpMetadata?.contentType || "application/octet-stream");
+        let mediaContentType = obj.httpMetadata?.contentType || "application/octet-stream";
+        if (mediaContentType === "application/octet-stream" && key.toLowerCase().endsWith(".pdf")) {
+          mediaContentType = "application/pdf";
+        }
+        headers.set("Content-Type", mediaContentType);
         headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
         headers.set("Access-Control-Allow-Origin", origin);
         headers.set("Accept-Ranges", "bytes");
@@ -3756,6 +4931,339 @@ const worker = {
         }
 
         // ============================================================
+        // PHASE 5 ADMIN ENDPOINTS
+        // ============================================================
+
+        // --- Profile Admin ---
+        if (pathname === "/api/v1/admin/profile" && (request.method === "GET" || request.method === "HEAD")) {
+          const profile = await queryCmsProfileFromWorkerD1(db);
+          return jsonResponse({ ok: true, profile }, 200, origin, "no-store");
+        }
+
+        if (pathname === "/api/v1/admin/profile" && request.method === "PUT") {
+          let body: Record<string, unknown>;
+          try { body = (await request.json()) as Record<string, unknown>; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+          const profile = await upsertProfileInWorkerD1(db, body, actorEmail);
+          return jsonResponse({ ok: true, profile }, 200, origin, "no-store");
+        }
+
+        if (pathname === "/api/v1/admin/profile/revisions" && request.method === "GET") {
+          const revisions = await listProfileRevisionsInWorkerD1(db);
+          return jsonResponse({ ok: true, revisions }, 200, origin, "no-store");
+        }
+
+        if (pathname === "/api/v1/admin/profile/rollback" && request.method === "POST") {
+          let body: { revisionNumber?: number };
+          try { body = (await request.json()) as { revisionNumber?: number }; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+          if (typeof body.revisionNumber !== "number") return jsonResponse({ ok: false, error: "Invalid revisionNumber" }, 400, origin);
+          const profile = await rollbackProfileRevisionInWorkerD1(db, body.revisionNumber, actorEmail);
+          return jsonResponse({ ok: true, profile }, 200, origin, "no-store");
+        }
+
+        // --- Workspace Notes Admin ---
+        if (pathname === "/api/v1/admin/notes" && request.method === "GET") {
+          const wsId = url.searchParams.get("workspaceId");
+          const notes = wsId ? await queryCmsNotesFromWorkerD1(db, "WHERE workspace_id = ?", [wsId]) : await queryCmsNotesFromWorkerD1(db);
+          return jsonResponse({ ok: true, notes }, 200, origin, "no-store");
+        }
+
+        if (pathname === "/api/v1/admin/notes" && request.method === "POST") {
+          let body: Record<string, unknown>;
+          try { body = (await request.json()) as Record<string, unknown>; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+          const note = await upsertNoteInWorkerD1(db, body, actorEmail);
+          return jsonResponse({ ok: true, note }, 201, origin, "no-store");
+        }
+
+        if (pathname === "/api/v1/admin/notes/reorder" && request.method === "POST") {
+          let body: { items?: Array<{ id: string; sortOrder: number }> };
+          try { body = (await request.json()) as typeof body; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+          if (!Array.isArray(body?.items)) return jsonResponse({ ok: false, error: "items array required" }, 400, origin);
+          const res = await reorderNotesInWorkerD1(db, body.items, actorEmail);
+          return jsonResponse({ ok: true, updated: res.updated }, 200, origin, "no-store");
+        }
+
+        if (pathname === "/api/v1/admin/notes/revisions" && request.method === "GET") {
+          const wsId = url.searchParams.get("workspaceId") || "design";
+          const revisions = await listNotesRevisionsInWorkerD1(db, wsId);
+          return jsonResponse({ ok: true, revisions }, 200, origin, "no-store");
+        }
+
+        if (pathname === "/api/v1/admin/notes/rollback" && request.method === "POST") {
+          let body: { workspaceId?: string; revisionNumber?: number };
+          try { body = (await request.json()) as typeof body; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+          if (!body?.workspaceId || typeof body?.revisionNumber !== "number") return jsonResponse({ ok: false, error: "Invalid params" }, 400, origin);
+          await rollbackNoteRevisionInWorkerD1(db, body.workspaceId, body.revisionNumber, actorEmail);
+          return jsonResponse({ ok: true }, 200, origin, "no-store");
+        }
+
+        if (pathname.startsWith("/api/v1/admin/notes/") && !pathname.includes("/revisions") && !pathname.includes("/rollback") && !pathname.includes("/reorder")) {
+          const noteId = decodeURIComponent(pathname.replace("/api/v1/admin/notes/", ""));
+          if (request.method === "GET") {
+            const list = await queryCmsNotesFromWorkerD1(db, "WHERE id = ?", [noteId]);
+            if (list.length === 0) return jsonResponse({ ok: false, error: "Note not found" }, 404, origin);
+            return jsonResponse({ ok: true, note: list[0] }, 200, origin, "no-store");
+          }
+          if (request.method === "PUT") {
+            let body: Record<string, unknown>;
+            try { body = (await request.json()) as Record<string, unknown>; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+            const note = await upsertNoteInWorkerD1(db, { ...body, id: noteId }, actorEmail);
+            return jsonResponse({ ok: true, note }, 200, origin, "no-store");
+          }
+          if (request.method === "DELETE") {
+            const res = await deleteNoteInWorkerD1(db, noteId, actorEmail);
+            return jsonResponse({ ok: true, deletedId: res.deletedId }, 200, origin, "no-store");
+          }
+        }
+
+        // --- Experience Admin ---
+        if (pathname === "/api/v1/admin/experience" && request.method === "GET") {
+          const cat = url.searchParams.get("category");
+          const experience = cat ? await queryCmsExperienceFromWorkerD1(db, "WHERE category = ?", [cat]) : await queryCmsExperienceFromWorkerD1(db);
+          return jsonResponse({ ok: true, experience }, 200, origin, "no-store");
+        }
+
+        if (pathname === "/api/v1/admin/experience" && request.method === "POST") {
+          let body: Record<string, unknown>;
+          try { body = (await request.json()) as Record<string, unknown>; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+          const item = await upsertExperienceInWorkerD1(db, body, actorEmail);
+          return jsonResponse({ ok: true, experience: item }, 201, origin, "no-store");
+        }
+
+        if (pathname === "/api/v1/admin/experience/reorder" && request.method === "POST") {
+          let body: { items?: Array<{ id: string; sortOrder: number }> };
+          try { body = (await request.json()) as typeof body; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+          if (!Array.isArray(body?.items)) return jsonResponse({ ok: false, error: "items array required" }, 400, origin);
+          const res = await reorderExperienceInWorkerD1(db, body.items, actorEmail);
+          return jsonResponse({ ok: true, updated: res.updated }, 200, origin, "no-store");
+        }
+
+        if (pathname.startsWith("/api/v1/admin/experience/")) {
+          const rest = pathname.replace("/api/v1/admin/experience/", "");
+          const parts = rest.split("/");
+          const expId = decodeURIComponent(parts[0]);
+
+          if (parts.length === 2 && parts[1] === "revisions" && request.method === "GET") {
+            const revisions = await listExperienceRevisionsInWorkerD1(db, expId);
+            return jsonResponse({ ok: true, revisions }, 200, origin, "no-store");
+          }
+
+          if (parts.length === 2 && parts[1] === "rollback" && request.method === "POST") {
+            let body: { revisionNumber?: number };
+            try { body = (await request.json()) as typeof body; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+            if (typeof body?.revisionNumber !== "number") return jsonResponse({ ok: false, error: "Invalid revisionNumber" }, 400, origin);
+            const item = await rollbackExperienceRevisionInWorkerD1(db, expId, body.revisionNumber, actorEmail);
+            return jsonResponse({ ok: true, experience: item }, 200, origin, "no-store");
+          }
+
+          if (parts.length === 1) {
+            if (request.method === "GET") {
+              const list = await queryCmsExperienceFromWorkerD1(db, "WHERE id = ?", [expId]);
+              if (list.length === 0) return jsonResponse({ ok: false, error: "Not found" }, 404, origin);
+              return jsonResponse({ ok: true, experience: list[0] }, 200, origin, "no-store");
+            }
+            if (request.method === "PUT") {
+              let body: Record<string, unknown>;
+              try { body = (await request.json()) as Record<string, unknown>; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+              const item = await upsertExperienceInWorkerD1(db, { ...body, id: expId }, actorEmail);
+              return jsonResponse({ ok: true, experience: item }, 200, origin, "no-store");
+            }
+            if (request.method === "DELETE") {
+              const res = await deleteExperienceInWorkerD1(db, expId, actorEmail);
+              return jsonResponse({ ok: true, deletedId: res.deletedId }, 200, origin, "no-store");
+            }
+          }
+        }
+
+        // --- Education Admin ---
+        if (pathname === "/api/v1/admin/education" && request.method === "GET") {
+          const education = await queryCmsEducationFromWorkerD1(db);
+          return jsonResponse({ ok: true, education }, 200, origin, "no-store");
+        }
+
+        if (pathname === "/api/v1/admin/education" && request.method === "POST") {
+          let body: Record<string, unknown>;
+          try { body = (await request.json()) as Record<string, unknown>; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+          const item = await upsertEducationInWorkerD1(db, body, actorEmail);
+          return jsonResponse({ ok: true, education: item }, 201, origin, "no-store");
+        }
+
+        if (pathname === "/api/v1/admin/education/reorder" && request.method === "POST") {
+          let body: { items?: Array<{ id: string; sortOrder: number }> };
+          try { body = (await request.json()) as typeof body; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+          if (!Array.isArray(body?.items)) return jsonResponse({ ok: false, error: "items array required" }, 400, origin);
+          const res = await reorderEducationInWorkerD1(db, body.items, actorEmail);
+          return jsonResponse({ ok: true, updated: res.updated }, 200, origin, "no-store");
+        }
+
+        if (pathname.startsWith("/api/v1/admin/education/")) {
+          const rest = pathname.replace("/api/v1/admin/education/", "");
+          const parts = rest.split("/");
+          const eduId = decodeURIComponent(parts[0]);
+
+          if (parts.length === 2 && parts[1] === "revisions" && request.method === "GET") {
+            const revisions = await listEducationRevisionsInWorkerD1(db, eduId);
+            return jsonResponse({ ok: true, revisions }, 200, origin, "no-store");
+          }
+
+          if (parts.length === 2 && parts[1] === "rollback" && request.method === "POST") {
+            let body: { revisionNumber?: number };
+            try { body = (await request.json()) as typeof body; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+            if (typeof body?.revisionNumber !== "number") return jsonResponse({ ok: false, error: "Invalid revisionNumber" }, 400, origin);
+            const item = await rollbackEducationRevisionInWorkerD1(db, eduId, body.revisionNumber, actorEmail);
+            return jsonResponse({ ok: true, education: item }, 200, origin, "no-store");
+          }
+
+          if (parts.length === 1) {
+            if (request.method === "GET") {
+              const list = await queryCmsEducationFromWorkerD1(db, "WHERE id = ?", [eduId]);
+              if (list.length === 0) return jsonResponse({ ok: false, error: "Not found" }, 404, origin);
+              return jsonResponse({ ok: true, education: list[0] }, 200, origin, "no-store");
+            }
+            if (request.method === "PUT") {
+              let body: Record<string, unknown>;
+              try { body = (await request.json()) as Record<string, unknown>; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+              const item = await upsertEducationInWorkerD1(db, { ...body, id: eduId }, actorEmail);
+              return jsonResponse({ ok: true, education: item }, 200, origin, "no-store");
+            }
+            if (request.method === "DELETE") {
+              const res = await deleteEducationInWorkerD1(db, eduId, actorEmail);
+              return jsonResponse({ ok: true, deletedId: res.deletedId }, 200, origin, "no-store");
+            }
+          }
+        }
+
+        // --- Skills Admin ---
+        if (pathname === "/api/v1/admin/skills" && request.method === "GET") {
+          const cat = url.searchParams.get("category");
+          const skills = cat ? await queryCmsSkillsFromWorkerD1(db, "WHERE category = ?", [cat]) : await queryCmsSkillsFromWorkerD1(db);
+          return jsonResponse({ ok: true, skills }, 200, origin, "no-store");
+        }
+
+        if (pathname === "/api/v1/admin/skills" && request.method === "POST") {
+          let body: Record<string, unknown>;
+          try { body = (await request.json()) as Record<string, unknown>; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+          const skill = await upsertSkillInWorkerD1(db, body, actorEmail);
+          return jsonResponse({ ok: true, skill }, 201, origin, "no-store");
+        }
+
+        if (pathname === "/api/v1/admin/skills/reorder" && request.method === "POST") {
+          let body: { items?: Array<{ id: string; sortOrder: number }> };
+          try { body = (await request.json()) as typeof body; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+          if (!Array.isArray(body?.items)) return jsonResponse({ ok: false, error: "items array required" }, 400, origin);
+          const res = await reorderSkillsInWorkerD1(db, body.items, actorEmail);
+          return jsonResponse({ ok: true, updated: res.updated }, 200, origin, "no-store");
+        }
+
+        if (pathname.startsWith("/api/v1/admin/skills/")) {
+          const skillId = decodeURIComponent(pathname.replace("/api/v1/admin/skills/", ""));
+          if (request.method === "GET") {
+            const list = await queryCmsSkillsFromWorkerD1(db, "WHERE id = ?", [skillId]);
+            if (list.length === 0) return jsonResponse({ ok: false, error: "Not found" }, 404, origin);
+            return jsonResponse({ ok: true, skill: list[0] }, 200, origin, "no-store");
+          }
+          if (request.method === "PUT") {
+            let body: Record<string, unknown>;
+            try { body = (await request.json()) as Record<string, unknown>; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+            const skill = await upsertSkillInWorkerD1(db, { ...body, id: skillId }, actorEmail);
+            return jsonResponse({ ok: true, skill }, 200, origin, "no-store");
+          }
+          if (request.method === "DELETE") {
+            const res = await deleteSkillInWorkerD1(db, skillId, actorEmail);
+            return jsonResponse({ ok: true, deletedId: res.deletedId }, 200, origin, "no-store");
+          }
+        }
+
+        // --- CV Admin ---
+        if (pathname === "/api/v1/admin/cv" && request.method === "GET") {
+          const documents = await queryCmsCvFromWorkerD1(db);
+          return jsonResponse({ ok: true, documents }, 200, origin, "no-store");
+        }
+
+        if (pathname === "/api/v1/admin/cv/upload" && request.method === "POST") {
+          let formData: FormData;
+          try { formData = await request.formData(); } catch { return jsonResponse({ ok: false, error: "Invalid form data" }, 400, origin); }
+          const file = formData.get("file");
+          const loc = String(formData.get("locale") || "tr");
+          if (!file || typeof file === "string") return jsonResponse({ ok: false, error: "Missing file" }, 400, origin);
+          if (loc !== "tr" && loc !== "en") return jsonResponse({ ok: false, error: "Invalid locale" }, 400, origin);
+
+          const blob = file as File;
+          const arrayBuffer = await blob.arrayBuffer();
+          const bytes = new Uint8Array(arrayBuffer);
+          const sig = validateWorkerCvPdfSignature(bytes, blob.name || "cv.pdf");
+          if (!sig.valid) return jsonResponse({ ok: false, error: sig.error || "Invalid PDF" }, 400, origin);
+
+          const safeFilename = sanitizeFilename(blob.name || "resume.pdf");
+          const storageKey = `cv/${loc}/${Date.now()}-${safeFilename}`;
+
+          await bucket.put(storageKey, arrayBuffer, {
+            httpMetadata: { contentType: "application/pdf", cacheControl: "public, max-age=31536000, immutable" }
+          });
+
+          const baseUrl = (env.R2_PUBLIC_BASE_URL || "").replace(/\/$/, "");
+          const publicUrl = baseUrl ? `${baseUrl}/${storageKey}` : `/api/media/${storageKey}`;
+
+          // Hash
+          let sha256 = "";
+          try {
+            const hashBuffer = await crypto.subtle.digest("SHA-256", arrayBuffer);
+            sha256 = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
+          } catch {
+            sha256 = "";
+          }
+
+          const existingList = await queryCmsCvFromWorkerD1(db, loc);
+          const nextStatus = existingList[0]?.status === "published" ? "published" : "draft";
+
+          const cv = await upsertCvInWorkerD1(db, {
+            locale: loc,
+            status: nextStatus,
+            storageMode: "r2",
+            storageKey,
+            publicUrl,
+            filename: safeFilename,
+            mimeType: "application/pdf",
+            byteSize: bytes.byteLength,
+            sha256
+          }, actorEmail, "upload_cv_pdf");
+
+          return jsonResponse({ ok: true, cv }, 201, origin, "no-store");
+        }
+
+        if (pathname.startsWith("/api/v1/admin/cv/")) {
+          const rest = pathname.replace("/api/v1/admin/cv/", "");
+          const parts = rest.split("/");
+          const loc = decodeURIComponent(parts[0]);
+
+          if (parts.length === 2 && parts[1] === "revisions" && request.method === "GET") {
+            const revisions = await listCvRevisionsInWorkerD1(db, loc);
+            return jsonResponse({ ok: true, revisions }, 200, origin, "no-store");
+          }
+
+          if (parts.length === 2 && parts[1] === "rollback" && request.method === "POST") {
+            let body: { revisionNumber?: number };
+            try { body = (await request.json()) as typeof body; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+            if (typeof body?.revisionNumber !== "number") return jsonResponse({ ok: false, error: "Invalid revisionNumber" }, 400, origin);
+            const cv = await rollbackCvRevisionInWorkerD1(db, loc, body.revisionNumber, actorEmail);
+            return jsonResponse({ ok: true, cv }, 200, origin, "no-store");
+          }
+
+          if (parts.length === 1) {
+            if (request.method === "GET") {
+              const list = await queryCmsCvFromWorkerD1(db, loc);
+              if (list.length === 0) return jsonResponse({ ok: false, error: "Not found" }, 404, origin);
+              return jsonResponse({ ok: true, cv: list[0] }, 200, origin, "no-store");
+            }
+            if (request.method === "PUT") {
+              let body: Record<string, unknown>;
+              try { body = (await request.json()) as Record<string, unknown>; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+              const cv = await upsertCvInWorkerD1(db, { ...body, locale: loc }, actorEmail);
+              return jsonResponse({ ok: true, cv }, 200, origin, "no-store");
+            }
+          }
+        }
+
+        // ============================================================
         // ADMIN GALLERY ENDPOINTS (Additive Phase 4)
         // ============================================================
 
@@ -4014,6 +5522,339 @@ const worker = {
           } catch (dbErr) {
             await bucket.delete(storageKey).catch(() => {});
             throw dbErr;
+          }
+        }
+
+        // ============================================================
+        // PHASE 5 ADMIN ENDPOINTS
+        // ============================================================
+
+        // --- Profile Admin ---
+        if (pathname === "/api/v1/admin/profile" && (request.method === "GET" || request.method === "HEAD")) {
+          const profile = await queryCmsProfileFromWorkerD1(db);
+          return jsonResponse({ ok: true, profile }, 200, origin, "no-store");
+        }
+
+        if (pathname === "/api/v1/admin/profile" && request.method === "PUT") {
+          let body: Record<string, unknown>;
+          try { body = (await request.json()) as Record<string, unknown>; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+          const profile = await upsertProfileInWorkerD1(db, body, actorEmail);
+          return jsonResponse({ ok: true, profile }, 200, origin, "no-store");
+        }
+
+        if (pathname === "/api/v1/admin/profile/revisions" && request.method === "GET") {
+          const revisions = await listProfileRevisionsInWorkerD1(db);
+          return jsonResponse({ ok: true, revisions }, 200, origin, "no-store");
+        }
+
+        if (pathname === "/api/v1/admin/profile/rollback" && request.method === "POST") {
+          let body: { revisionNumber?: number };
+          try { body = (await request.json()) as { revisionNumber?: number }; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+          if (typeof body.revisionNumber !== "number") return jsonResponse({ ok: false, error: "Invalid revisionNumber" }, 400, origin);
+          const profile = await rollbackProfileRevisionInWorkerD1(db, body.revisionNumber, actorEmail);
+          return jsonResponse({ ok: true, profile }, 200, origin, "no-store");
+        }
+
+        // --- Workspace Notes Admin ---
+        if (pathname === "/api/v1/admin/notes" && request.method === "GET") {
+          const wsId = url.searchParams.get("workspaceId");
+          const notes = wsId ? await queryCmsNotesFromWorkerD1(db, "WHERE workspace_id = ?", [wsId]) : await queryCmsNotesFromWorkerD1(db);
+          return jsonResponse({ ok: true, notes }, 200, origin, "no-store");
+        }
+
+        if (pathname === "/api/v1/admin/notes" && request.method === "POST") {
+          let body: Record<string, unknown>;
+          try { body = (await request.json()) as Record<string, unknown>; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+          const note = await upsertNoteInWorkerD1(db, body, actorEmail);
+          return jsonResponse({ ok: true, note }, 201, origin, "no-store");
+        }
+
+        if (pathname === "/api/v1/admin/notes/reorder" && request.method === "POST") {
+          let body: { items?: Array<{ id: string; sortOrder: number }> };
+          try { body = (await request.json()) as typeof body; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+          if (!Array.isArray(body?.items)) return jsonResponse({ ok: false, error: "items array required" }, 400, origin);
+          const res = await reorderNotesInWorkerD1(db, body.items, actorEmail);
+          return jsonResponse({ ok: true, updated: res.updated }, 200, origin, "no-store");
+        }
+
+        if (pathname === "/api/v1/admin/notes/revisions" && request.method === "GET") {
+          const wsId = url.searchParams.get("workspaceId") || "design";
+          const revisions = await listNotesRevisionsInWorkerD1(db, wsId);
+          return jsonResponse({ ok: true, revisions }, 200, origin, "no-store");
+        }
+
+        if (pathname === "/api/v1/admin/notes/rollback" && request.method === "POST") {
+          let body: { workspaceId?: string; revisionNumber?: number };
+          try { body = (await request.json()) as typeof body; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+          if (!body?.workspaceId || typeof body?.revisionNumber !== "number") return jsonResponse({ ok: false, error: "Invalid params" }, 400, origin);
+          await rollbackNoteRevisionInWorkerD1(db, body.workspaceId, body.revisionNumber, actorEmail);
+          return jsonResponse({ ok: true }, 200, origin, "no-store");
+        }
+
+        if (pathname.startsWith("/api/v1/admin/notes/") && !pathname.includes("/revisions") && !pathname.includes("/rollback") && !pathname.includes("/reorder")) {
+          const noteId = decodeURIComponent(pathname.replace("/api/v1/admin/notes/", ""));
+          if (request.method === "GET") {
+            const list = await queryCmsNotesFromWorkerD1(db, "WHERE id = ?", [noteId]);
+            if (list.length === 0) return jsonResponse({ ok: false, error: "Note not found" }, 404, origin);
+            return jsonResponse({ ok: true, note: list[0] }, 200, origin, "no-store");
+          }
+          if (request.method === "PUT") {
+            let body: Record<string, unknown>;
+            try { body = (await request.json()) as Record<string, unknown>; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+            const note = await upsertNoteInWorkerD1(db, { ...body, id: noteId }, actorEmail);
+            return jsonResponse({ ok: true, note }, 200, origin, "no-store");
+          }
+          if (request.method === "DELETE") {
+            const res = await deleteNoteInWorkerD1(db, noteId, actorEmail);
+            return jsonResponse({ ok: true, deletedId: res.deletedId }, 200, origin, "no-store");
+          }
+        }
+
+        // --- Experience Admin ---
+        if (pathname === "/api/v1/admin/experience" && request.method === "GET") {
+          const cat = url.searchParams.get("category");
+          const experience = cat ? await queryCmsExperienceFromWorkerD1(db, "WHERE category = ?", [cat]) : await queryCmsExperienceFromWorkerD1(db);
+          return jsonResponse({ ok: true, experience }, 200, origin, "no-store");
+        }
+
+        if (pathname === "/api/v1/admin/experience" && request.method === "POST") {
+          let body: Record<string, unknown>;
+          try { body = (await request.json()) as Record<string, unknown>; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+          const item = await upsertExperienceInWorkerD1(db, body, actorEmail);
+          return jsonResponse({ ok: true, experience: item }, 201, origin, "no-store");
+        }
+
+        if (pathname === "/api/v1/admin/experience/reorder" && request.method === "POST") {
+          let body: { items?: Array<{ id: string; sortOrder: number }> };
+          try { body = (await request.json()) as typeof body; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+          if (!Array.isArray(body?.items)) return jsonResponse({ ok: false, error: "items array required" }, 400, origin);
+          const res = await reorderExperienceInWorkerD1(db, body.items, actorEmail);
+          return jsonResponse({ ok: true, updated: res.updated }, 200, origin, "no-store");
+        }
+
+        if (pathname.startsWith("/api/v1/admin/experience/")) {
+          const rest = pathname.replace("/api/v1/admin/experience/", "");
+          const parts = rest.split("/");
+          const expId = decodeURIComponent(parts[0]);
+
+          if (parts.length === 2 && parts[1] === "revisions" && request.method === "GET") {
+            const revisions = await listExperienceRevisionsInWorkerD1(db, expId);
+            return jsonResponse({ ok: true, revisions }, 200, origin, "no-store");
+          }
+
+          if (parts.length === 2 && parts[1] === "rollback" && request.method === "POST") {
+            let body: { revisionNumber?: number };
+            try { body = (await request.json()) as typeof body; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+            if (typeof body?.revisionNumber !== "number") return jsonResponse({ ok: false, error: "Invalid revisionNumber" }, 400, origin);
+            const item = await rollbackExperienceRevisionInWorkerD1(db, expId, body.revisionNumber, actorEmail);
+            return jsonResponse({ ok: true, experience: item }, 200, origin, "no-store");
+          }
+
+          if (parts.length === 1) {
+            if (request.method === "GET") {
+              const list = await queryCmsExperienceFromWorkerD1(db, "WHERE id = ?", [expId]);
+              if (list.length === 0) return jsonResponse({ ok: false, error: "Not found" }, 404, origin);
+              return jsonResponse({ ok: true, experience: list[0] }, 200, origin, "no-store");
+            }
+            if (request.method === "PUT") {
+              let body: Record<string, unknown>;
+              try { body = (await request.json()) as Record<string, unknown>; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+              const item = await upsertExperienceInWorkerD1(db, { ...body, id: expId }, actorEmail);
+              return jsonResponse({ ok: true, experience: item }, 200, origin, "no-store");
+            }
+            if (request.method === "DELETE") {
+              const res = await deleteExperienceInWorkerD1(db, expId, actorEmail);
+              return jsonResponse({ ok: true, deletedId: res.deletedId }, 200, origin, "no-store");
+            }
+          }
+        }
+
+        // --- Education Admin ---
+        if (pathname === "/api/v1/admin/education" && request.method === "GET") {
+          const education = await queryCmsEducationFromWorkerD1(db);
+          return jsonResponse({ ok: true, education }, 200, origin, "no-store");
+        }
+
+        if (pathname === "/api/v1/admin/education" && request.method === "POST") {
+          let body: Record<string, unknown>;
+          try { body = (await request.json()) as Record<string, unknown>; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+          const item = await upsertEducationInWorkerD1(db, body, actorEmail);
+          return jsonResponse({ ok: true, education: item }, 201, origin, "no-store");
+        }
+
+        if (pathname === "/api/v1/admin/education/reorder" && request.method === "POST") {
+          let body: { items?: Array<{ id: string; sortOrder: number }> };
+          try { body = (await request.json()) as typeof body; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+          if (!Array.isArray(body?.items)) return jsonResponse({ ok: false, error: "items array required" }, 400, origin);
+          const res = await reorderEducationInWorkerD1(db, body.items, actorEmail);
+          return jsonResponse({ ok: true, updated: res.updated }, 200, origin, "no-store");
+        }
+
+        if (pathname.startsWith("/api/v1/admin/education/")) {
+          const rest = pathname.replace("/api/v1/admin/education/", "");
+          const parts = rest.split("/");
+          const eduId = decodeURIComponent(parts[0]);
+
+          if (parts.length === 2 && parts[1] === "revisions" && request.method === "GET") {
+            const revisions = await listEducationRevisionsInWorkerD1(db, eduId);
+            return jsonResponse({ ok: true, revisions }, 200, origin, "no-store");
+          }
+
+          if (parts.length === 2 && parts[1] === "rollback" && request.method === "POST") {
+            let body: { revisionNumber?: number };
+            try { body = (await request.json()) as typeof body; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+            if (typeof body?.revisionNumber !== "number") return jsonResponse({ ok: false, error: "Invalid revisionNumber" }, 400, origin);
+            const item = await rollbackEducationRevisionInWorkerD1(db, eduId, body.revisionNumber, actorEmail);
+            return jsonResponse({ ok: true, education: item }, 200, origin, "no-store");
+          }
+
+          if (parts.length === 1) {
+            if (request.method === "GET") {
+              const list = await queryCmsEducationFromWorkerD1(db, "WHERE id = ?", [eduId]);
+              if (list.length === 0) return jsonResponse({ ok: false, error: "Not found" }, 404, origin);
+              return jsonResponse({ ok: true, education: list[0] }, 200, origin, "no-store");
+            }
+            if (request.method === "PUT") {
+              let body: Record<string, unknown>;
+              try { body = (await request.json()) as Record<string, unknown>; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+              const item = await upsertEducationInWorkerD1(db, { ...body, id: eduId }, actorEmail);
+              return jsonResponse({ ok: true, education: item }, 200, origin, "no-store");
+            }
+            if (request.method === "DELETE") {
+              const res = await deleteEducationInWorkerD1(db, eduId, actorEmail);
+              return jsonResponse({ ok: true, deletedId: res.deletedId }, 200, origin, "no-store");
+            }
+          }
+        }
+
+        // --- Skills Admin ---
+        if (pathname === "/api/v1/admin/skills" && request.method === "GET") {
+          const cat = url.searchParams.get("category");
+          const skills = cat ? await queryCmsSkillsFromWorkerD1(db, "WHERE category = ?", [cat]) : await queryCmsSkillsFromWorkerD1(db);
+          return jsonResponse({ ok: true, skills }, 200, origin, "no-store");
+        }
+
+        if (pathname === "/api/v1/admin/skills" && request.method === "POST") {
+          let body: Record<string, unknown>;
+          try { body = (await request.json()) as Record<string, unknown>; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+          const skill = await upsertSkillInWorkerD1(db, body, actorEmail);
+          return jsonResponse({ ok: true, skill }, 201, origin, "no-store");
+        }
+
+        if (pathname === "/api/v1/admin/skills/reorder" && request.method === "POST") {
+          let body: { items?: Array<{ id: string; sortOrder: number }> };
+          try { body = (await request.json()) as typeof body; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+          if (!Array.isArray(body?.items)) return jsonResponse({ ok: false, error: "items array required" }, 400, origin);
+          const res = await reorderSkillsInWorkerD1(db, body.items, actorEmail);
+          return jsonResponse({ ok: true, updated: res.updated }, 200, origin, "no-store");
+        }
+
+        if (pathname.startsWith("/api/v1/admin/skills/")) {
+          const skillId = decodeURIComponent(pathname.replace("/api/v1/admin/skills/", ""));
+          if (request.method === "GET") {
+            const list = await queryCmsSkillsFromWorkerD1(db, "WHERE id = ?", [skillId]);
+            if (list.length === 0) return jsonResponse({ ok: false, error: "Not found" }, 404, origin);
+            return jsonResponse({ ok: true, skill: list[0] }, 200, origin, "no-store");
+          }
+          if (request.method === "PUT") {
+            let body: Record<string, unknown>;
+            try { body = (await request.json()) as Record<string, unknown>; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+            const skill = await upsertSkillInWorkerD1(db, { ...body, id: skillId }, actorEmail);
+            return jsonResponse({ ok: true, skill }, 200, origin, "no-store");
+          }
+          if (request.method === "DELETE") {
+            const res = await deleteSkillInWorkerD1(db, skillId, actorEmail);
+            return jsonResponse({ ok: true, deletedId: res.deletedId }, 200, origin, "no-store");
+          }
+        }
+
+        // --- CV Admin ---
+        if (pathname === "/api/v1/admin/cv" && request.method === "GET") {
+          const documents = await queryCmsCvFromWorkerD1(db);
+          return jsonResponse({ ok: true, documents }, 200, origin, "no-store");
+        }
+
+        if (pathname === "/api/v1/admin/cv/upload" && request.method === "POST") {
+          let formData: FormData;
+          try { formData = await request.formData(); } catch { return jsonResponse({ ok: false, error: "Invalid form data" }, 400, origin); }
+          const file = formData.get("file");
+          const loc = String(formData.get("locale") || "tr");
+          if (!file || typeof file === "string") return jsonResponse({ ok: false, error: "Missing file" }, 400, origin);
+          if (loc !== "tr" && loc !== "en") return jsonResponse({ ok: false, error: "Invalid locale" }, 400, origin);
+
+          const blob = file as File;
+          const arrayBuffer = await blob.arrayBuffer();
+          const bytes = new Uint8Array(arrayBuffer);
+          const sig = validateWorkerCvPdfSignature(bytes, blob.name || "cv.pdf");
+          if (!sig.valid) return jsonResponse({ ok: false, error: sig.error || "Invalid PDF" }, 400, origin);
+
+          const safeFilename = sanitizeFilename(blob.name || "resume.pdf");
+          const storageKey = `cv/${loc}/${Date.now()}-${safeFilename}`;
+
+          await bucket.put(storageKey, arrayBuffer, {
+            httpMetadata: { contentType: "application/pdf", cacheControl: "public, max-age=31536000, immutable" }
+          });
+
+          const baseUrl = (env.R2_PUBLIC_BASE_URL || "").replace(/\/$/, "");
+          const publicUrl = baseUrl ? `${baseUrl}/${storageKey}` : `/api/media/${storageKey}`;
+
+          // Hash
+          let sha256 = "";
+          try {
+            const hashBuffer = await crypto.subtle.digest("SHA-256", arrayBuffer);
+            sha256 = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
+          } catch {
+            sha256 = "";
+          }
+
+          const existingList = await queryCmsCvFromWorkerD1(db, loc);
+          const nextStatus = existingList[0]?.status === "published" ? "published" : "draft";
+
+          const cv = await upsertCvInWorkerD1(db, {
+            locale: loc,
+            status: nextStatus,
+            storageMode: "r2",
+            storageKey,
+            publicUrl,
+            filename: safeFilename,
+            mimeType: "application/pdf",
+            byteSize: bytes.byteLength,
+            sha256
+          }, actorEmail, "upload_cv_pdf");
+
+          return jsonResponse({ ok: true, cv }, 201, origin, "no-store");
+        }
+
+        if (pathname.startsWith("/api/v1/admin/cv/")) {
+          const rest = pathname.replace("/api/v1/admin/cv/", "");
+          const parts = rest.split("/");
+          const loc = decodeURIComponent(parts[0]);
+
+          if (parts.length === 2 && parts[1] === "revisions" && request.method === "GET") {
+            const revisions = await listCvRevisionsInWorkerD1(db, loc);
+            return jsonResponse({ ok: true, revisions }, 200, origin, "no-store");
+          }
+
+          if (parts.length === 2 && parts[1] === "rollback" && request.method === "POST") {
+            let body: { revisionNumber?: number };
+            try { body = (await request.json()) as typeof body; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+            if (typeof body?.revisionNumber !== "number") return jsonResponse({ ok: false, error: "Invalid revisionNumber" }, 400, origin);
+            const cv = await rollbackCvRevisionInWorkerD1(db, loc, body.revisionNumber, actorEmail);
+            return jsonResponse({ ok: true, cv }, 200, origin, "no-store");
+          }
+
+          if (parts.length === 1) {
+            if (request.method === "GET") {
+              const list = await queryCmsCvFromWorkerD1(db, loc);
+              if (list.length === 0) return jsonResponse({ ok: false, error: "Not found" }, 404, origin);
+              return jsonResponse({ ok: true, cv: list[0] }, 200, origin, "no-store");
+            }
+            if (request.method === "PUT") {
+              let body: Record<string, unknown>;
+              try { body = (await request.json()) as Record<string, unknown>; } catch { return jsonResponse({ ok: false, error: "Invalid JSON" }, 400, origin); }
+              const cv = await upsertCvInWorkerD1(db, { ...body, locale: loc }, actorEmail);
+              return jsonResponse({ ok: true, cv }, 200, origin, "no-store");
+            }
           }
         }
 

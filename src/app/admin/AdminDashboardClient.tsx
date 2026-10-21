@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
+import { AdminProfileNotesCms } from "@/components/admin/AdminProfileNotesCms";
 import type { AdminSessionPayload } from "@/lib/admin/auth";
 import {
   calculateProjectCompleteness,
@@ -34,6 +35,7 @@ type AdminTab =
   | "video-editor"
   | "gallery"
   | "gallery-editor"
+  | "profile"
   | "media"
   | "featured"
   | "system"
@@ -1676,6 +1678,15 @@ export function AdminDashboardClient({
             ]
           : []),
         {
+          id: "profile",
+          label: "Profile & Notes",
+          icon: (
+            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          )
+        },
+        {
           id: "editor",
           label: editorMode === "edit" ? "Edit Project" : "+ Create Project",
           icon: (
@@ -2010,6 +2021,36 @@ export function AdminDashboardClient({
                   className="px-3.5 py-1.5 rounded-lg bg-[#181B22] hover:bg-[#1E222A] border border-[#252A33] text-xs font-semibold text-purple-300 hover:text-purple-200 transition-colors cursor-pointer"
                 >
                   Manage Personal Gallery →
+                </button>
+              </div>
+            </div>
+
+            {/* Profile, Notes & CV CMS Summary Card (Phase 5) */}
+            <div className="p-5 rounded-xl bg-[#121418] border border-[#252A33] shadow-sm flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-amber-600/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-[#F5F7FA]">Profile, Notes & CV Engine</h3>
+                  <p className="text-xs text-[#A0A8B5] mt-0.5">
+                    Bilingual bio • Workspace notes • Experience • Education • Skills • Bilingual CV documents
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-1 rounded text-xs font-mono bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                  Phase 5 Integrated
+                </span>
+                <button
+                  type="button"
+                  data-testid="overview-manage-profile-btn"
+                  onClick={() => setActiveTab("profile")}
+                  className="px-3.5 py-1.5 rounded-lg bg-[#181B22] hover:bg-[#1E222A] border border-[#252A33] text-xs font-semibold text-amber-300 hover:text-amber-200 transition-colors cursor-pointer"
+                >
+                  Manage Profile & Notes →
                 </button>
               </div>
             </div>
@@ -4579,6 +4620,13 @@ export function AdminDashboardClient({
               </div>
             </div>
           </div>
+        )}
+
+        {/* ======================================================
+            PROFILE, NOTES, EXPERIENCE, EDUCATION, SKILLS & CV CMS TAB (Phase 5)
+           ====================================================== */}
+        {activeTab === "profile" && (
+          <AdminProfileNotesCms session={session} />
         )}
 
         {/* ======================================================

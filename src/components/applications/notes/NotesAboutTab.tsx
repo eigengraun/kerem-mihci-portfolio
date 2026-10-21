@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Image from "next/image";
 import { profileData } from "@/data/profile";
 import { Locale } from "@/data/translations";
+import { useSessionStore } from "@/store/sessionStore";
 
 interface NotesAboutTabProps {
   locale: Locale;
@@ -12,12 +13,35 @@ interface NotesAboutTabProps {
 
 export const NotesAboutTab: React.FC<NotesAboutTabProps> = ({ locale, isLight }) => {
   const [imgError, setImgError] = useState(false);
+  const { sessionProfile } = useSessionStore();
   const isEn = locale === "en";
 
-  const headline = isEn ? profileData.headlineEN : profileData.headlineTR;
-  const location = isEn ? profileData.locationEN : profileData.locationTR;
-  const summaries = isEn ? profileData.summaryEN : profileData.summaryTR;
-  const focusAreas = isEn ? profileData.focusAreasEN : profileData.focusAreasTR;
+  const name = sessionProfile?.name || profileData.name;
+  const headline = isEn
+    ? (sessionProfile?.headline?.en || profileData.headlineEN)
+    : (sessionProfile?.headline?.tr || profileData.headlineTR);
+  const location = isEn
+    ? (sessionProfile?.location?.en || profileData.locationEN)
+    : (sessionProfile?.location?.tr || profileData.locationTR);
+  const alt = isEn
+    ? (sessionProfile?.alt?.en || profileData.altEN)
+    : (sessionProfile?.alt?.tr || profileData.altTR);
+
+  const cmsSummary = isEn ? sessionProfile?.summary?.en : sessionProfile?.summary?.tr;
+  const summaries = cmsSummary && cmsSummary.length > 0
+    ? cmsSummary
+    : (isEn ? profileData.summaryEN : profileData.summaryTR);
+
+  const cmsFocus = isEn ? sessionProfile?.focusAreas?.en : sessionProfile?.focusAreas?.tr;
+  const focusAreas = cmsFocus && cmsFocus.length > 0
+    ? cmsFocus
+    : (isEn ? profileData.focusAreasEN : profileData.focusAreasTR);
+
+  const stats = sessionProfile?.stats && sessionProfile.stats.length > 0
+    ? sessionProfile.stats
+    : profileData.stats;
+
+  const imageSrc = sessionProfile?.image || sessionProfile?.avatar || profileData.image || profileData.avatar;
 
   return (
     <div className="space-y-5 animate-in fade-in duration-200">
@@ -43,10 +67,10 @@ export const NotesAboutTab: React.FC<NotesAboutTabProps> = ({ locale, isLight })
               : "bg-neutral-800 border-amber-500/30 text-amber-400"
           }`}
         >
-          {!imgError && (profileData.image || profileData.avatar) ? (
+          {!imgError && imageSrc ? (
             <Image
-              src={profileData.image || profileData.avatar}
-              alt={isEn ? profileData.altEN : profileData.altTR}
+              src={imageSrc}
+              alt={alt}
               fill
               sizes="(max-width: 640px) 96px, 112px"
               className="object-cover object-top"
@@ -67,7 +91,7 @@ export const NotesAboutTab: React.FC<NotesAboutTabProps> = ({ locale, isLight })
               isLight ? "text-neutral-900" : "text-white"
             }`}
           >
-            {profileData.name}
+            {name}
           </h2>
           <p className="font-mono text-xs text-amber-500 font-medium">{headline}</p>
           <div
@@ -99,7 +123,7 @@ export const NotesAboutTab: React.FC<NotesAboutTabProps> = ({ locale, isLight })
           {isEn ? "QUICK FACTS" : "HIZLI BİLGİLER"}
         </h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-          {profileData.stats.map((stat, idx) => (
+          {stats.map((stat, idx) => (
             <div
               key={idx}
               className={`p-2.5 rounded-lg border flex flex-col justify-between transition-colors ${

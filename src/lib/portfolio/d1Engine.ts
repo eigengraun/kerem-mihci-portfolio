@@ -4078,6 +4078,12 @@ export function rollbackGalleryRevisionInD1(
   const snapshot: CmsGalleryItem = JSON.parse(String(revRow.snapshot_json));
   const now = new Date().toISOString();
 
+  // Preserve the current item's sortOrder if it exists, so stream ordering is not clobbered by historical revision
+  const currentRow = db
+    .prepare(`SELECT sort_order FROM portfolio_gallery_items WHERE id = ? LIMIT 1`)
+    .get(itemId) as { sort_order?: number } | undefined;
+  const targetSortOrder = typeof currentRow?.sort_order === "number" ? currentRow.sort_order : snapshot.sortOrder;
+
   // If snapshot had an asset, re-promote that exact asset to active without deleting historical bytes
   if (snapshot.asset?.storageKey) {
     const matchRow = db
@@ -4101,7 +4107,7 @@ export function rollbackGalleryRevisionInD1(
       captionEN: snapshot.caption?.en,
       year: snapshot.year,
       location: snapshot.location,
-      sortOrder: snapshot.sortOrder,
+      sortOrder: targetSortOrder,
       asset: snapshot.asset ? snapshot.asset : undefined
     },
     actorEmail,

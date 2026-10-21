@@ -1,0 +1,561 @@
+{
+  "suite": "Portfolio OS Phase 4.2.1 Real Chromium Browser E2E & Visual Verification",
+  "timestamp": "2026-10-21T15:58:30.283Z",
+  "commit": "923e3941586981c7440ca2cc834d416b8fd27d0a",
+  "total": 96,
+  "passed": 96,
+  "failed": 0,
+  "groups": {
+    "A: Isolation Architecture & Safety Guard Enforcement": {
+      "total": 11,
+      "passed": 11,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Safety guard refuses intentionally misconfigured persistent DB path",
+          "status": "PASS",
+          "detail": "Correctly threw SAFETY_VIOLATION without modifying host DB"
+        },
+        {
+          "name": "Safety guard refuses intentionally misconfigured persistent media dir",
+          "status": "PASS",
+          "detail": "Correctly threw SAFETY_VIOLATION for persistent media"
+        },
+        {
+          "name": "Safety guard approves verified isolated sandbox directory",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Fresh isolated DB seeded with exactly 30 canonical projects",
+          "status": "PASS",
+          "detail": "Count: 30"
+        },
+        {
+          "name": "Fresh isolated DB seeded with exactly 70 project media records",
+          "status": "PASS",
+          "detail": "Count: 70"
+        },
+        {
+          "name": "Fresh isolated DB seeded with exactly 21 canonical videos",
+          "status": "PASS",
+          "detail": "Count: 21"
+        },
+        {
+          "name": "Fresh isolated DB starts with empty personal gallery (0 records)",
+          "status": "PASS",
+          "detail": "Count: 0"
+        },
+        {
+          "name": "Temporary authentication fixture uses salted scrypt hash without reading persistent secrets",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Dedicated free loopback port safely allocated",
+          "status": "PASS",
+          "detail": "Port: 64499"
+        },
+        {
+          "name": "Isolated Next.js server operational and healthy on loopback binding",
+          "status": "PASS",
+          "detail": "http://127.0.0.1:64499"
+        },
+        {
+          "name": "Playwright launched Chromium cleanly using project-local dependency",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "B: Authentic Decodable Image Fixture Generation": {
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "P1 Portrait (600x900) has valid JPEG byte signature (FF D8 FF)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "P2 Landscape (1200x800) has valid JPEG byte signature (FF D8 FF)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "P3 Square (800x800) has valid JPEG byte signature (FF D8 FF)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "P1 decodes cleanly in browser to natural 600x900",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "P2 decodes cleanly in browser to natural 1200x800",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "P3 decodes cleanly in browser to natural 800x800",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "C: Real Browser UI Authentication & First Photo Ingestion": {
+      "total": 12,
+      "passed": 12,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Authenticated through real local admin login form",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Navigated to Personal Photography Stream workspace",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Opened Add Photograph editor form",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Uploaded P1 Portrait image and verified preview",
+          "status": "PASS",
+          "detail": "/api/media/gallery/photo-1792598311901-kigiq/1792598311930-a815ad01.jpg"
+        },
+        {
+          "name": "Saved P1 as draft through admin UI",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Exactly one draft item exists in SQLite",
+          "status": "PASS",
+          "detail": "Count: 1"
+        },
+        {
+          "name": "Persisted item status is 'draft'",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Draft image is not accessible anonymously (HTTP 404)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Draft 404 includes Cache-Control: no-store",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Published P1 explicitly through admin editor",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "P1 status promoted to 'published' in SQLite",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Published image P1 is now anonymously accessible (HTTP 200 OK)",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "D: Multi-Photo Ingestion & Complete Sequence Reordering (P3 -> P1 -> P2)": {
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Three photographs created and published",
+          "status": "PASS",
+          "detail": "Count: 3"
+        },
+        {
+          "name": "Entered Stream Sequence Arrangement reorder mode",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Saved reordered stream sequence through admin UI",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "SQLite sequence verified: [0]=P3, [1]=P1, [2]=P2",
+          "status": "PASS",
+          "detail": "Actual order: photo-1792598312592-ci1ku -> photo-1792598311901-kigiq -> photo-1792598312348-gjvwx"
+        },
+        {
+          "name": "Public API serves exact sequence: P3 -> P1 -> P2",
+          "status": "PASS",
+          "detail": "API IDs: photo-1792598312592-ci1ku -> photo-1792598311901-kigiq -> photo-1792598312348-gjvwx"
+        },
+        {
+          "name": "Admin catalog UI stably retains sequence P3 -> P1 -> P2 after browser reload",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "E: Provisional Image Replacement & Binary Rollback": {
+      "total": 14,
+      "passed": 14,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Replacement image B has distinct binary SHA-256",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Provisional replacement warning banner rendered in editor UI",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Original asset A remains 'active' in DB during staging",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Newly uploaded replacement asset B is 'provisional'",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Provisional replacement image returns 404 to anonymous visitors",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Original active image remains 200 OK for public visitors",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Promoted provisional replacement image to active upon explicit publish",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Asset B promoted to 'active'",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Previous asset A preserved as 'archived'",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Replacement image B is now live publicly (HTTP 200 OK)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Revision history contains snapshot for Photograph A",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Restored revision snapshot containing Photograph A (Rev #2)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Active asset restored to original asset A storage key",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Restored media binary SHA-256 strictly matches original photograph A binary hash",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "F: Public GalleryApp Real Window E2E & Visual Proof": {
+      "total": 19,
+      "passed": 19,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Entered Portfolio OS desktop workspace",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Clicked Gallery app icon in public Desktop Dock",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "GalleryApp window is visibly open with header 'Galeri'",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "GalleryApp window renders exactly 3 published photographs",
+          "status": "PASS",
+          "detail": "Count: 3"
+        },
+        {
+          "name": "Position 1 is P3 Square (800x800, aspect 1.00) decoded cleanly",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Position 1 alt text matches P3 Turkish description",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Position 2 is P1 Portrait (600x900, aspect 0.67) decoded cleanly without square cropping",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Position 2 alt text matches P1 Turkish description",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Position 3 is P2 Landscape (1200x800, aspect 1.50) decoded cleanly without square cropping",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Position 3 alt text matches P2 Turkish description",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Photographs are arranged in a single vertical column stream",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "GalleryApp internal feed scrolls down smoothly and returns to top",
+          "status": "PASS",
+          "detail": "scrollHeight: 2132, clientHeight: 381, scrolled: 250"
+        },
+        {
+          "name": "Captured verified desktop screenshot with Gallery window open (1440x900)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Clicked Gallery app button in Mobile Dock",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Mobile Gallery window visibly open with title 'Galeri'",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Mobile Gallery window renders all 3 published photographs",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Captured verified mobile screenshot with Gallery window open (390x844)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "English locale (/en) opens Gallery with header 'Gallery'",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "English alt texts and sequence P3 -> P1 -> P2 verified",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "G: Real Scroll Measurements & Responsive Validation": {
+      "total": 7,
+      "passed": 7,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Desktop Admin catalog scroll container (#main-content / #admin-main-stage) measured and verified",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Captured desktop admin catalog screenshot (1440x900)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Captured desktop admin editor screenshot (1440x900)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Captured mobile admin catalog screenshot (390x844)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Mobile editor has zero horizontal clipping",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Save Draft and Publish controls exist and are accessible in mobile editor",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Captured mobile admin editor screenshot (390x844)",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "H: Critical Security Coverage & Boundary Enforcement": {
+      "total": 11,
+      "passed": 11,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Anonymous request to /api/admin/gallery returns HTTP 401",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Untrusted Origin rejected with HTTP 403 Forbidden",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Missing CSRF token rejected with HTTP 403 Forbidden",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Invalid CSRF token rejected with HTTP 403 Forbidden",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Attaching video storage key to gallery item rejected with HTTP 403",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Attaching another gallery item's storage key rejected with HTTP 403",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Duplicate ID reorder payload rejected with HTTP 400",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Atomic non-mutation: SQLite sort orders remained 100% identical after rejected reorder",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Image containing EXIF GPS metadata rejected with HTTP 400",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Oversized upload (>10MB) rejected with HTTP 413 Payload Too Large",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Archived media key returns HTTP 404 to anonymous public visitors",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "I: Upstream Outage Resilience & Fail-Closed Integrity": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Healthy empty gallery returns HTTP 200 OK",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Healthy empty gallery returns empty array [] (zero data falsification)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Upstream storage failure returns HTTP 503 Service Unavailable",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Outage response includes degraded: true flag",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Outage 503 includes Cache-Control: no-store to prevent edge poisoning",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "J: Clean Teardown & Host Integrity Invariant Verification": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Isolated sandbox directory cleanly destroyed",
+          "status": "PASS",
+          "detail": "/var/folders/0d/xtlrt9cj0lg4qw5b6zpcsyd40000gn/T/portfolio-isolated-1792598310308-492a2c0d"
+        },
+        {
+          "name": "Host portfolio.sqlite byte-for-byte identical (SHA-256 match)",
+          "status": "PASS",
+          "detail": "SHA: 65fc364d1989f5bd"
+        },
+        {
+          "name": "Host portfolio.sqlite-wal SHA-256 match",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Host portfolio.sqlite-shm SHA-256 match",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Host local gallery-preview records 100% preserved",
+          "status": "PASS",
+          "detail": "Count: 3"
+        }
+      ]
+    }
+  },
+  "failures": []
+}

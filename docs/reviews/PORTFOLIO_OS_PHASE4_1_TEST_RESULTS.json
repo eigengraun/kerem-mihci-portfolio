@@ -1,7 +1,7 @@
 {
   "suite": "Portfolio OS Phase 4.1 Personal Gallery CMS Hardening Verification",
-  "timestamp": "2026-10-21T09:02:19.531Z",
-  "commit": "4291a001b22e42647d4e0a80c17c80c7421613b4",
+  "timestamp": "2026-10-21T15:58:47.026Z",
+  "commit": "923e3941586981c7440ca2cc834d416b8fd27d0a",
   "total": 87,
   "passed": 87,
   "failed": 0,
@@ -503,7 +503,7 @@
         {
           "name": "Non-regression: 21 canonical videos preserved",
           "status": "PASS",
-          "detail": "Count: 22"
+          "detail": "Count: 21"
         }
       ]
     },
@@ -515,7 +515,7 @@
         {
           "name": "Zero host mutations: .local-d1/portfolio.sqlite SHA256 is 100% identical before and after suite",
           "status": "PASS",
-          "detail": "SHA256: ae6594730501e7bf..."
+          "detail": "SHA256: 65fc364d1989f5bd..."
         }
       ]
     }

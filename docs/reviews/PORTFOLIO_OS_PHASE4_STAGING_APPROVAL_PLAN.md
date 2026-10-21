@@ -46,7 +46,7 @@ Upon receiving explicit operator authorization (**Verdict A**), execute the foll
 
 ### Step 1: Pre-Migration Backup & Machine-Readable Deployment Snapshot
 
-Capture an immutable cryptographic backup of the staging D1 database to durable private storage (outside Git) and record the exact active Worker deployment:
+Capture an immutable cryptographic backup of the staging D1 database to durable private storage (outside Git) and record the exact active Worker rollback target:
 
 ```bash
 # 1. Enforce restrictive file creation mask for operator session
@@ -63,21 +63,15 @@ npx wrangler deployments list \
   --env staging \
   --json > "$BACKUP_DIR/pre-deployments.json"
 
-# Extract and independently verify current active deployment ID (no positional shell parsing)
-PRE_DEPLOY_WORKER_ID=$(node -e '
-  const fs = require("fs");
-  const data = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
-  const deployments = Array.isArray(data) ? data : (data.deployments || []);
-  const active = deployments.find(d => d.current) || deployments[0];
-  if (!active || !active.id) {
-    console.error("FATAL: Unable to resolve active deployment ID from Wrangler output");
-    process.exit(1);
-  }
-  console.log(active.id);
-' "$BACKUP_DIR/pre-deployments.json")
+# Resolve active Worker VERSION ID (required by wrangler rollback, which rejects Deployment IDs)
+# Enforces: UUID validation, 100% single-version traffic, and saves raw UUID
+node scripts/resolve-worker-rollback-version.mjs \
+  --input "$BACKUP_DIR/pre-deployments.json" \
+  --output "$BACKUP_DIR/active-worker-version-id.txt"
 
-test -n "$PRE_DEPLOY_WORKER_ID" || { echo "FATAL: Pre-deployment Worker ID unresolved"; exit 1; }
-echo "Pre-Deployment Active Worker ID: $PRE_DEPLOY_WORKER_ID" | tee "$BACKUP_DIR/active-worker-id.txt"
+PRE_DEPLOY_VERSION_ID=$(cat "$BACKUP_DIR/active-worker-version-id.txt")
+test -n "$PRE_DEPLOY_VERSION_ID" || { echo "FATAL: Pre-deployment Worker Version ID unresolved"; exit 1; }
+echo "Pre-Deployment Verified Rollback Target (Version ID): $PRE_DEPLOY_VERSION_ID"
 
 # 4. Export immutable SQL dump of staging D1 to durable backup directory
 BACKUP_SQL="$BACKUP_DIR/kerem-portfolio-db-staging-backup.sql"
@@ -88,18 +82,14 @@ npx wrangler d1 export kerem-portfolio-db-staging \
   --remote \
   --output "$BACKUP_SQL"
 
-# 5. Cryptographic integrity and SQLite quick-check validation
+# 5. Cryptographic integrity and SHA-256 generation
 test -s "$BACKUP_SQL" || { echo "FATAL: Backup file is empty"; exit 1; }
-sqlite3 :memory: < "$BACKUP_SQL" "PRAGMA quick_check;" || { echo "FATAL: Backup SQL syntax corrupted"; exit 1; }
 shasum -a 256 "$BACKUP_SQL" > "${BACKUP_SQL}.sha256"
 
-# 6. Verify pre-migration data baseline inside the backup
-sqlite3 :memory: <<EOF
-.read $BACKUP_SQL
-SELECT 'projects_count', count(*) FROM projects;
-SELECT 'media_count', count(*) FROM project_media;
-SELECT 'videos_count', count(*) FROM portfolio_videos;
-EOF
+# 6. Fail-closed backup integrity verification into isolated SQLite database
+# Enforces: -bail execution, PRAGMA quick_check + integrity_check, d1_migrations >= 2,
+# and exact baseline invariants: 31 projects, 72 media items, 21 canonical videos
+node scripts/verify-backup-integrity.mjs "$BACKUP_SQL"
 ```
 
 ---
@@ -209,15 +199,22 @@ Should any anomaly occur during rollout or verification:
 ### Worker Rollback Procedure (If Authorized by Operator)
 If the Worker deployment fails and the operator explicitly approves rolling back the Worker code:
 
+> [!IMPORTANT]
+> `wrangler rollback <version-id>` strictly requires a **Version ID UUID** (returned in `wrangler deployments status` or `deployments list` versions array). It **fails closed** if given a Deployment ID.
+
 ```bash
-# Read pre-deployment Worker ID from verified preflight record
-PREV_VERSION=$(cat "$BACKUP_DIR/active-worker-id.txt")
+# 1. Read and validate pre-deployment Worker Version ID from verified preflight record
+PREV_VERSION_ID=$(cat "$BACKUP_DIR/active-worker-version-id.txt")
 
-test -n "$PREV_VERSION" || { echo "FATAL: Pre-deployment version not found. Manual inspection required."; exit 1; }
+node scripts/resolve-worker-rollback-version.mjs --validate "$PREV_VERSION_ID" || {
+  echo "FATAL: Pre-deployment Version ID validation failed. Manual inspection required.";
+  exit 1;
+}
 
-echo "Rolling back Worker to verified pre-deployment ID: $PREV_VERSION"
+echo "Rolling back Worker to verified pre-deployment Version ID: $PREV_VERSION_ID"
 
-npx wrangler rollback "$PREV_VERSION" \
+# 2. Execute rollback using exact Version ID UUID
+npx wrangler rollback "$PREV_VERSION_ID" \
   --config cloudflare/portfolio-api/wrangler.jsonc \
   --env staging
 ```

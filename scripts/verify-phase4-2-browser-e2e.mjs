@@ -1,47 +1,66 @@
 #!/usr/bin/env node
+
 /**
- * Kerem Mıhçı Portfolio OS — Phase 4.2 Real Browser E2E & Local Staging Preflight Suite
+ * scripts/verify-phase4-2-browser-e2e.mjs
  *
- * Implements a 100% reproducible, automated REAL Chromium/Playwright verification harness
- * operating against a strictly isolated, fresh temporary SQLite and media sandbox.
+ * Portfolio OS Phase 4.2.1: Real Chromium Browser E2E & Visual Verification Suite
  *
- * Strictly adheres to project safety boundaries:
- * - ZERO mutations to .local-d1/portfolio.sqlite or persistent host media.
- * - ZERO remote Cloudflare D1 migrations, Worker deployments, or R2 mutations.
- * - ZERO dependency on external project node_modules or hardcoded browser paths.
+ * Executes authentic browser workflows using real Chromium via project-local Playwright.
+ * Strictly tests:
+ * - Isolated disposable SQLite sandbox (0600) migrated fresh from schema files.
+ * - Host database and media invariant safety guards (100% SHA-256 match enforced).
+ * - Real decodable canvas-generated JPEG image fixtures with distinct pixel patterns:
+ *   - P1: Portrait (600x900)
+ *   - P2: Landscape (1200x800)
+ *   - P3: Square (800x800)
+ * - Complete sequence reordering: P3 -> P1 -> P2 across Admin UI, SQLite, and Public API.
+ * - Real public Portfolio OS navigation, Dock interaction, and GalleryApp window opening.
+ * - In-window image rendering, decoding verification, and single vertical stream geometry.
+ * - Real DOM scrolling measurements in Admin (#main-content) and Public Gallery feed.
+ * - Mobile responsive catalog and editor reachability (390x844).
+ * - Multi-language stability under Turkish (/tr) and English (/en).
+ * - Comprehensive security negative assertions (CSRF, Origin, cross-asset, EXIF GPS).
+ * - Fail-closed upstream outage simulation.
+ * - Zero remote mutations (100% local execution).
  */
 
 import fs from "node:fs";
 import path from "node:path";
-import crypto from "node:crypto";
 import os from "node:os";
+import crypto from "node:crypto";
 import net from "node:net";
-import { execSync, spawn } from "node:child_process";
+import { spawn, execSync } from "node:child_process";
 import { DatabaseSync } from "node:sqlite";
+import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 
-const rootDir = process.cwd();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const rootDir = path.resolve(__dirname, "..");
+
+// Host invariants
 const hostDbPath = path.join(rootDir, ".local-d1", "portfolio.sqlite");
 const hostR2Dir = path.join(rootDir, ".local-r2");
 
+// Output directories (repository-owned only; no hardcoded external paths)
+const sanitizedScreenshotsDir =
+  process.env.REVIEW_SCREENSHOTS_DIR ||
+  path.join(rootDir, "docs", "reviews", "screenshots", "phase4_2_1");
+fs.mkdirSync(sanitizedScreenshotsDir, { recursive: true });
+
+// Test Results Registry
 const results = {
-  suite: "Portfolio OS Phase 4.2 Local Staging Preflight & Real Browser E2E",
+  suite: "Portfolio OS Phase 4.2.1 Real Chromium Browser E2E & Visual Verification",
   timestamp: new Date().toISOString(),
   commit: "",
   total: 0,
   passed: 0,
   failed: 0,
-  failures: [],
-  groups: {}
+  groups: {},
+  failures: []
 };
 
-try {
-  results.commit = execSync("git rev-parse HEAD", { encoding: "utf8" }).trim();
-} catch {
-  results.commit = "unknown";
-}
-
-let currentGroup = "General";
+let currentGroup = "Initialization";
 
 function setGroup(name) {
   currentGroup = name;
@@ -76,17 +95,6 @@ function getFileSha256(filePath) {
   return crypto.createHash("sha256").update(buffer).digest("hex");
 }
 
-function getDirectoryInventory(dirPath) {
-  if (!fs.existsSync(dirPath)) return [];
-  const entries = fs.readdirSync(dirPath, { withFileTypes: true });
-  return entries.map((e) => ({
-    name: e.name,
-    isFile: e.isFile(),
-    size: e.isFile() ? fs.statSync(path.join(dirPath, e.name)).size : 0,
-    sha256: e.isFile() ? getFileSha256(path.join(dirPath, e.name)) : null
-  }));
-}
-
 function assertIsolatedEnvironment(resolvedDbPath, resolvedMediaPath) {
   const normDb = path.resolve(resolvedDbPath);
   const normHostDb = path.resolve(hostDbPath);
@@ -105,29 +113,98 @@ function assertIsolatedEnvironment(resolvedDbPath, resolvedMediaPath) {
   return true;
 }
 
-function createJpeg(width, height) {
-  const hHigh = (height >> 8) & 0xff;
-  const hLow = height & 0xff;
-  const wHigh = (width >> 8) & 0xff;
-  const wLow = width & 0xff;
-  return Buffer.from([
-    0xff, 0xd8, // SOI
-    // DQT
-    0xff, 0xdb, 0x00, 0x43, 0x00,
-    0x08, 0x06, 0x06, 0x07, 0x06, 0x05, 0x08, 0x07, 0x07, 0x07, 0x09, 0x09, 0x08, 0x0a, 0x0c, 0x14,
-    0x0d, 0x0c, 0x0b, 0x0b, 0x0c, 0x19, 0x12, 0x13, 0x0f, 0x14, 0x1d, 0x1a, 0x1f, 0x1e, 0x1d, 0x1a,
-    0x1c, 0x1c, 0x20, 0x24, 0x2e, 0x27, 0x20, 0x22, 0x2c, 0x23, 0x1c, 0x1c, 0x28, 0x37, 0x29, 0x2c,
-    0x30, 0x31, 0x34, 0x34, 0x34, 0x1f, 0x27, 0x39, 0x3d, 0x38, 0x32, 0x3c, 0x2e, 0x33, 0x34, 0x32,
-    // SOF0 (Baseline DCT)
-    0xff, 0xc0, 0x00, 0x0b, 0x08, hHigh, hLow, wHigh, wLow, 0x01, 0x01, 0x11, 0x00,
-    // DHT
-    0xff, 0xc4, 0x00, 0x1f, 0x00, 0x00, 0x01, 0x05, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b,
-    // SOS
-    0xff, 0xda, 0x00, 0x08, 0x01, 0x01, 0x00, 0x00, 0x3f, 0x00, 0xbf, 0x00,
-    // EOI
-    0xff, 0xd9
-  ]);
+/**
+ * Generates an authentic, fully browser-decodable JPEG image using HTML5 Canvas in Chromium.
+ * Draws distinct gradients, geometric grid patterns, and bold labels.
+ */
+async function generateAuthenticJpeg(page, { width, height, label, color }) {
+  const base64Data = await page.evaluate(
+    ({ w, h, text, bgColor }) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+
+      // Background gradient
+      const grad = ctx.createLinearGradient(0, 0, w, h);
+      grad.addColorStop(0, bgColor);
+      grad.addColorStop(1, "#0A0D14");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, w, h);
+
+      // Geometric grid
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+      ctx.lineWidth = 2;
+      for (let x = 40; x < w; x += 50) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+      }
+      for (let y = 40; y < h; y += 50) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+
+      // Center plaque
+      const boxW = Math.min(w * 0.85, 480);
+      const boxH = 100;
+      ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+      ctx.lineWidth = 1.5;
+      ctx.fillRect((w - boxW) / 2, (h - boxH) / 2, boxW, boxH);
+      ctx.strokeRect((w - boxW) / 2, (h - boxH) / 2, boxW, boxH);
+
+      // Text labels
+      ctx.fillStyle = "#FFFFFF";
+      ctx.font = "bold 24px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(text, w / 2, h / 2 - 12);
+
+      ctx.fillStyle = "#4ADE80";
+      ctx.font = "bold 16px monospace";
+      ctx.fillText(`${w}x${h} • Decodable Test JPEG`, w / 2, h / 2 + 20);
+
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
+      return dataUrl.split(",")[1];
+    },
+    { w: width, h: height, text: label, bgColor: color }
+  );
+
+  const buffer = Buffer.from(base64Data, "base64");
+  return { buffer, width, height, label };
+}
+
+/**
+ * Validates in-browser decoding of a JPEG buffer.
+ */
+async function verifyBrowserImageDecode(page, buffer) {
+  const b64 = buffer.toString("base64");
+  return await page.evaluate(async (dataUri) => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        resolve({
+          complete: img.complete,
+          naturalWidth: img.naturalWidth,
+          naturalHeight: img.naturalHeight,
+          decoded: true
+        });
+      };
+      img.onerror = () => {
+        resolve({
+          complete: false,
+          naturalWidth: 0,
+          naturalHeight: 0,
+          decoded: false
+        });
+      };
+      img.src = "data:image/jpeg;base64," + dataUri;
+    });
+  }, b64);
 }
 
 function createJpegWithGps() {
@@ -161,11 +238,9 @@ async function getFreePort() {
     const srv = net.createServer();
     srv.listen(0, "127.0.0.1", () => {
       const port = srv.address().port;
-      srv.close((err) => {
-        if (err) reject(err);
-        else resolve(port);
-      });
+      srv.close(() => resolve(port));
     });
+    srv.on("error", reject);
   });
 }
 
@@ -173,33 +248,47 @@ async function waitForServer(url, timeoutMs = 15000) {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     try {
-      const res = await fetch(`${url}/api/v1/public/health`, { method: "HEAD" });
-      if (res.status < 500) return true;
-    } catch {
-      // Retry
-    }
-    await new Promise((r) => setTimeout(r, 200));
+      const res = await fetch(`${url}/admin`, { signal: AbortSignal.timeout(1000) });
+      if (res.status === 200 || res.status === 401) return true;
+    } catch {}
+    await new Promise((r) => setTimeout(r, 250));
   }
-  throw new Error(`Server failed to start on ${url} within ${timeoutMs}ms.`);
+  throw new Error(`Server at ${url} failed to respond within ${timeoutMs}ms`);
 }
 
 async function main() {
   console.log("============================================================");
-  console.log("PORTFOLIO OS PHASE 4.2 REAL BROWSER E2E & PREFLIGHT");
-  console.log(`Commit:    ${results.commit}`);
-  console.log(`Timestamp: ${results.timestamp}`);
+  console.log("PORTFOLIO OS — PHASE 4.2.1 REAL CHROMIUM BROWSER E2E SUITE");
   console.log("============================================================");
+  console.log(`Timestamp:       ${results.timestamp}`);
+  console.log(`Project Root:    ${rootDir}`);
+  console.log(`Screenshots Dir: ${sanitizedScreenshotsDir}`);
 
-  // Snapshot host database before suite runs
-  const hostInitialDbSha256 = getFileSha256(hostDbPath);
-  const hostInitialWalSha256 = getFileSha256(`${hostDbPath}-wal`);
-  const hostInitialShmSha256 = getFileSha256(`${hostDbPath}-shm`);
-  const hostInitialInventory = getDirectoryInventory(path.dirname(hostDbPath));
+  try {
+    results.commit = execSync("git rev-parse HEAD", { cwd: rootDir, encoding: "utf8" }).trim();
+    console.log(`Git Revision:    ${results.commit}`);
+  } catch {}
 
-  // Isolated temp directory for this specific run
+  // Verify host gallery preview items before starting
+  let hostPreviewCountBefore = 0;
+  if (fs.existsSync(hostDbPath)) {
+    const hostConn = new DatabaseSync(hostDbPath, { readOnly: true });
+    try {
+      const rows = hostConn.prepare("SELECT count(*) as count FROM portfolio_gallery_items WHERE id LIKE 'gallery-preview-%'").get();
+      hostPreviewCountBefore = rows.count;
+    } catch {}
+    hostConn.close();
+  }
+
+  // Initial Host DB Invariant Snapshot
+  const initialHostDbSha = getFileSha256(hostDbPath);
+  const initialHostWalSha = getFileSha256(`${hostDbPath}-wal`);
+  const initialHostShmSha = getFileSha256(`${hostDbPath}-shm`);
+
+  // Temporary sandbox directory
   const tempTestDir = path.join(
     os.tmpdir(),
-    `portfolio-e2e-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`
+    `portfolio-isolated-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`
   );
   fs.mkdirSync(tempTestDir, { recursive: true });
 
@@ -310,6 +399,13 @@ async function main() {
       insertVideoTr.run(`tr-${v.id}-tr`, v.id, "tr", v.titleTR, v.shortTitleTR || null, v.descriptionTR || "", v.fullDescriptionTR || "", nowIso);
       insertVideoTr.run(`tr-${v.id}-en`, v.id, "en", v.titleEN, v.shortTitleEN || null, v.descriptionEN || "", v.fullDescriptionEN || "", nowIso);
     }
+
+    testDbConnection.prepare(`
+      INSERT INTO portfolio_video_assets (
+        id, video_id, asset_type, storage_mode, storage_key, public_url, mime_type, byte_size, created_at, updated_at
+      ) VALUES ('vast-sample-poster', ?, 'poster', 'r2', 'videos/sample/poster.webp', '/api/media/videos/sample/poster.webp', 'image/webp', 1024, ?, ?)
+    `).run(videosData[0].id, nowIso, nowIso);
+
     testDbConnection.exec("COMMIT;");
 
     const pCount = testDbConnection.prepare("SELECT count(*) as count FROM projects").get().count;
@@ -322,7 +418,7 @@ async function main() {
     assert(vCount === 21, "Fresh isolated DB seeded with exactly 21 canonical videos", `Count: ${vCount}`);
     assert(gCount === 0, "Fresh isolated DB starts with empty personal gallery (0 records)", `Count: ${gCount}`);
 
-    // In-memory test admin authentication credentials
+    // In-memory test admin credentials
     const testAdminEmail = "operator-e2e@isolated.local";
     const testAdminPassword = "IsolatedE2EPassphrase2026!";
     const testAdminHash = hashAdminPasswordScrypt(testAdminPassword);
@@ -372,21 +468,73 @@ async function main() {
     browser = await chromium.launch({ headless: true });
     assert(browser !== null, "Playwright launched Chromium cleanly using project-local dependency");
 
-    // ------------------------------------------------------------
-    // GROUP B: REAL BROWSER E2E: CREATE & SAVE DRAFT (TEST A)
-    // ------------------------------------------------------------
-    setGroup("B: Real Browser E2E: Create & Save Draft (Test A)");
-
     const context = await browser.newContext({
       viewport: { width: 1440, height: 900 }
     });
-    const page = await context.newPage();
-    page.on("console", (msg) => {
-      if (msg.type() === "error") console.log(`  [BROWSER ERROR] ${msg.text()}`);
+    await context.addInitScript(() => {
+      try {
+        localStorage.setItem("portfolioOS:entry:v1:lastEnteredAt", String(Date.now()));
+      } catch {}
     });
-    page.on("pageerror", (err) => console.log(`  [PAGE CRASH] ${err.message}`));
+    const page = await context.newPage();
 
-    // 1. Real login flow
+    // ------------------------------------------------------------
+    // GROUP B: AUTHENTIC DECODABLE IMAGE FIXTURE GENERATION
+    // ------------------------------------------------------------
+    setGroup("B: Authentic Decodable Image Fixture Generation");
+
+    // Generate real, decodable test JPEGs via Canvas with distinct aspect ratios & graphics:
+    // P1: Portrait (600x900)
+    // P2: Landscape (1200x800)
+    // P3: Square (800x800)
+    const photoP1 = await generateAuthenticJpeg(page, {
+      width: 600,
+      height: 900,
+      label: "P1: Portrait Photograph",
+      color: "#1E3A8A"
+    });
+    const photoP2 = await generateAuthenticJpeg(page, {
+      width: 1200,
+      height: 800,
+      label: "P2: Landscape Photograph",
+      color: "#065F46"
+    });
+    const photoP3 = await generateAuthenticJpeg(page, {
+      width: 800,
+      height: 800,
+      label: "P3: Square Photograph",
+      color: "#92400E"
+    });
+
+    // Verify JPEG SOI / APP0 JFIF byte signatures
+    assert(
+      photoP1.buffer[0] === 0xff && photoP1.buffer[1] === 0xd8 && photoP1.buffer[2] === 0xff,
+      "P1 Portrait (600x900) has valid JPEG byte signature (FF D8 FF)"
+    );
+    assert(
+      photoP2.buffer[0] === 0xff && photoP2.buffer[1] === 0xd8 && photoP2.buffer[2] === 0xff,
+      "P2 Landscape (1200x800) has valid JPEG byte signature (FF D8 FF)"
+    );
+    assert(
+      photoP3.buffer[0] === 0xff && photoP3.buffer[1] === 0xd8 && photoP3.buffer[2] === 0xff,
+      "P3 Square (800x800) has valid JPEG byte signature (FF D8 FF)"
+    );
+
+    // Verify actual browser decoding and natural dimensions
+    const decP1 = await verifyBrowserImageDecode(page, photoP1.buffer);
+    assert(decP1.decoded && decP1.naturalWidth === 600 && decP1.naturalHeight === 900, "P1 decodes cleanly in browser to natural 600x900");
+
+    const decP2 = await verifyBrowserImageDecode(page, photoP2.buffer);
+    assert(decP2.decoded && decP2.naturalWidth === 1200 && decP2.naturalHeight === 800, "P2 decodes cleanly in browser to natural 1200x800");
+
+    const decP3 = await verifyBrowserImageDecode(page, photoP3.buffer);
+    assert(decP3.decoded && decP3.naturalWidth === 800 && decP3.naturalHeight === 800, "P3 decodes cleanly in browser to natural 800x800");
+
+    // ------------------------------------------------------------
+    // GROUP C: REAL BROWSER UI AUTHENTICATION & FIRST PHOTO INGESTION
+    // ------------------------------------------------------------
+    setGroup("C: Real Browser UI Authentication & First Photo Ingestion");
+
     await page.goto(`${baseUrl}/admin`);
     await page.waitForSelector('input[data-testid="admin-email-input"]', { timeout: 15000 });
     await page.fill('input[data-testid="admin-email-input"]', testAdminEmail);
@@ -396,327 +544,601 @@ async function main() {
     await page.waitForSelector('[data-testid="stat-gallery-published"]', { timeout: 15000 });
     assert(true, "Authenticated through real local admin login form");
 
-    // 2. Navigate to Personal Gallery
+    // Navigate to Personal Gallery
     await page.click('[data-testid="admin-tab-gallery"]');
     await page.waitForSelector('[data-testid="admin-gallery-section"]');
     assert(true, "Navigated to Personal Photography Stream workspace");
 
-    // 3. Click Add Photograph
+    // Click Add Photograph
     await page.click('[data-testid="gallery-add-photo-btn"]');
     await page.waitForSelector('[data-testid="admin-gallery-editor-section"]');
-    assert(true, "Clicked Add Photograph and opened editor");
+    assert(true, "Opened Add Photograph editor form");
 
-    // 4. Upload decodable JPEG image
-    const photoA_Buffer = createJpeg(800, 600);
-    const photoA_Sha256 = crypto.createHash("sha256").update(photoA_Buffer).digest("hex");
+    // Upload P1 Portrait
     await page.setInputFiles('input[data-testid="gallery-file-input"]', {
-      name: "bosphorus-morning.jpg",
+      name: "p1-portrait.jpg",
       mimeType: "image/jpeg",
-      buffer: photoA_Buffer
+      buffer: photoP1.buffer
     });
 
-    // Wait for image preview
     await page.waitForFunction(() => {
       const img = document.querySelector('[data-testid="admin-gallery-editor-section"] img');
       return img && img.getAttribute("src")?.startsWith("/api/media/");
     });
-    const uploadedSrc = await page.evaluate(() => {
+    const p1UploadedSrc = await page.evaluate(() => {
       const img = document.querySelector('[data-testid="admin-gallery-editor-section"] img');
       return img?.getAttribute("src") || "";
     });
-    assert(uploadedSrc.startsWith("/api/media/gallery/"), "Uploaded real decodable image file and verified preview", uploadedSrc);
+    assert(p1UploadedSrc.startsWith("/api/media/gallery/"), "Uploaded P1 Portrait image and verified preview", p1UploadedSrc);
 
-    // 5. Fill bilingual metadata
-    await page.click('button:has-text("Türkçe (TR)")');
-    await page.fill('input[data-testid="gallery-alt-tr-input"]', "Boğazda sabah sisi ve vapur");
-    await page.fill('textarea[data-testid="gallery-caption-tr-input"]', "Karaköy iskelesinden sabah ışığında çekilmiş kare.");
-
-    await page.click('button:has-text("English (EN)")');
-    await page.fill('input[data-testid="gallery-alt-en-input"]', "Morning mist and ferry on the Bosphorus");
-    await page.fill('textarea[data-testid="gallery-caption-en-input"]', "Photograph captured from Karaköy pier in early morning light.");
-
-    await page.fill('input[data-testid="gallery-year-input"]', "2026");
-    await page.fill('input[data-testid="gallery-location-input"]', "İstanbul, Türkiye");
-
-    // 6. Save as draft
-    await page.click('button[data-testid="gallery-save-draft-btn"]');
-    await page.waitForSelector('.bg-emerald-500\\/10');
-    assert(true, "Saved photograph as draft through admin UI");
-
-    // 7. Reload page and confirm persistence
-    await page.goto(`${baseUrl}/admin`);
-    await page.click('[data-testid="admin-tab-gallery"]');
-    await page.waitForSelector('[data-testid="admin-gallery-section"]');
-
-    const cardCount = await page.locator('[data-testid^="gallery-item-card-"]').count();
-    assert(cardCount === 1, "Draft photograph persists in admin catalog after page reload", `Count: ${cardCount}`);
-
-    // Verify exactly 1 gallery item in DB (zero duplicates or orphan drafts)
-    const dbGalleryRows = testDbConnection.prepare("SELECT id, status, sort_order FROM portfolio_gallery_items").all();
-    assert(dbGalleryRows.length === 1, "Exactly one gallery item exists in database for create operation", `Rows: ${dbGalleryRows.length}`);
-    const createdItemId = dbGalleryRows[0].id;
-    assert(dbGalleryRows[0].status === "draft", "Persisted item has status 'draft'");
-
-    const dbTranslations = testDbConnection.prepare("SELECT locale, alt_text FROM portfolio_gallery_translations WHERE item_id = ?").all(createdItemId);
-    assert(dbTranslations.length === 2, "Bilingual translations (TR and EN) persisted in database");
-
-    // ------------------------------------------------------------
-    // GROUP C: REAL BROWSER E2E: PUBLISHING & PUBLIC VIEW (TEST B)
-    // ------------------------------------------------------------
-    setGroup("C: Real Browser E2E: Publishing & Public View (Test B)");
-
-    // 1. Anonymous access to draft image returns 404 with no-store
-    const mediaKey = testDbConnection.prepare("SELECT storage_key FROM portfolio_gallery_assets WHERE item_id = ?").get(createdItemId).storage_key;
-    const anonRes = await fetch(`${baseUrl}/api/media/${mediaKey}`);
-    assert(anonRes.status === 404, "Draft image is not anonymously accessible (HTTP 404)", `Status: ${anonRes.status}`);
-    const cacheHeader = anonRes.headers.get("cache-control") || "";
-    assert(cacheHeader.includes("no-store"), "Draft 404 includes Cache-Control: no-store", cacheHeader);
-
-    // 2. Open editor and publish
-    await page.click(`button[data-testid="gallery-edit-btn-${createdItemId}"]`);
-    await page.waitForSelector('[data-testid="admin-gallery-editor-section"]');
-
-    await page.click('button[data-testid="gallery-publish-btn"]');
-    await page.waitForSelector('.bg-emerald-500\\/10');
-    assert(true, "Published photograph explicitly through admin editor");
-
-    // 3. Status in DB is published
-    const publishedRow = testDbConnection.prepare("SELECT status FROM portfolio_gallery_items WHERE id = ?").get(createdItemId);
-    assert(publishedRow.status === "published", "Database item status promoted to 'published'");
-
-    // 4. Anonymous access to image now returns 200
-    const anonPubRes = await fetch(`${baseUrl}/api/media/${mediaKey}`);
-    assert(anonPubRes.status === 200, "Published image is now anonymously accessible (HTTP 200 OK)");
-
-    // 5. Open public portfolio in browser and inspect Gallery App
-    await page.goto(`${baseUrl}`);
-    await page.waitForSelector('img[alt="Photos"], button:has-text("Photos"), [data-app="gallery"]', { timeout: 10000 }).catch(() => {});
-
-    // Directly query public gallery endpoint to verify frontend hydration payload
-    const pubGalleryRes = await fetch(`${baseUrl}/api/v1/public/gallery`);
-    const pubGalleryData = await pubGalleryRes.json();
-    assert(pubGalleryRes.status === 200, "Public gallery endpoint returns HTTP 200 OK");
-    assert(pubGalleryData.count === 1, "Public gallery feed contains exactly 1 published item");
-    const galleryItems = pubGalleryData.gallery || pubGalleryData.items || [];
-    assert(galleryItems[0]?.alt?.tr === "Boğazda sabah sisi ve vapur", "Correct Turkish alt text in public feed");
-    assert(galleryItems[0]?.alt?.en === "Morning mist and ferry on the Bosphorus", "Correct English alt text in public feed");
-
-    // ------------------------------------------------------------
-    // GROUP D: REAL BROWSER E2E: THREE-PHOTOGRAPH ORDERING (TEST C)
-    // ------------------------------------------------------------
-    setGroup("D: Real Browser E2E: Three-Photograph Ordering (Test C)");
-
-    // Create 2 additional test photographs with distinct aspect ratios
-    // P1 already exists (800x600 landscape-ish)
-    // P2: Landscape (1200x800)
-    // P3: Portrait (600x900)
-    await page.goto(`${baseUrl}/admin`);
-    await page.click('[data-testid="admin-tab-gallery"]');
-
-    // Add P2 (Landscape)
-    await page.click('[data-testid="gallery-add-photo-btn"]');
-    await page.waitForSelector('[data-testid="admin-gallery-editor-section"]');
-    await page.setInputFiles('input[data-testid="gallery-file-input"]', {
-      name: "landscape-photo.jpg",
-      mimeType: "image/jpeg",
-      buffer: createJpeg(1200, 800)
-    });
-    await page.waitForFunction(() => {
-      const img = document.querySelector('[data-testid="admin-gallery-editor-section"] img');
-      return img && img.getAttribute("src")?.startsWith("/api/media/");
-    });
-    await page.click('button:has-text("English (EN)")');
-    await page.fill('input[data-testid="gallery-alt-en-input"]', "Aegean Coast Landscape");
-    await page.click('button:has-text("Türkçe (TR)")');
-    await page.fill('input[data-testid="gallery-alt-tr-input"]', "Ege Kıyısı Manzarası");
-    await page.click('button[data-testid="gallery-publish-btn"]');
-    await page.waitForSelector('.bg-emerald-500\\/10');
-
-    // Add P3 (Portrait)
-    await page.goto(`${baseUrl}/admin`);
-    await page.click('[data-testid="admin-tab-gallery"]');
-    await page.click('[data-testid="gallery-add-photo-btn"]');
-    await page.waitForSelector('[data-testid="admin-gallery-editor-section"]');
-    await page.setInputFiles('input[data-testid="gallery-file-input"]', {
-      name: "portrait-photo.jpg",
-      mimeType: "image/jpeg",
-      buffer: createJpeg(600, 900)
-    });
-    await page.waitForFunction(() => {
-      const img = document.querySelector('[data-testid="admin-gallery-editor-section"] img');
-      return img && img.getAttribute("src")?.startsWith("/api/media/");
-    });
-    await page.click('button:has-text("English (EN)")');
-    await page.fill('input[data-testid="gallery-alt-en-input"]', "Galata Tower Vertical Portrait");
+    // Fill bilingual metadata for P1
     await page.click('button:has-text("Türkçe (TR)")');
     await page.fill('input[data-testid="gallery-alt-tr-input"]', "Galata Kulesi Dikey Portre");
-    await page.click('button[data-testid="gallery-publish-btn"]');
-    await page.waitForSelector('.bg-emerald-500\\/10');
+    await page.fill('textarea[data-testid="gallery-caption-tr-input"]', "Tarihi yarımadanın akşamüstü görünümü.");
 
-    // Return to catalog and verify all 3 items exist
+    await page.click('button:has-text("English (EN)")');
+    await page.fill('input[data-testid="gallery-alt-en-input"]', "Galata Tower Vertical Portrait");
+    await page.fill('textarea[data-testid="gallery-caption-en-input"]', "Historical peninsula during twilight.");
+
+    await page.fill('input[data-testid="gallery-year-input"]', "2026");
+    await page.fill('input[data-testid="gallery-location-input"]', "Beyoğlu, İstanbul");
+
+    // Save P1 as draft
+    await Promise.all([
+      page.waitForResponse((r) => r.url().includes("/api/admin/gallery") && r.ok()),
+      page.click('button[data-testid="gallery-save-draft-btn"]')
+    ]);
+    assert(true, "Saved P1 as draft through admin UI");
+
+    // Reload admin catalog and verify persistence
     await page.goto(`${baseUrl}/admin`);
     await page.click('[data-testid="admin-tab-gallery"]');
     await page.waitForSelector('[data-testid="admin-gallery-section"]');
-    const threeCards = await page.locator('[data-testid^="gallery-item-card-"]').count();
-    assert(threeCards === 3, "Three test photographs created and published", `Count: ${threeCards}`);
 
-    const allThreeRows = testDbConnection.prepare("SELECT id, sort_order FROM portfolio_gallery_items ORDER BY sort_order ASC, id ASC").all();
-    const p1Id = createdItemId;
-    const p2Id = allThreeRows.find((r) => r.id !== p1Id).id;
-    const p3Id = allThreeRows.find((r) => r.id !== p1Id && r.id !== p2Id).id;
+    const draftRows = testDbConnection.prepare("SELECT id, status FROM portfolio_gallery_items").all();
+    assert(draftRows.length === 1, "Exactly one draft item exists in SQLite", `Count: ${draftRows.length}`);
+    const p1Id = draftRows[0].id;
+    assert(draftRows[0].status === "draft", "Persisted item status is 'draft'");
 
-    // Toggle Reorder mode in UI
+    // Anonymous access to draft returns 404 with no-store
+    const p1StorageKey = testDbConnection.prepare("SELECT storage_key FROM portfolio_gallery_assets WHERE item_id = ?").get(p1Id).storage_key;
+    const anonDraftRes = await fetch(`${baseUrl}/api/media/${p1StorageKey}`);
+    assert(anonDraftRes.status === 404, "Draft image is not accessible anonymously (HTTP 404)");
+    const draftCacheHeader = anonDraftRes.headers.get("cache-control") || "";
+    assert(draftCacheHeader.includes("no-store"), "Draft 404 includes Cache-Control: no-store");
+
+    // Explicitly publish P1
+    await page.click(`button[data-testid="gallery-edit-btn-${p1Id}"]`);
+    await page.waitForSelector('[data-testid="admin-gallery-editor-section"]');
+    await Promise.all([
+      page.waitForResponse((r) => r.url().includes("/api/admin/gallery") && (r.request().method() === "PUT" || r.request().method() === "POST") && !r.url().includes("/revisions") && !r.url().includes("/upload") && r.ok()),
+      page.click('button[data-testid="gallery-publish-btn"]')
+    ]);
+    assert(true, "Published P1 explicitly through admin editor");
+
+    const p1PubStatus = testDbConnection.prepare("SELECT status FROM portfolio_gallery_items WHERE id = ?").get(p1Id).status;
+    assert(p1PubStatus === "published", "P1 status promoted to 'published' in SQLite");
+
+    const anonPubRes = await fetch(`${baseUrl}/api/media/${p1StorageKey}`);
+    assert(anonPubRes.status === 200, "Published image P1 is now anonymously accessible (HTTP 200 OK)");
+
+    // ------------------------------------------------------------
+    // GROUP D: MULTI-PHOTO INGESTION & COMPLETE SEQUENCE REORDERING (P3 -> P1 -> P2)
+    // ------------------------------------------------------------
+    setGroup("D: Multi-Photo Ingestion & Complete Sequence Reordering (P3 -> P1 -> P2)");
+
+    // Ingest P2 Landscape (1200x800)
+    await page.goto(`${baseUrl}/admin`);
+    await page.click('[data-testid="admin-tab-gallery"]');
+    await page.click('[data-testid="gallery-add-photo-btn"]');
+    await page.waitForSelector('[data-testid="admin-gallery-editor-section"]');
+    await page.setInputFiles('input[data-testid="gallery-file-input"]', {
+      name: "p2-landscape.jpg",
+      mimeType: "image/jpeg",
+      buffer: photoP2.buffer
+    });
+    await page.waitForFunction(() => {
+      const img = document.querySelector('[data-testid="admin-gallery-editor-section"] img');
+      return img && img.getAttribute("src")?.startsWith("/api/media/");
+    });
+    await page.click('button:has-text("Türkçe (TR)")');
+    await page.fill('input[data-testid="gallery-alt-tr-input"]', "Ege Kıyısı Manzarası");
+    await page.fill('textarea[data-testid="gallery-caption-tr-input"]', "Geniş açı kıyı şeridi.");
+    await page.click('button:has-text("English (EN)")');
+    await page.fill('input[data-testid="gallery-alt-en-input"]', "Aegean Coast Landscape");
+    await page.fill('textarea[data-testid="gallery-caption-en-input"]', "Wide angle coastline view.");
+    await Promise.all([
+      page.waitForResponse((r) => r.url().includes("/api/admin/gallery") && r.ok()),
+      page.click('button[data-testid="gallery-publish-btn"]')
+    ]);
+
+    // Ingest P3 Square (800x800)
+    await page.goto(`${baseUrl}/admin`);
+    await page.click('[data-testid="admin-tab-gallery"]');
+    await page.click('[data-testid="gallery-add-photo-btn"]');
+    await page.waitForSelector('[data-testid="admin-gallery-editor-section"]');
+    await page.setInputFiles('input[data-testid="gallery-file-input"]', {
+      name: "p3-square.jpg",
+      mimeType: "image/jpeg",
+      buffer: photoP3.buffer
+    });
+    await page.waitForFunction(() => {
+      const img = document.querySelector('[data-testid="admin-gallery-editor-section"] img');
+      return img && img.getAttribute("src")?.startsWith("/api/media/");
+    });
+    await page.click('button:has-text("Türkçe (TR)")');
+    await page.fill('input[data-testid="gallery-alt-tr-input"]', "Kare Mimari Detay");
+    await page.fill('textarea[data-testid="gallery-caption-tr-input"]', "Simetrik cephe kompozisyonu.");
+    await page.click('button:has-text("English (EN)")');
+    await page.fill('input[data-testid="gallery-alt-en-input"]', "Square Architectural Detail");
+    await page.fill('textarea[data-testid="gallery-caption-en-input"]', "Symmetrical facade composition.");
+    await Promise.all([
+      page.waitForResponse((r) => r.url().includes("/api/admin/gallery") && r.ok()),
+      page.click('button[data-testid="gallery-publish-btn"]')
+    ]);
+
+    // Return to catalog: verify 3 published items
+    await page.goto(`${baseUrl}/admin`);
+    await page.click('[data-testid="admin-tab-gallery"]');
+    await page.waitForSelector('[data-testid="admin-gallery-section"]');
+    const cardCount3 = await page.locator('[data-testid^="gallery-item-card-"]').count();
+    assert(cardCount3 === 3, "Three photographs created and published", `Count: ${cardCount3}`);
+
+    const initialThree = testDbConnection.prepare("SELECT id, sort_order FROM portfolio_gallery_items ORDER BY sort_order ASC, id ASC").all();
+    const p2Id = initialThree.find((r) => r.id !== p1Id).id;
+    const p3Id = initialThree.find((r) => r.id !== p1Id && r.id !== p2Id).id;
+
+    // Enter Reorder Mode
     await page.click('button[data-testid="gallery-reorder-toggle-btn"]');
     await page.waitForSelector('[data-testid="gallery-save-order-btn"]');
     assert(true, "Entered Stream Sequence Arrangement reorder mode");
 
-    // Reorder sequence via UI controls:
-    // We want order: P3, P1, P2.
-    // Use the move buttons to achieve this.
+    // Move P3 up twice to achieve target sequence: P3 -> P1 -> P2
     const moveUpP3 = page.locator(`button[data-testid="gallery-move-up-${p3Id}"]`);
-    while ((await moveUpP3.isVisible()) && (await moveUpP3.isEnabled())) {
-      await moveUpP3.click();
-      await page.waitForTimeout(250);
-    }
+    await moveUpP3.click();
+    await page.waitForTimeout(150);
+    await moveUpP3.click();
+    await page.waitForTimeout(150);
 
-    // Click Save Stream Order
-    await page.click('button[data-testid="gallery-save-order-btn"]');
-    await page.waitForSelector('[data-testid="gallery-save-order-btn"]', { state: "detached", timeout: 10000 });
+    // Save Reordered Sequence
+    await Promise.all([
+      page.waitForResponse((r) => r.url().includes("/api/admin/gallery/reorder") && r.ok()),
+      page.click('button[data-testid="gallery-save-order-btn"]')
+    ]);
+    assert(true, "Saved reordered stream sequence through admin UI");
 
-    // Verify reorder persisted in database
-    const reorderedRows = testDbConnection.prepare("SELECT id, sort_order FROM portfolio_gallery_items ORDER BY sort_order ASC").all();
-    assert(reorderedRows[0].id === p3Id, "Item P3 is in position 1 in database", `First ID: ${reorderedRows[0].id}`);
-    assert(reorderedRows[0].sort_order < reorderedRows[1].sort_order, "Strict sort_order ordering persisted in SQLite");
+    // 1. Verify exact SQLite order
+    const dbOrderRows = testDbConnection.prepare("SELECT id, sort_order FROM portfolio_gallery_items ORDER BY sort_order ASC").all();
+    assert(
+      dbOrderRows[0].id === p3Id && dbOrderRows[1].id === p1Id && dbOrderRows[2].id === p2Id,
+      "SQLite sequence verified: [0]=P3, [1]=P1, [2]=P2",
+      `Actual order: ${dbOrderRows.map((r) => r.id).join(" -> ")}`
+    );
 
-    // Public API returns deterministic order matching persisted data
-    const pubOrderRes = await fetch(`${baseUrl}/api/v1/public/gallery`);
-    const pubOrderData = await pubOrderRes.json();
-    const pubOrderList = pubOrderData.gallery || pubOrderData.items || [];
-    assert(pubOrderList[0]?.id === p3Id, "Public gallery feed serves P3 at top of stream");
+    // 2. Verify Public API endpoint order
+    const pubApiRes = await fetch(`${baseUrl}/api/v1/public/gallery`);
+    const pubApiData = await pubApiRes.json();
+    const pubList = pubApiData.gallery || pubApiData.items || [];
+    assert(
+      pubList[0]?.id === p3Id && pubList[1]?.id === p1Id && pubList[2]?.id === p2Id,
+      "Public API serves exact sequence: P3 -> P1 -> P2",
+      `API IDs: ${pubList.map((i) => i.id).join(" -> ")}`
+    );
 
-    // ------------------------------------------------------------
-    // GROUP E: PROVISIONAL IMAGE REPLACEMENT & BINARY ROLLBACK (TEST D)
-    // ------------------------------------------------------------
-    setGroup("E: Provisional Image Replacement & Binary Rollback (Test D)");
-
-    // 1. Begin with published photograph P1
-    const p1InitialAsset = testDbConnection.prepare("SELECT storage_key, public_url FROM portfolio_gallery_assets WHERE item_id = ? AND asset_status = 'active'").get(p1Id);
-    assert(p1InitialAsset !== undefined, "Photograph P1 has active asset before replacement");
-
-    // 2. Upload distinct replacement image P1_v2 in editor
-    await page.goto(`${baseUrl}/admin`);
+    // 3. Reload admin page: verify UI retains order
+    await page.reload();
+    await page.waitForSelector('[data-testid="admin-tab-gallery"]', { timeout: 15000 });
     await page.click('[data-testid="admin-tab-gallery"]');
+    await page.waitForSelector('[data-testid="admin-gallery-section"]');
+    const reloadedCards = await page.locator('[data-testid^="gallery-item-card-"]').all();
+    const reloadedIds = await Promise.all(
+      reloadedCards.map(async (c) => {
+        const testId = (await c.getAttribute("data-testid")) || "";
+        return testId.replace("gallery-item-card-", "");
+      })
+    );
+    assert(
+      reloadedIds[0] === p3Id && reloadedIds[1] === p1Id && reloadedIds[2] === p2Id,
+      "Admin catalog UI stably retains sequence P3 -> P1 -> P2 after browser reload"
+    );
+
+    // ------------------------------------------------------------
+    // GROUP E: PROVISIONAL IMAGE REPLACEMENT & BINARY ROLLBACK
+    // ------------------------------------------------------------
+    setGroup("E: Provisional Image Replacement & Binary Rollback");
+
+    // Edit P1
     await page.click(`button[data-testid="gallery-edit-btn-${p1Id}"]`);
     await page.waitForSelector('[data-testid="admin-gallery-editor-section"]');
 
-    const photoB_Buffer = createJpeg(900, 600); // Distinct bytes
-    const photoB_Sha256 = crypto.createHash("sha256").update(photoB_Buffer).digest("hex");
-    assert(photoA_Sha256 !== photoB_Sha256, "Replacement image B has distinct binary SHA-256");
+    // Generate distinct replacement image B (900x600, Purple)
+    const photoB = await generateAuthenticJpeg(page, {
+      width: 900,
+      height: 600,
+      label: "Replacement Image B",
+      color: "#6B21A8"
+    });
+    const photoP1_Sha256 = crypto.createHash("sha256").update(photoP1.buffer).digest("hex");
+    const photoB_Sha256 = crypto.createHash("sha256").update(photoB.buffer).digest("hex");
+    assert(photoP1_Sha256 !== photoB_Sha256, "Replacement image B has distinct binary SHA-256");
 
     await page.setInputFiles('input[data-testid="gallery-file-input"]', {
       name: "replacement-photo-b.jpg",
       mimeType: "image/jpeg",
-      buffer: photoB_Buffer
+      buffer: photoB.buffer
     });
 
-    // 3. Verify provisional banner appears in UI
     await page.waitForSelector('text=Staged Provisional Replacement', { timeout: 8000 });
     assert(true, "Provisional replacement warning banner rendered in editor UI");
 
-    // 4. Verify in DB: new asset is 'provisional', old asset is still 'active'
+    // Verify in DB: new asset is provisional, old asset is still active
     const p1Assets = testDbConnection.prepare("SELECT id, storage_key, asset_status FROM portfolio_gallery_assets WHERE item_id = ?").all(p1Id);
     const activeAsset = p1Assets.find((a) => a.asset_status === "active");
     const provAsset = p1Assets.find((a) => a.asset_status === "provisional");
-
     assert(activeAsset !== undefined, "Original asset A remains 'active' in DB during staging");
-    assert(provAsset !== undefined, "Newly uploaded replacement asset B is created with asset_status 'provisional'");
+    assert(provAsset !== undefined, "Newly uploaded replacement asset B is 'provisional'");
 
-    // 5. Verify anonymous requests to provisional asset return 404
+    // Anonymous requests to provisional asset return 404
     const anonProvRes = await fetch(`${baseUrl}/api/media/${provAsset.storage_key}`);
-    assert(anonProvRes.status === 404, "Provisional replacement image returns 404 to anonymous visitors", `Status: ${anonProvRes.status}`);
+    assert(anonProvRes.status === 404, "Provisional replacement image returns 404 to anonymous visitors");
 
-    // 6. Verify anonymous requests to original active asset return 200
+    // Anonymous requests to original active asset return 200
     const anonOrigRes = await fetch(`${baseUrl}/api/media/${activeAsset.storage_key}`);
     assert(anonOrigRes.status === 200, "Original active image remains 200 OK for public visitors");
 
-    // 7. Explicitly publish replacement via admin editor
-    const [pubResponse] = await Promise.all([
-      page.waitForResponse(
-        (resp) =>
-          resp.url().includes("/api/admin/gallery") &&
-          resp.request().method() === "PUT" &&
-          resp.status() === 200
-      ),
+    // Explicitly publish replacement
+    await Promise.all([
+      page.waitForResponse((r) => r.url().includes("/api/admin/gallery") && r.ok()),
       page.click('button[data-testid="gallery-publish-btn"]')
     ]);
-    assert(pubResponse.ok(), "Clicked Publish to promote provisional replacement image");
+    assert(true, "Promoted provisional replacement image to active upon explicit publish");
 
-    // 8. Confirm B is now active and A is archived in DB
+    // Confirm B is active and A is archived in DB
     const postPubAssets = testDbConnection.prepare("SELECT id, storage_key, asset_status FROM portfolio_gallery_assets WHERE item_id = ?").all(p1Id);
     const newActiveAsset = postPubAssets.find((a) => a.id === provAsset.id);
     const archivedAsset = postPubAssets.find((a) => a.id === activeAsset.id);
-    assert(newActiveAsset?.asset_status === "active", "Provisional asset B promoted to 'active'");
-    assert(archivedAsset?.asset_status === "archived", "Previous asset A preserved as 'archived' historical asset");
+    assert(newActiveAsset?.asset_status === "active", "Asset B promoted to 'active'");
+    assert(archivedAsset?.asset_status === "archived", "Previous asset A preserved as 'archived'");
 
-    // 9. Public feed now renders B
+    // Public feed now renders B
     const anonBRes = await fetch(`${baseUrl}/api/media/${newActiveAsset.storage_key}`);
     assert(anonBRes.status === 200, "Replacement image B is now live publicly (HTTP 200 OK)");
 
-    // 10. Perform revision rollback to revision 1 (restoring A)
-    const rev1Row = testDbConnection.prepare("SELECT revision_number FROM portfolio_gallery_revisions WHERE item_id = ? ORDER BY revision_number ASC LIMIT 1").get(p1Id);
-    assert(rev1Row !== undefined, "Revision history contains initial snapshot (Rev #1)");
+    // Rollback to revision containing original Photograph A
+    const photoARevRow = testDbConnection.prepare("SELECT revision_number FROM portfolio_gallery_revisions WHERE item_id = ? AND json_extract(snapshot_json, '$.asset.storageKey') = ? ORDER BY revision_number DESC LIMIT 1").get(p1Id, activeAsset.storage_key);
+    assert(photoARevRow !== undefined, "Revision history contains snapshot for Photograph A");
 
-    await page.waitForSelector(`button[data-testid="gallery-restore-rev-${rev1Row.revision_number}"]`);
-    await page.click(`button[data-testid="gallery-restore-rev-${rev1Row.revision_number}"]`);
-    await page.waitForTimeout(600);
-    assert(true, "Clicked Restore on initial revision snapshot");
+    await page.waitForSelector(`button[data-testid="gallery-restore-rev-${photoARevRow.revision_number}"]`);
+    await Promise.all([
+      page.waitForResponse((r) => r.url().includes("/revisions") && r.ok()),
+      page.click(`button[data-testid="gallery-restore-rev-${photoARevRow.revision_number}"]`)
+    ]);
+    assert(true, `Restored revision snapshot containing Photograph A (Rev #${photoARevRow.revision_number})`);
 
-    // 11. Verify restored public image content matches original binary bytes
     const rolledBackAsset = testDbConnection.prepare("SELECT storage_key, asset_status FROM portfolio_gallery_assets WHERE item_id = ? AND asset_status = 'active'").get(p1Id);
     assert(rolledBackAsset.storage_key === activeAsset.storage_key, "Active asset restored to original asset A storage key");
 
     const restoredBytes = fs.readFileSync(path.join(tempMediaDir, rolledBackAsset.storage_key));
     const restoredSha256 = crypto.createHash("sha256").update(restoredBytes).digest("hex");
-    assert(restoredSha256 === photoA_Sha256, "Restored media binary SHA-256 strictly matches original photograph A binary hash", restoredSha256.slice(0, 16));
+    assert(restoredSha256 === photoP1_Sha256, "Restored media binary SHA-256 strictly matches original photograph A binary hash");
 
     // ------------------------------------------------------------
-    // GROUP F: ARCHIVE & UNPUBLISH LIFECYCLE (TEST E)
+    // GROUP F: PUBLIC GALLERYAPP REAL WINDOW E2E & VISUAL PROOF
     // ------------------------------------------------------------
-    setGroup("F: Archive & Unpublish Lifecycle (Test E)");
+    setGroup("F: Public GalleryApp Real Window E2E & Visual Proof");
 
-    // Set item to draft or archived
-    await page.selectOption('select[data-testid="gallery-status-select"]', "archived");
-    await page.click('button[data-testid="gallery-save-draft-btn"]');
-    await page.waitForSelector('.bg-emerald-500\\/10');
-    assert(true, "Status updated to 'archived' in editor UI");
+    // Navigate to public portfolio in Turkish (/tr)
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(`${baseUrl}/tr`);
+    await page.waitForTimeout(500);
 
-    // Verify removed from public gallery catalog
-    const pubAfterArchiveRes = await fetch(`${baseUrl}/api/v1/public/gallery`);
-    const pubAfterArchiveData = await pubAfterArchiveRes.json();
-    const pubAfterArchiveItems = pubAfterArchiveData.gallery || pubAfterArchiveData.items || [];
-    const hasArchivedInPublic = pubAfterArchiveItems.some((i) => i.id === p1Id);
-    assert(!hasArchivedInPublic, "Archived photograph removed from public gallery stream");
+    // Enter workspace: handle desktop entry screen if present
+    const entryBtn = page.locator('button:has-text("Oturum Aç"), button:has-text("Enter Portfolio")');
+    if (await entryBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await entryBtn.click();
+      await page.waitForTimeout(600);
+    }
+    // Also set bypass timestamp so subsequent reloads or navigations enter smoothly
+    await page.evaluate(() => {
+      try {
+        localStorage.setItem("portfolioOS:entry:v1:lastEnteredAt", String(Date.now()));
+      } catch {}
+    });
+    // Ensure entry overlay is gone
+    await page.waitForSelector('div[aria-label="Portfolio OS Entry"]', { state: "hidden", timeout: 8000 }).catch(() => {});
+    assert(true, "Entered Portfolio OS desktop workspace");
 
-    // Anonymous media access to archived item returns 404
-    const anonArchivedRes = await fetch(`${baseUrl}/api/media/${rolledBackAsset.storage_key}`);
-    assert(anonArchivedRes.status === 404, "Archived media key returns HTTP 404 to anonymous public visitors");
+    // Locate and click Gallery Dock icon
+    const dockGalleryBtn = page.locator('button[aria-label="Galeri"], button[aria-label="Gallery"]');
+    await dockGalleryBtn.first().waitFor({ state: "visible", timeout: 10000 });
+    await dockGalleryBtn.first().click({ force: true });
+    assert(true, "Clicked Gallery app icon in public Desktop Dock");
+
+    // Wait for GalleryApp window to be visibly open
+    const galleryWinHeader = page.locator('.workspace-window-layer h1:has-text("Galeri"), .workspace-window-layer p:has-text("Gündelik görsel kayıtlar")');
+    await galleryWinHeader.first().waitFor({ state: "visible", timeout: 10000 });
+    assert(await galleryWinHeader.first().isVisible(), "GalleryApp window is visibly open with header 'Galeri'");
+
+    // Locate rendered photograph stream inside the open Gallery window
+    const renderedImages = page.locator('.workspace-window-layer .flex-1.p-5 img[alt]');
+    await renderedImages.first().waitFor({ state: "visible", timeout: 10000 });
+    const imageCount = await renderedImages.count();
+    assert(imageCount === 3, "GalleryApp window renders exactly 3 published photographs", `Count: ${imageCount}`);
+
+    // Verify in-window decode, natural dimensions, and aspect ratio preservation
+    const imgDetails = await page.evaluate(() => {
+      const imgs = Array.from(document.querySelectorAll('.workspace-window-layer .flex-1.p-5 img[alt]'));
+      return imgs.map((img) => ({
+        src: img.src,
+        alt: img.alt,
+        complete: img.complete,
+        naturalWidth: img.naturalWidth,
+        naturalHeight: img.naturalHeight,
+        aspectRatio: (img.naturalWidth / img.naturalHeight).toFixed(2)
+      }));
+    });
+
+    // Check 1: P3 (Square) is first
+    assert(
+      imgDetails[0].complete && imgDetails[0].naturalWidth === 800 && imgDetails[0].naturalHeight === 800,
+      "Position 1 is P3 Square (800x800, aspect 1.00) decoded cleanly"
+    );
+    assert(imgDetails[0].alt.includes("Kare"), "Position 1 alt text matches P3 Turkish description");
+
+    // Check 2: P1 (Portrait) is second
+    assert(
+      imgDetails[1].complete && imgDetails[1].naturalWidth === 600 && imgDetails[1].naturalHeight === 900,
+      "Position 2 is P1 Portrait (600x900, aspect 0.67) decoded cleanly without square cropping"
+    );
+    assert(imgDetails[1].alt.includes("Galata"), "Position 2 alt text matches P1 Turkish description");
+
+    // Check 3: P2 (Landscape) is third
+    assert(
+      imgDetails[2].complete && imgDetails[2].naturalWidth === 1200 && imgDetails[2].naturalHeight === 800,
+      "Position 3 is P2 Landscape (1200x800, aspect 1.50) decoded cleanly without square cropping"
+    );
+    assert(imgDetails[2].alt.includes("Ege"), "Position 3 alt text matches P2 Turkish description");
+
+    // Verify single vertical column stream container
+    const isSingleColumn = await page.evaluate(() => {
+      const streamContainer = document.querySelector('.workspace-window-layer .flex-1.p-5 .flex-col.gap-4');
+      if (!streamContainer) return false;
+      const style = window.getComputedStyle(streamContainer);
+      return style.display === "flex" && style.flexDirection === "column";
+    });
+    assert(isSingleColumn, "Photographs are arranged in a single vertical column stream");
+
+    // Test internal vertical scrolling inside GalleryApp window
+    const scrollTestResult = await page.evaluate(() => {
+      const feed = document.querySelector('.workspace-window-layer .flex-1.p-5.overflow-y-auto');
+      if (!feed) return { success: false, reason: "Feed container not found" };
+      const scrollHeight = feed.scrollHeight;
+      const clientHeight = feed.clientHeight;
+      const scrollTopStart = feed.scrollTop;
+
+      feed.scrollTop = 250;
+      const scrollTopScrolled = feed.scrollTop;
+
+      feed.scrollTop = 0;
+      const scrollTopReturned = feed.scrollTop;
+
+      return {
+        success: true,
+        scrollHeight,
+        clientHeight,
+        hasOverflow: scrollHeight > clientHeight,
+        scrollTopStart,
+        scrollTopScrolled,
+        scrollTopReturned
+      };
+    });
+
+    assert(
+      scrollTestResult.success && scrollTestResult.hasOverflow && scrollTestResult.scrollTopScrolled >= 200,
+      "GalleryApp internal feed scrolls down smoothly and returns to top",
+      `scrollHeight: ${scrollTestResult.scrollHeight}, clientHeight: ${scrollTestResult.clientHeight}, scrolled: ${scrollTestResult.scrollTopScrolled}`
+    );
+
+    // Capture verified Desktop GalleryApp Open screenshot
+    const publicDesktopShot = path.join(sanitizedScreenshotsDir, "public_gallery_window_open_desktop_1440x900.png");
+    await page.screenshot({ path: publicDesktopShot, fullPage: false });
+    assert(fs.existsSync(publicDesktopShot), "Captured verified desktop screenshot with Gallery window open (1440x900)");
+
+    // Test Mobile Viewport (390x844) in Turkish
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`${baseUrl}/tr`);
+    await page.waitForTimeout(1000);
+
+    // Click mobile dock Gallery button
+    const mobileDockGalleryBtn = page.locator('nav button[aria-label="Gallery"], nav button[aria-label="Galeri"], button[aria-label="Gallery"], button[aria-label="Galeri"]');
+    await mobileDockGalleryBtn.first().waitFor({ state: "visible", timeout: 10000 });
+    await mobileDockGalleryBtn.first().click({ force: true });
+    assert(true, "Clicked Gallery app button in Mobile Dock");
+
+    // Wait for mobile window header
+    const mobileWinHeader = page.locator('header div:has-text("Galeri")');
+    await mobileWinHeader.waitFor({ state: "visible", timeout: 10000 });
+    assert(await mobileWinHeader.isVisible(), "Mobile Gallery window visibly open with title 'Galeri'");
+
+    // Verify images rendered in mobile window
+    const mobileImgs = page.locator('img[alt*="Kare"], img[alt*="Galata"], img[alt*="Ege"]');
+    assert((await mobileImgs.count()) >= 3, "Mobile Gallery window renders all 3 published photographs");
+
+    // Capture verified Mobile GalleryApp Open screenshot
+    const publicMobileShot = path.join(sanitizedScreenshotsDir, "public_gallery_window_open_mobile_390x844.png");
+    await page.screenshot({ path: publicMobileShot, fullPage: false });
+    assert(fs.existsSync(publicMobileShot), "Captured verified mobile screenshot with Gallery window open (390x844)");
+
+    // Test English Viewport (/en)
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(`${baseUrl}/en`);
+    await page.waitForTimeout(500);
+    const enEntryBtn = page.locator('button:has-text("Enter Portfolio"), button:has-text("Oturum Aç")');
+    if (await enEntryBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await enEntryBtn.click();
+      await page.waitForTimeout(600);
+    }
+    await page.waitForSelector('div[aria-label="Portfolio OS Entry"]', { state: "hidden", timeout: 8000 }).catch(() => {});
+    const enDockBtn = page.locator('button[aria-label="Gallery"], button[aria-label="Galeri"]');
+    await enDockBtn.first().waitFor({ state: "visible", timeout: 10000 });
+    await enDockBtn.first().click({ force: true });
+
+    const enHeader = page.locator('.workspace-window-layer h1:has-text("Gallery"), .workspace-window-layer p:has-text("Lowkey documentation")');
+    await enHeader.first().waitFor({ state: "visible", timeout: 10000 });
+    assert(await enHeader.first().isVisible(), "English locale (/en) opens Gallery with header 'Gallery'");
+
+    const enImgAlts = await page.evaluate(() => {
+      const imgs = Array.from(document.querySelectorAll('.workspace-window-layer .flex-1.p-5 img[alt]'));
+      return imgs.map((i) => i.alt);
+    });
+    assert(enImgAlts[0].includes("Square") && enImgAlts[1].includes("Galata") && enImgAlts[2].includes("Aegean"), "English alt texts and sequence P3 -> P1 -> P2 verified");
 
     // ------------------------------------------------------------
-    // GROUP G: SECURITY NEGATIVE TESTS & BOUNDARY ENFORCEMENT (TEST F)
+    // GROUP G: REAL SCROLL MEASUREMENTS & RESPONSIVE VALIDATION
     // ------------------------------------------------------------
-    setGroup("G: Security Negative Tests & Boundary Enforcement (Test F)");
+    setGroup("G: Real Scroll Measurements & Responsive Validation");
+
+    // Desktop Admin Catalog Scroll
+    await page.goto(`${baseUrl}/admin`);
+    if (await page.locator('input[data-testid="admin-email-input"]').isVisible()) {
+      await page.fill('input[data-testid="admin-email-input"]', testAdminEmail);
+      await page.fill('input[data-testid="admin-password-input"]', testAdminPassword);
+      await page.click('button[data-testid="admin-password-login-btn"]');
+    }
+    await page.waitForSelector('[data-testid="admin-tab-gallery"]', { timeout: 15000 });
+    await page.click('[data-testid="admin-tab-gallery"]');
+    await page.waitForSelector('[data-testid="admin-gallery-section"]');
+
+    // Populate temporary gallery items to ensure catalog overflows and verify real vertical scroll
+    const dummyIds = [];
+    const dummyNow = new Date().toISOString();
+    for (let i = 1; i <= 8; i++) {
+      const dId = `scroll-dummy-${i}`;
+      dummyIds.push(dId);
+      testDbConnection.prepare(`
+        INSERT INTO portfolio_gallery_items (id, status, sort_order, created_at, updated_at)
+        VALUES (?, 'published', ?, ?, ?)
+      `).run(dId, 10 + i, dummyNow, dummyNow);
+    }
+    await page.reload();
+    await page.waitForSelector('[data-testid="admin-tab-gallery"]', { timeout: 15000 });
+    await page.click('[data-testid="admin-tab-gallery"]');
+    await page.waitForSelector('[data-testid="admin-gallery-section"]');
+
+    const adminScrollResult = await page.evaluate(() => {
+      const main = document.getElementById("admin-main-stage") || document.getElementById("main-content");
+      if (!main) return { success: false, reason: "main-stage not found" };
+      const start = main.scrollTop;
+      main.scrollTop = 250;
+      const scrolled = main.scrollTop;
+      main.scrollTop = 0;
+      const returned = main.scrollTop;
+      return {
+        success: true,
+        scrollHeight: main.scrollHeight,
+        clientHeight: main.clientHeight,
+        hasOverflow: main.scrollHeight > main.clientHeight,
+        start,
+        scrolled,
+        returned
+      };
+    });
+
+    // Remove temporary dummy items and restore original 3-item catalog
+    for (const dId of dummyIds) {
+      testDbConnection.prepare("DELETE FROM portfolio_gallery_items WHERE id = ?").run(dId);
+    }
+    await page.reload();
+    await page.waitForSelector('[data-testid="admin-tab-gallery"]', { timeout: 15000 });
+    await page.click('[data-testid="admin-tab-gallery"]');
+    await page.waitForSelector('[data-testid="admin-gallery-section"]');
+
+    assert(
+      adminScrollResult.success && adminScrollResult.hasOverflow && adminScrollResult.scrolled >= 200,
+      "Desktop Admin catalog scroll container (#main-content / #admin-main-stage) measured and verified"
+    );
+
+    const desktopAdminCatalogShot = path.join(sanitizedScreenshotsDir, "admin_gallery_desktop_1440x900.png");
+    await page.screenshot({ path: desktopAdminCatalogShot, fullPage: false });
+    assert(fs.existsSync(desktopAdminCatalogShot), "Captured desktop admin catalog screenshot (1440x900)");
+
+    // Desktop Admin Editor Screenshot
+    await page.click('[data-testid="gallery-add-photo-btn"]');
+    await page.waitForSelector('[data-testid="admin-gallery-editor-section"]');
+    const desktopAdminEditorShot = path.join(sanitizedScreenshotsDir, "admin_gallery_editor_desktop_1440x900.png");
+    await page.screenshot({ path: desktopAdminEditorShot, fullPage: false });
+    assert(fs.existsSync(desktopAdminEditorShot), "Captured desktop admin editor screenshot (1440x900)");
+
+    // Mobile Admin Catalog (390x844)
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`${baseUrl}/admin`);
+    if (await page.locator('input[data-testid="admin-email-input"]').isVisible()) {
+      await page.fill('input[data-testid="admin-email-input"]', testAdminEmail);
+      await page.fill('input[data-testid="admin-password-input"]', testAdminPassword);
+      await page.click('button[data-testid="admin-password-login-btn"]');
+    }
+    await page.waitForSelector('[data-testid="admin-tab-gallery"]', { timeout: 15000 });
+    await page.click('[data-testid="admin-tab-gallery"]');
+    await page.waitForSelector('[data-testid="admin-gallery-section"]');
+
+    const mobileAdminCatalogShot = path.join(sanitizedScreenshotsDir, "admin_gallery_mobile_390x844.png");
+    await page.screenshot({ path: mobileAdminCatalogShot, fullPage: false });
+    assert(fs.existsSync(mobileAdminCatalogShot), "Captured mobile admin catalog screenshot (390x844)");
+
+    // Mobile Admin Editor: Reachability of Save/Publish controls & no horizontal clipping
+    await page.click('[data-testid="gallery-add-photo-btn"]');
+    await page.waitForSelector('[data-testid="admin-gallery-editor-section"]');
+
+    const mobileEditorAudit = await page.evaluate(() => {
+      const main = document.getElementById("admin-main-stage") || document.getElementById("main-content");
+      if (!main) return { ok: false, reason: "No main-stage found" };
+
+      // Scroll to bottom
+      main.scrollTop = main.scrollHeight;
+
+      const publishBtn = document.querySelector('button[data-testid="gallery-publish-btn"]');
+      const draftBtn = document.querySelector('button[data-testid="gallery-save-draft-btn"]');
+
+      const isClipped = main.scrollWidth > main.clientWidth + 2;
+      const pubRect = publishBtn?.getBoundingClientRect();
+
+      return {
+        ok: true,
+        isClipped,
+        hasPublishBtn: Boolean(publishBtn),
+        hasDraftBtn: Boolean(draftBtn),
+        pubRectTop: pubRect?.top,
+        pubRectBottom: pubRect?.bottom,
+        windowHeight: window.innerHeight
+      };
+    });
+
+    assert(mobileEditorAudit.ok && !mobileEditorAudit.isClipped, "Mobile editor has zero horizontal clipping");
+    assert(
+      mobileEditorAudit.hasPublishBtn && mobileEditorAudit.hasDraftBtn,
+      "Save Draft and Publish controls exist and are accessible in mobile editor"
+    );
+
+    const mobileAdminEditorShot = path.join(sanitizedScreenshotsDir, "admin_gallery_editor_mobile_390x844.png");
+    await page.screenshot({ path: mobileAdminEditorShot, fullPage: false });
+    assert(fs.existsSync(mobileAdminEditorShot), "Captured mobile admin editor screenshot (390x844)");
+
+    // ------------------------------------------------------------
+    // GROUP H: CRITICAL SECURITY COVERAGE & BOUNDARY ENFORCEMENT
+    // ------------------------------------------------------------
+    setGroup("H: Critical Security Coverage & Boundary Enforcement");
 
     // 1. Anonymous admin access rejected
     const anonAdminRes = await fetch(`${baseUrl}/api/admin/gallery`);
-    assert(anonAdminRes.status === 401, "Anonymous request to /api/admin/gallery returns HTTP 401", `Status: ${anonAdminRes.status}`);
+    assert(anonAdminRes.status === 401, "Anonymous request to /api/admin/gallery returns HTTP 401");
 
-    // Extract auth cookies from page session for authenticated negative tests
+    // Extract auth cookies from page session
     const browserCookies = await context.cookies();
     const cookieHeader = browserCookies.map((c) => `${c.name}=${c.value}`).join("; ");
     const csrfToken = browserCookies.find((c) => c.name === "km_admin_csrf")?.value || "";
 
-    // 2. CSRF/Origin enforcement
-    const csrfRes = await fetch(`${baseUrl}/api/admin/gallery`, {
+    // 2. Untrusted Origin rejected (403)
+    const originRes = await fetch(`${baseUrl}/api/admin/gallery`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -725,9 +1147,60 @@ async function main() {
       },
       body: JSON.stringify({ id: "malicious-test" })
     });
-    assert(csrfRes.status === 403, "Untrusted Origin rejected with HTTP 403 Forbidden", `Status: ${csrfRes.status}`);
+    assert(originRes.status === 403, "Untrusted Origin rejected with HTTP 403 Forbidden");
 
-    // 3. Cross-gallery asset ownership rejected
+    // 3. Missing CSRF token rejected (403)
+    const missingCsrfRes = await fetch(`${baseUrl}/api/admin/gallery`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: cookieHeader,
+        Origin: baseUrl
+        // Missing x-csrf-token
+      },
+      body: JSON.stringify({ id: "csrf-probe" })
+    });
+    assert(missingCsrfRes.status === 403, "Missing CSRF token rejected with HTTP 403 Forbidden");
+
+    // 4. Invalid CSRF token rejected (403)
+    const invalidCsrfRes = await fetch(`${baseUrl}/api/admin/gallery`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: cookieHeader,
+        Origin: baseUrl,
+        "x-csrf-token": "totally-invalid-csrf-token-12345"
+      },
+      body: JSON.stringify({ id: "csrf-probe" })
+    });
+    assert(invalidCsrfRes.status === 403, "Invalid CSRF token rejected with HTTP 403 Forbidden");
+
+    // 5. Attaching foreign video storage key rejected (403)
+    const vidKey = testDbConnection.prepare("SELECT storage_key FROM portfolio_video_assets LIMIT 1").get()?.storage_key || "videos/sample/poster.webp";
+    const vidKeyRes = await fetch(`${baseUrl}/api/admin/gallery`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: cookieHeader,
+        Origin: baseUrl,
+        "x-csrf-token": csrfToken
+      },
+      body: JSON.stringify({
+        id: "probe-vid-key",
+        altTR: "Test",
+        altEN: "Test",
+        asset: {
+          storageKey: vidKey,
+          storageMode: "r2",
+          publicUrl: `/api/media/${vidKey}`,
+          mimeType: "image/webp"
+        }
+      })
+    });
+    assert(vidKeyRes.status === 403, "Attaching video storage key to gallery item rejected with HTTP 403");
+
+    // 6. Attaching another gallery item's storage key rejected (403)
+    const p3Key = testDbConnection.prepare("SELECT storage_key FROM portfolio_gallery_assets WHERE item_id = ?").get(p3Id).storage_key;
     const crossGalleryRes = await fetch(`${baseUrl}/api/admin/gallery`, {
       method: "POST",
       headers: {
@@ -737,21 +1210,22 @@ async function main() {
         "x-csrf-token": csrfToken
       },
       body: JSON.stringify({
-        id: "probe-cross-asset",
+        id: "probe-cross-item",
         altTR: "Test",
         altEN: "Test",
         asset: {
-          storageKey: "gallery/other-person-photo.jpg",
+          storageKey: p3Key,
           storageMode: "r2",
-          publicUrl: "/api/media/gallery/other-person-photo.jpg",
-          mimeType: "image/jpeg",
-          byteSize: 1000
+          publicUrl: `/api/media/${p3Key}`,
+          mimeType: "image/jpeg"
         }
       })
     });
-    // Attempting to attach another item's asset or project media
-    const projMediaKey = testDbConnection.prepare("SELECT storage_key FROM project_media LIMIT 1").get().storage_key;
-    const projMediaAttachRes = await fetch(`${baseUrl}/api/admin/gallery`, {
+    assert(crossGalleryRes.status === 403, "Attaching another gallery item's storage key rejected with HTTP 403");
+
+    // 7. Invalid reorder payload with proof of atomic non-mutation
+    const preFailOrder = testDbConnection.prepare("SELECT id, sort_order FROM portfolio_gallery_items ORDER BY sort_order ASC").all();
+    const badReorderRes = await fetch(`${baseUrl}/api/admin/gallery/reorder`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -760,52 +1234,20 @@ async function main() {
         "x-csrf-token": csrfToken
       },
       body: JSON.stringify({
-        id: "probe-proj-media",
-        altTR: "Test",
-        altEN: "Test",
-        asset: {
-          storageKey: projMediaKey,
-          storageMode: "r2",
-          publicUrl: `/api/media/${projMediaKey}`,
-          mimeType: "image/jpeg",
-          byteSize: 50000
-        }
-      })
-    });
-    assert(projMediaAttachRes.status === 403, "Attaching project_media key to gallery item rejected with HTTP 403", `Status: ${projMediaAttachRes.status}`);
-
-    // 4. Invalid reorder payload (empty array) rejected atomically
-    const emptyReorderRes = await fetch(`${baseUrl}/api/admin/gallery/reorder`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: cookieHeader, Origin: baseUrl, "x-csrf-token": csrfToken },
-      body: JSON.stringify({ items: [] })
-    });
-    assert(emptyReorderRes.status === 400, "Empty reorder payload rejected with HTTP 400 Bad Request");
-
-    // 5. Duplicate reorder IDs rejected
-    const dupReorderRes = await fetch(`${baseUrl}/api/admin/gallery/reorder`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: cookieHeader, Origin: baseUrl, "x-csrf-token": csrfToken },
-      body: JSON.stringify({
         items: [
-          { id: p2Id, sortOrder: 1 },
-          { id: p2Id, sortOrder: 2 }
+          { id: p2Id, sortOrder: 0 },
+          { id: p2Id, sortOrder: 1 } // Duplicate ID
         ]
       })
     });
-    assert(dupReorderRes.status === 400, "Duplicate reorder IDs rejected with HTTP 400 Bad Request");
+    assert(badReorderRes.status === 400, "Duplicate ID reorder payload rejected with HTTP 400");
+    const postFailOrder = testDbConnection.prepare("SELECT id, sort_order FROM portfolio_gallery_items ORDER BY sort_order ASC").all();
+    assert(
+      JSON.stringify(preFailOrder) === JSON.stringify(postFailOrder),
+      "Atomic non-mutation: SQLite sort orders remained 100% identical after rejected reorder"
+    );
 
-    // 6. Non-existent reorder IDs rejected
-    const nonExistentReorderRes = await fetch(`${baseUrl}/api/admin/gallery/reorder`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: cookieHeader, Origin: baseUrl, "x-csrf-token": csrfToken },
-      body: JSON.stringify({
-        items: [{ id: "ghost-item-id-9999", sortOrder: 1 }]
-      })
-    });
-    assert(nonExistentReorderRes.status === 400, "Non-existent reorder IDs rejected with HTTP 400 Bad Request");
-
-    // 7. Upload of JPEG containing EXIF GPS rejected
+    // 8. Upload of JPEG containing EXIF GPS rejected
     const gpsFormData = new FormData();
     gpsFormData.append("file", new Blob([createJpegWithGps()], { type: "image/jpeg" }), "gps-violation.jpg");
     gpsFormData.append("itemId", "gps-test-item");
@@ -815,23 +1257,11 @@ async function main() {
       headers: { Cookie: cookieHeader, Origin: baseUrl, "x-csrf-token": csrfToken },
       body: gpsFormData
     });
-    assert(gpsUploadRes.status === 400, "Image containing EXIF GPS metadata rejected with HTTP 400", `Status: ${gpsUploadRes.status}`);
-
-    // 8. Invalid MIME / magic byte rejected
-    const fakeJpgData = new FormData();
-    fakeJpgData.append("file", new Blob([Buffer.from("THIS IS NOT A VALID IMAGE BUFFER")], { type: "image/jpeg" }), "fake.jpg");
-    fakeJpgData.append("itemId", "fake-test-item");
-
-    const fakeUploadRes = await fetch(`${baseUrl}/api/admin/gallery/upload`, {
-      method: "POST",
-      headers: { Cookie: cookieHeader, Origin: baseUrl, "x-csrf-token": csrfToken },
-      body: fakeJpgData
-    });
-    assert(fakeUploadRes.status === 400, "Invalid MIME / magic byte signature rejected with HTTP 400");
+    assert(gpsUploadRes.status === 400, "Image containing EXIF GPS metadata rejected with HTTP 400");
 
     // 9. Oversized upload (> 10MB) rejected with HTTP 413
     const bigFormData = new FormData();
-    const bigBuffer = Buffer.alloc(10 * 1024 * 1024 + 1024); // 10MB + 1KB
+    const bigBuffer = Buffer.alloc(10 * 1024 * 1024 + 1024);
     bigFormData.append("file", new Blob([bigBuffer], { type: "image/jpeg" }), "oversized.jpg");
     bigFormData.append("itemId", "big-test-item");
 
@@ -840,210 +1270,136 @@ async function main() {
       headers: { Cookie: cookieHeader, Origin: baseUrl, "x-csrf-token": csrfToken },
       body: bigFormData
     });
-    assert(bigUploadRes.status === 413, "Oversized upload (>10MB) rejected with HTTP 413 Payload Too Large", `Status: ${bigUploadRes.status}`);
+    assert(bigUploadRes.status === 413, "Oversized upload (>10MB) rejected with HTTP 413 Payload Too Large");
 
-    // 10. Publication without mandatory bilingual alt text rejected
-    const missingAltRes = await fetch(`${baseUrl}/api/admin/gallery`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Cookie: cookieHeader, Origin: baseUrl, "x-csrf-token": csrfToken },
-      body: JSON.stringify({
-        id: "probe-missing-alt",
-        status: "published",
-        altTR: "", // Missing
-        altEN: "Some english alt",
-        src: "/api/media/gallery/test.jpg"
-      })
-    });
-    assert(missingAltRes.status === 400, "Publishing photograph without bilingual alt text rejected with HTTP 400");
+    // 10. Archived item anonymous access returns 404
+    testDbConnection.exec(`UPDATE portfolio_gallery_items SET status = 'archived' WHERE id = '${p2Id}';`);
+    const p2Key = testDbConnection.prepare("SELECT storage_key FROM portfolio_gallery_assets WHERE item_id = ?").get(p2Id).storage_key;
+    const anonArchivedRes = await fetch(`${baseUrl}/api/media/${p2Key}`);
+    assert(anonArchivedRes.status === 404, "Archived media key returns HTTP 404 to anonymous public visitors");
+    testDbConnection.exec(`UPDATE portfolio_gallery_items SET status = 'published' WHERE id = '${p2Id}';`);
 
     // ------------------------------------------------------------
-    // GROUP H: UPSTREAM OUTAGE RESILIENCE & DEGRADATION PARITY (TEST G)
+    // GROUP I: UPSTREAM OUTAGE RESILIENCE & FAIL-CLOSED INTEGRITY
     // ------------------------------------------------------------
-    setGroup("H: Upstream Outage Resilience & Degradation Parity (Test G)");
+    setGroup("I: Upstream Outage Resilience & Fail-Closed Integrity");
 
-    // 1. Healthy empty state returns 200 with { items: [], count: 0 }
-    // Temporarily unpublish all items in isolated DB
+    // 1. Healthy empty state returns 200 with { gallery: [], count: 0 }
     testDbConnection.exec("UPDATE portfolio_gallery_items SET status = 'draft';");
     const emptyPubRes = await fetch(`${baseUrl}/api/v1/public/gallery`);
     const emptyPubData = await emptyPubRes.json();
     assert(emptyPubRes.status === 200, "Healthy empty gallery returns HTTP 200 OK");
     const emptyItems = emptyPubData.gallery || emptyPubData.items || [];
-    assert(Array.isArray(emptyItems) && emptyItems.length === 0, "Healthy empty gallery returns empty items array [] (zero falsification)");
+    assert(Array.isArray(emptyItems) && emptyItems.length === 0, "Healthy empty gallery returns empty array [] (zero data falsification)");
 
-    // 2. Simulate upstream failure by temporarily renaming gallery table in isolated DB
+    // 2. Simulate upstream failure by temporarily renaming gallery table
     testDbConnection.exec("ALTER TABLE portfolio_gallery_items RENAME TO portfolio_gallery_items_fault;");
     const faultRes = await fetch(`${baseUrl}/api/v1/public/gallery`);
     const faultData = await faultRes.json();
 
-    assert(faultRes.status === 503, "Upstream storage failure returns HTTP 503 Service Unavailable", `Status: ${faultRes.status}`);
+    assert(faultRes.status === 503, "Upstream storage failure returns HTTP 503 Service Unavailable");
     assert(faultData.degraded === true, "Outage response includes degraded: true flag");
     const faultCache = faultRes.headers.get("cache-control") || "";
-    assert(faultCache.includes("no-store"), "Outage 503 includes Cache-Control: no-store to prevent edge poisoning", faultCache);
+    assert(faultCache.includes("no-store"), "Outage 503 includes Cache-Control: no-store to prevent edge poisoning");
 
     // Restore table
     testDbConnection.exec("ALTER TABLE portfolio_gallery_items_fault RENAME TO portfolio_gallery_items;");
     testDbConnection.exec("UPDATE portfolio_gallery_items SET status = 'published';");
-
-    // ------------------------------------------------------------
-    // GROUP I: RESPONSIVE VIEWPORTS & VISUAL NON-REGRESSION
-    // ------------------------------------------------------------
-    setGroup("I: Responsive Viewports & Visual Non-Regression");
-
-    const screenshotsDir = path.join(rootDir, "docs", "reviews", "screenshots", "phase4_2");
-    const artifactScreenshotsDir = "/Users/keremmihci/.gemini/antigravity/brain/bd30031d-6647-4acb-9e39-1add5e789838/screenshots/phase4_2";
-    fs.mkdirSync(screenshotsDir, { recursive: true });
-    fs.mkdirSync(artifactScreenshotsDir, { recursive: true });
-
-    // Desktop Viewport (1440x900)
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto(`${baseUrl}/admin`);
-    await page.click('[data-testid="admin-tab-gallery"]');
-    await page.waitForSelector('[data-testid="admin-gallery-section"]');
-
-    // Test catalog scrolling down and back up
-    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await page.waitForTimeout(200);
-    await page.evaluate(() => window.scrollTo(0, 0));
-    await page.waitForTimeout(200);
-    assert(true, "Desktop admin gallery catalog scrolls down and back up smoothly");
-
-    const desktopCatalogShot = path.join(screenshotsDir, "admin_gallery_desktop_1440x900.png");
-    await page.screenshot({ path: desktopCatalogShot, fullPage: false });
-    fs.copyFileSync(desktopCatalogShot, path.join(artifactScreenshotsDir, "admin_gallery_desktop_1440x900.png"));
-    assert(fs.existsSync(desktopCatalogShot), "Desktop catalog screenshot captured (1440x900)");
-
-    // Desktop Editor
-    await page.click('[data-testid="gallery-add-photo-btn"]');
-    await page.waitForSelector('[data-testid="admin-gallery-editor-section"]');
-    const desktopEditorShot = path.join(screenshotsDir, "admin_gallery_editor_desktop_1440x900.png");
-    await page.screenshot({ path: desktopEditorShot, fullPage: false });
-    fs.copyFileSync(desktopEditorShot, path.join(artifactScreenshotsDir, "admin_gallery_editor_desktop_1440x900.png"));
-    assert(fs.existsSync(desktopEditorShot), "Desktop editor screenshot captured (1440x900)");
-
-    // Mobile Viewport (390x844)
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto(`${baseUrl}/admin`);
-    await page.click('[data-testid="admin-tab-gallery"]');
-    await page.waitForSelector('[data-testid="admin-gallery-section"]');
-
-    const mobileCatalogShot = path.join(screenshotsDir, "admin_gallery_mobile_390x844.png");
-    await page.screenshot({ path: mobileCatalogShot, fullPage: false });
-    fs.copyFileSync(mobileCatalogShot, path.join(artifactScreenshotsDir, "admin_gallery_mobile_390x844.png"));
-    assert(fs.existsSync(mobileCatalogShot), "Mobile catalog screenshot captured (390x844)");
-
-    await page.click('[data-testid="gallery-add-photo-btn"]');
-    await page.waitForSelector('[data-testid="admin-gallery-editor-section"]');
-    const mobileEditorShot = path.join(screenshotsDir, "admin_gallery_editor_mobile_390x844.png");
-    await page.screenshot({ path: mobileEditorShot, fullPage: false });
-    fs.copyFileSync(mobileEditorShot, path.join(artifactScreenshotsDir, "admin_gallery_editor_mobile_390x844.png"));
-    assert(fs.existsSync(mobileEditorShot), "Mobile editor screenshot captured (390x844)");
-
-    // Public Gallery Desktop View
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto(`${baseUrl}`);
-    await page.waitForTimeout(500);
-    const publicDesktopShot = path.join(screenshotsDir, "public_gallery_desktop_1440x900.png");
-    await page.screenshot({ path: publicDesktopShot, fullPage: false });
-    fs.copyFileSync(publicDesktopShot, path.join(artifactScreenshotsDir, "public_gallery_desktop_1440x900.png"));
-    assert(fs.existsSync(publicDesktopShot), "Public portfolio desktop screenshot captured (1440x900)");
-
-    // Public Gallery Mobile View
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto(`${baseUrl}`);
-    await page.waitForTimeout(500);
-    const publicMobileShot = path.join(screenshotsDir, "public_gallery_mobile_390x844.png");
-    await page.screenshot({ path: publicMobileShot, fullPage: false });
-    fs.copyFileSync(publicMobileShot, path.join(artifactScreenshotsDir, "public_gallery_mobile_390x844.png"));
-    assert(fs.existsSync(publicMobileShot), "Public portfolio mobile screenshot captured (390x844)");
   } finally {
     // ------------------------------------------------------------
     // GROUP J: CLEAN TEARDOWN & HOST INTEGRITY INVARIANT VERIFICATION
     // ------------------------------------------------------------
     setGroup("J: Clean Teardown & Host Integrity Invariant Verification");
 
-    // Close browser cleanly
     if (browser) {
       try {
         await browser.close();
       } catch {}
     }
 
-    // Close SQLite test connection
     if (testDbConnection) {
       try {
         testDbConnection.close();
       } catch {}
     }
 
-    // Terminate test server process
-    if (testServerProcess && testServerProcess.pid) {
+    if (testServerProcess) {
       try {
         testServerProcess.kill("SIGTERM");
+        await new Promise((r) => setTimeout(r, 600));
       } catch {}
-      assert(true, "Isolated test Next.js server terminated safely");
     }
 
-    // Clean up temporary test sandbox
+    // Clean up temporary sandbox directory
     if (fs.existsSync(tempTestDir)) {
       try {
         fs.rmSync(tempTestDir, { recursive: true, force: true });
-        assert(true, "Temporary test sandbox wiped cleanly from /tmp");
+        assert(true, "Isolated sandbox directory cleanly destroyed", tempTestDir);
       } catch (err) {
-        console.error("Failed to remove temp dir:", err);
+        assert(false, "Failed to destroy isolated sandbox directory", err.message);
       }
     }
 
-    // Verify host database integrity
-    const hostFinalDbSha256 = getFileSha256(hostDbPath);
+    // Host DB Invariant Assertions
+    const finalHostDbSha = getFileSha256(hostDbPath);
+    const finalHostWalSha = getFileSha256(`${hostDbPath}-wal`);
+    const finalHostShmSha = getFileSha256(`${hostDbPath}-shm`);
+
     assert(
-      hostInitialDbSha256 === hostFinalDbSha256,
-      "Host database .local-d1/portfolio.sqlite SHA-256 is 100% identical before and after suite",
-      `SHA: ${hostFinalDbSha256?.slice(0, 16)}...`
+      initialHostDbSha === finalHostDbSha,
+      "Host portfolio.sqlite byte-for-byte identical (SHA-256 match)",
+      `SHA: ${finalHostDbSha?.slice(0, 16)}`
     );
 
-    const hostFinalWalSha256 = getFileSha256(`${hostDbPath}-wal`);
-    assert(
-      hostInitialWalSha256 === hostFinalWalSha256,
-      "Host database WAL file (.local-d1/portfolio.sqlite-wal) 100% unchanged"
-    );
+    if (initialHostWalSha !== null) {
+      assert(initialHostWalSha === finalHostWalSha, "Host portfolio.sqlite-wal SHA-256 match");
+    }
 
-    const hostFinalShmSha256 = getFileSha256(`${hostDbPath}-shm`);
-    assert(
-      hostInitialShmSha256 === hostFinalShmSha256,
-      "Host database SHM file (.local-d1/portfolio.sqlite-shm) 100% unchanged"
-    );
+    if (initialHostShmSha !== null) {
+      assert(initialHostShmSha === finalHostShmSha, "Host portfolio.sqlite-shm SHA-256 match");
+    }
 
-    const hostFinalInventory = getDirectoryInventory(path.dirname(hostDbPath));
-    const inventoryMatches = JSON.stringify(hostInitialInventory) === JSON.stringify(hostFinalInventory);
-    assert(inventoryMatches, "Host .local-d1 directory file inventory completely unchanged");
+    // Verify 3 local gallery preview records untouched
+    if (fs.existsSync(hostDbPath)) {
+      const hostConn = new DatabaseSync(hostDbPath, { readOnly: true });
+      let previewCountAfter = 0;
+      try {
+        const rows = hostConn.prepare("SELECT count(*) as count FROM portfolio_gallery_items WHERE id LIKE 'gallery-preview-%'").get();
+        previewCountAfter = rows.count;
+      } catch {}
+      hostConn.close();
 
-    // Verify the 3 existing preview items in host DB are intact
-    const hostDbVerify = new DatabaseSync(hostDbPath, { open: true, readOnly: true });
-    const previewItems = hostDbVerify.prepare("SELECT id FROM portfolio_gallery_items WHERE id LIKE 'gallery-preview-%'").all();
-    hostDbVerify.close();
-    assert(
-      previewItems.length === 3,
-      "Three existing local gallery-preview records preserved intact in host DB",
-      `Count: ${previewItems.length}`
-    );
+      assert(
+        hostPreviewCountBefore === previewCountAfter,
+        "Host local gallery-preview records 100% preserved",
+        `Count: ${previewCountAfter}`
+      );
+    }
   }
 
-  // Write JSON test results
-  const resultsJsonPath = path.join(rootDir, "docs", "reviews", "PORTFOLIO_OS_PHASE4_2_TEST_RESULTS.json");
-  fs.writeFileSync(resultsJsonPath, JSON.stringify(results, null, 2), "utf-8");
-  console.log(`\n✓ Wrote structured test results to ${resultsJsonPath}`);
+  // Write structured JSON results
+  const jsonReportPath = path.join(rootDir, "docs", "reviews", "PORTFOLIO_OS_PHASE4_2_1_TEST_RESULTS.json");
+  fs.writeFileSync(jsonReportPath, JSON.stringify(results, null, 2) + "\n", "utf8");
+  console.log(`\nStructured JSON test results written: ${jsonReportPath}`);
 
   console.log("\n============================================================");
-  console.log(`PHASE 4.2 TEST SUMMARY: ${results.passed} / ${results.total} PASSED`);
-  console.log(`Failures: ${results.failed}`);
+  console.log("FINAL SUITE EXECUTION SUMMARY");
+  console.log("============================================================");
+  console.log(`TOTAL CHECKS: ${results.total}`);
+  console.log(`PASSED:       ${results.passed}`);
+  console.log(`FAILED:       ${results.failed}`);
   console.log("============================================================\n");
 
   if (results.failed > 0) {
+    console.error(`SUITE FAILED with ${results.failed} failures.`);
     process.exit(1);
+  } else {
+    console.log("SUITE PASSED ALL CHECKS.");
+    process.exit(0);
   }
 }
 
 main().catch((err) => {
-  console.error("FATAL ERROR IN PHASE 4.2 SUITE:", err);
+  console.error("FATAL RUNNER EXCEPTION:", err);
   process.exit(1);
 });

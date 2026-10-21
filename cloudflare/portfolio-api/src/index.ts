@@ -2361,6 +2361,15 @@ export async function rollbackGalleryRevisionInWorkerD1(
   const snapshot = JSON.parse(String(rev.snapshot_json)) as Record<string, unknown>;
   const now = new Date().toISOString();
 
+  // Preserve the current item's sort_order if it exists
+  const currentRow = await db
+    .prepare(`SELECT sort_order FROM portfolio_gallery_items WHERE id = ? LIMIT 1`)
+    .bind(itemId)
+    .first<{ sort_order?: number }>();
+  if (currentRow && typeof currentRow.sort_order === "number") {
+    snapshot.sortOrder = currentRow.sort_order;
+  }
+
   // If snapshot had an asset, re-promote that exact asset to active without deleting historical bytes
   const snapshotAsset = snapshot.asset as Record<string, unknown> | undefined;
   if (snapshotAsset?.storageKey) {

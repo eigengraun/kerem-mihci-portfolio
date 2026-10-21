@@ -122,6 +122,99 @@ export function parseWorkerDeploymentsStatusJson(jsonInput) {
 }
 
 /**
+ * Cross-checks the authoritative status observation against the historical deployments list.
+ * Requirements:
+ * 1. Parse historical deployments list (fail-closed on malformed JSON).
+ * 2. Find deployment whose ID matches statusResult.deploymentId (do NOT rely on list order or current: true).
+ * 3. Require exactly ONE matching historical deployment (fail on missing or duplicates).
+ * 4. Verify version ID and percentage in that matching deployment match statusResult.
+ * 5. Verify Version ID !== Deployment ID.
+ */
+export function crossCheckStatusWithList(statusResult, listJson) {
+  if (!statusResult || !statusResult.deploymentId || !statusResult.versionId) {
+    throw new Error("SCHEMA_ERROR: Invalid statusResult supplied for cross-check");
+  }
+
+  let data;
+  try {
+    data = typeof listJson === "string" ? JSON.parse(listJson) : listJson;
+  } catch (err) {
+    throw new Error(`SCHEMA_ERROR: Malformed historical deployments list JSON: ${err.message}`);
+  }
+
+  const deployments = Array.isArray(data) ? data : data?.deployments;
+  if (!Array.isArray(deployments)) {
+    throw new Error("SCHEMA_ERROR: Expected deployments array in historical list");
+  }
+
+  if (deployments.length === 0) {
+    throw new Error("NO_DEPLOYMENTS: Historical deployments list is empty");
+  }
+
+  const targetDeploymentId = String(statusResult.deploymentId);
+  const matches = deployments.filter((d) => String(d.id) === targetDeploymentId);
+
+  if (matches.length === 0) {
+    throw new Error(
+      `DEPLOYMENT_NOT_IN_HISTORICAL_LIST: Authoritative active deployment ID "${targetDeploymentId}" was not found in the historical deployments list.`
+    );
+  }
+
+  if (matches.length > 1) {
+    throw new Error(
+      `DUPLICATE_DEPLOYMENTS_IN_HISTORICAL_LIST: Found ${matches.length} deployments in historical list with identical ID "${targetDeploymentId}".`
+    );
+  }
+
+  const matchingDeployment = matches[0];
+  if (!Array.isArray(matchingDeployment.versions) || matchingDeployment.versions.length === 0) {
+    throw new Error(
+      `MISSING_VERSIONS_IN_HISTORICAL_LIST: Historical deployment "${targetDeploymentId}" has no versions array.`
+    );
+  }
+
+  if (matchingDeployment.versions.length > 1) {
+    const splitSummary = matchingDeployment.versions.map((v) => `${v.version_id} (${v.percentage}%)`).join(", ");
+    throw new Error(
+      `CANARY_ACTIVE_IN_HISTORICAL_LIST: Historical deployment "${targetDeploymentId}" contains multiple versions (${splitSummary}).`
+    );
+  }
+
+  const listVersionEntry = matchingDeployment.versions[0];
+  if (typeof listVersionEntry.percentage !== "number" || listVersionEntry.percentage !== 100) {
+    throw new Error(
+      `SPLIT_TRAFFIC_IN_HISTORICAL_LIST: Historical deployment "${targetDeploymentId}" active version traffic is ${listVersionEntry.percentage}%, expected 100%.`
+    );
+  }
+
+  const listVersionVal = validateWorkerVersionId(listVersionEntry.version_id);
+  if (!listVersionVal.valid) {
+    throw new Error(`INVALID_VERSION_UUID_IN_LIST: ${listVersionVal.error}`);
+  }
+
+  // Preserve distinction between Deployment ID and Version ID in list
+  if (listVersionVal.versionId === targetDeploymentId.toLowerCase()) {
+    throw new Error(
+      `ACCIDENTAL_DEPLOYMENT_ID: Historical deployment has version_id identical to its deployment ID (${targetDeploymentId}).`
+    );
+  }
+
+  // Verify Version ID match between status and list
+  if (listVersionVal.versionId !== statusResult.versionId.toLowerCase()) {
+    throw new Error(
+      `VERSION_DISCREPANCY: Version ID in historical list ("${listVersionVal.versionId}") does not match authoritative status Version ID ("${statusResult.versionId}") for deployment "${targetDeploymentId}".`
+    );
+  }
+
+  return {
+    verified: true,
+    matchingDeploymentId: targetDeploymentId,
+    matchingVersionId: listVersionVal.versionId,
+    historicalDeployment: matchingDeployment
+  };
+}
+
+/**
  * Parses historical output from `wrangler deployments list --json`.
  * In Wrangler 4.x, `deployments list --json` outputs an array of historical deployments.
  * Stricter reconciliation: requires finding an explicitly active deployment with verified 100% traffic.
@@ -169,11 +262,10 @@ export function parseWorkerDeploymentsListJson(jsonInput) {
 /**
  * Resolves the authoritative currently serving Worker Version ID.
  * Requires statusJson from `wrangler deployments status --json` as primary authority.
- * If listJson from `wrangler deployments list --json` is also provided, cross-checks:
- * - Version ID matches
- * - Deployment ID matches (if specified in list entry)
+ * If listJson from `wrangler deployments list --json` is also provided, executes
+ * rigorous cross-check against the historical deployment record matching status.deploymentId.
  */
-export function resolveAuthoritativeWorkerRollbackVersion({ statusJson, listJson } = {}) {
+export function resolveAuthoritativeWorkerRollbackVersion({ statusJson, listJson, requireListCrossCheck = false } = {}) {
   if (!statusJson) {
     throw new Error(
       "MISSING_STATUS_OBSERVATION: Authoritative observation from 'wrangler deployments status --json' is required."
@@ -183,24 +275,16 @@ export function resolveAuthoritativeWorkerRollbackVersion({ statusJson, listJson
   const statusResult = parseWorkerDeploymentsStatusJson(statusJson);
 
   if (listJson) {
-    try {
-      const listResult = parseWorkerDeploymentsListJson(listJson);
-      crossCheckWorkerVersions(
-        statusResult.versionId,
-        listResult.versionId,
-        "wrangler deployments status",
-        "wrangler deployments list"
-      );
-      if (listResult.deploymentId && statusResult.deploymentId !== listResult.deploymentId) {
-        throw new Error(
-          `DISCREPANCY: Deployment ID mismatch between status (${statusResult.deploymentId}) and list (${listResult.deploymentId})`
-        );
-      }
-    } catch (listErr) {
-      if (!listErr.message.includes("NO_CURRENT_STATE_PROOF")) {
-        throw listErr;
-      }
-    }
+    const crossCheckResult = crossCheckStatusWithList(statusResult, listJson);
+    return {
+      ...statusResult,
+      crossCheckedWithList: true,
+      historicalMatch: crossCheckResult.historicalDeployment
+    };
+  }
+
+  if (requireListCrossCheck) {
+    throw new Error("MISSING_LIST_OBSERVATION: Deployments list JSON required for cross-check validation.");
   }
 
   return statusResult;
@@ -553,16 +637,15 @@ if (process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1])))
     if (!threw) throw new Error("Did not reject version_id matching deployment_id");
   });
 
-  // Test 9: Conflicting current-state observations
-  runCase("Test 9: Rejects conflicting current-state observations between status and list", () => {
+  // Test 9: Conflicting current-state observations between status and list
+  runCase("Test 9: Rejects conflicting current-state observations between status and list (Version ID mismatch)", () => {
     const statusJson = JSON.stringify({
       id: MOCK_DEPLOYMENT_ID,
       versions: [{ version_id: MOCK_VERSION_ID, percentage: 100 }]
     });
     const conflictingListJson = JSON.stringify([
       {
-        id: "99999999-9999-9999-9999-999999999999",
-        current: true,
+        id: MOCK_DEPLOYMENT_ID,
         versions: [{ version_id: "88888888-8888-8888-8888-888888888888", percentage: 100 }]
       }
     ]);
@@ -573,13 +656,133 @@ if (process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1])))
         listJson: conflictingListJson
       });
     } catch (err) {
-      threw = err.message.includes("DISCREPANCY");
+      threw = err.message.includes("VERSION_DISCREPANCY");
     }
     if (!threw) throw new Error("Did not reject version discrepancy between status and list");
   });
 
-  // Test 10: Malformed JSON / HTML error response
-  runCase("Test 10: Rejects malformed JSON and HTML 502 error responses", () => {
+  // Test 10: Status matches non-first historical deployment in chronological ascending list (no current: true needed)
+  runCase("Test 10: Status matches non-first historical deployment in ascending list without current: true", () => {
+    const statusJson = JSON.stringify({
+      id: MOCK_DEPLOYMENT_ID,
+      versions: [{ version_id: MOCK_VERSION_ID, percentage: 100 }]
+    });
+    const chronologicalListJson = JSON.stringify([
+      {
+        id: MOCK_HISTORICAL_DEPLOYMENT_ID,
+        created_on: "2026-10-18T10:00:00Z",
+        versions: [{ version_id: MOCK_HISTORICAL_VERSION_ID, percentage: 100 }]
+      },
+      {
+        id: "c3333333-bcf9-42b8-9ee2-658f844ba55f",
+        created_on: "2026-10-19T10:00:00Z",
+        versions: [{ version_id: "d4444444-375e-4ba7-8051-24018f2ee188", percentage: 100 }]
+      },
+      {
+        id: MOCK_DEPLOYMENT_ID,
+        created_on: "2026-10-21T12:00:00Z",
+        versions: [{ version_id: MOCK_VERSION_ID, percentage: 100 }]
+      }
+    ]);
+    const res = resolveAuthoritativeWorkerRollbackVersion({
+      statusJson,
+      listJson: chronologicalListJson
+    });
+    if (res.versionId !== MOCK_VERSION_ID) throw new Error(`Expected ${MOCK_VERSION_ID}, got ${res.versionId}`);
+    if (res.deploymentId !== MOCK_DEPLOYMENT_ID) throw new Error(`Expected ${MOCK_DEPLOYMENT_ID}, got ${res.deploymentId}`);
+    if (!res.crossCheckedWithList) throw new Error("Expected crossCheckedWithList: true");
+  });
+
+  // Test 11: Status deployment not present in historical list
+  runCase("Test 11: Rejects status deployment not present in historical list", () => {
+    const statusJson = JSON.stringify({
+      id: "unlisted-deployment-1111-2222-3333",
+      versions: [{ version_id: MOCK_VERSION_ID, percentage: 100 }]
+    });
+    const listJson = JSON.stringify([
+      {
+        id: MOCK_HISTORICAL_DEPLOYMENT_ID,
+        versions: [{ version_id: MOCK_HISTORICAL_VERSION_ID, percentage: 100 }]
+      }
+    ]);
+    let threw = false;
+    try {
+      resolveAuthoritativeWorkerRollbackVersion({ statusJson, listJson });
+    } catch (err) {
+      threw = err.message.includes("DEPLOYMENT_NOT_IN_HISTORICAL_LIST");
+    }
+    if (!threw) throw new Error("Did not reject missing deployment in historical list");
+  });
+
+  // Test 12: Duplicate matching deployment IDs in historical list
+  runCase("Test 12: Rejects duplicate matching deployment IDs in historical list", () => {
+    const statusJson = JSON.stringify({
+      id: MOCK_DEPLOYMENT_ID,
+      versions: [{ version_id: MOCK_VERSION_ID, percentage: 100 }]
+    });
+    const duplicateListJson = JSON.stringify([
+      {
+        id: MOCK_DEPLOYMENT_ID,
+        versions: [{ version_id: MOCK_VERSION_ID, percentage: 100 }]
+      },
+      {
+        id: MOCK_DEPLOYMENT_ID,
+        versions: [{ version_id: MOCK_VERSION_ID, percentage: 100 }]
+      }
+    ]);
+    let threw = false;
+    try {
+      resolveAuthoritativeWorkerRollbackVersion({ statusJson, listJson: duplicateListJson });
+    } catch (err) {
+      threw = err.message.includes("DUPLICATE_DEPLOYMENTS_IN_HISTORICAL_LIST");
+    }
+    if (!threw) throw new Error("Did not reject duplicate deployments in historical list");
+  });
+
+  // Test 13: Split traffic (80/20) in historical deployment
+  runCase("Test 13: Rejects split traffic (80/20) in historical deployment matching status", () => {
+    const statusJson = JSON.stringify({
+      id: MOCK_DEPLOYMENT_ID,
+      versions: [{ version_id: MOCK_VERSION_ID, percentage: 100 }]
+    });
+    const splitListJson = JSON.stringify([
+      {
+        id: MOCK_DEPLOYMENT_ID,
+        versions: [
+          { version_id: MOCK_VERSION_ID, percentage: 80 },
+          { version_id: MOCK_HISTORICAL_VERSION_ID, percentage: 20 }
+        ]
+      }
+    ]);
+    let threw = false;
+    try {
+      resolveAuthoritativeWorkerRollbackVersion({ statusJson, listJson: splitListJson });
+    } catch (err) {
+      threw = err.message.includes("CANARY_ACTIVE_IN_HISTORICAL_LIST") || err.message.includes("SPLIT_TRAFFIC");
+    }
+    if (!threw) throw new Error("Did not reject split traffic in historical deployment");
+  });
+
+  // Test 14: Malformed historical list JSON
+  runCase("Test 14: Rejects malformed JSON in historical deployments list", () => {
+    const statusJson = JSON.stringify({
+      id: MOCK_DEPLOYMENT_ID,
+      versions: [{ version_id: MOCK_VERSION_ID, percentage: 100 }]
+    });
+    let threw = false;
+    try {
+      resolveAuthoritativeWorkerRollbackVersion({
+        statusJson,
+        listJson: "{ this is not valid json }"
+      });
+    } catch (err) {
+      threw = err.message.includes("SCHEMA_ERROR");
+    }
+    if (!threw) throw new Error("Did not reject malformed list JSON");
+  });
+
+  // Test 15: Malformed JSON / HTML error response in status
+  runCase("Test 15: Rejects malformed JSON and HTML 502 error responses in status", () => {
     let threw = false;
     try {
       parseWorkerDeploymentsStatusJson("<html><title>502 Bad Gateway</title></html>");
@@ -589,8 +792,8 @@ if (process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1])))
     if (!threw) throw new Error("Did not reject HTML string");
   });
 
-  // Test 11: Old contaminated identity files
-  runCase("Test 11: Rejects prefixed or multi-line contaminated version-id file", () => {
+  // Test 16: Old contaminated identity files
+  runCase("Test 16: Rejects prefixed or multi-line contaminated version-id file", () => {
     const tmpFile = `/tmp/test-contaminated-version-${Date.now()}.txt`;
     try {
       fs.writeFileSync(tmpFile, "Pre-Deployment Active Worker ID: 236c56bb-375e-4ba7-8051-24018f2ee188\n");
@@ -606,8 +809,8 @@ if (process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1])))
     }
   });
 
-  // Test 12: Clean raw UUID write and read round-trip
-  runCase("Test 12: Persistence writes raw UUID and reads back cleanly without pollution", () => {
+  // Test 17: Clean raw UUID write and read round-trip
+  runCase("Test 17: Persistence writes raw UUID and reads back cleanly without pollution", () => {
     const tmpFile = `/tmp/test-clean-version-${Date.now()}.txt`;
     try {
       writeRawWorkerVersionIdFile(tmpFile, MOCK_VERSION_ID, { author: "operator@example.com" });

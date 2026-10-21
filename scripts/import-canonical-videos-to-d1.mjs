@@ -26,7 +26,7 @@ const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, "..");
 
 const APPROVED_STAGING_CONFIG = {
-  workerUrl: "https://kerem-mihci-portfolio-api-staging.kerem-mihci.workers.dev",
+  workerUrl: process.env.TEST_MOCK_STAGING_WORKER_URL || "https://kerem-mihci-portfolio-api-staging.kerem-mihci.workers.dev",
   workerName: "kerem-mihci-portfolio-api-staging",
   databaseName: "kerem-portfolio-db-staging",
   databaseId: "0efef7a7-cc93-4dc2-8cb7-db28379fe01f",

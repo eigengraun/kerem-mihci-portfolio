@@ -810,7 +810,7 @@ async function main() {
 
     await page.waitForSelector(`button[data-testid="gallery-restore-rev-${photoARevRow.revision_number}"]`);
     await Promise.all([
-      page.waitForResponse((r) => r.url().includes("/revisions") && r.ok()),
+      page.waitForResponse((r) => r.url().includes("/revisions") && r.request().method() === "POST" && r.ok()),
       page.click(`button[data-testid="gallery-restore-rev-${photoARevRow.revision_number}"]`)
     ]);
     assert(true, `Restored revision snapshot containing Photograph A (Rev #${photoARevRow.revision_number})`);

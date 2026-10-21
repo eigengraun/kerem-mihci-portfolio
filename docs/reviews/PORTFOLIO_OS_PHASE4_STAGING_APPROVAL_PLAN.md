@@ -22,9 +22,12 @@
 
 ---
 
-## 1. Verified Staging Infrastructure Preflight
+## 1. Verified Staging Infrastructure Preflight Gates (A through I)
 
-Before any remote command is issued, the operator session must verify the exact target identities:
+Before any remote mutation or migration is permitted, the operator session must execute and pass the complete preflight sequence Gates A through I in strict order:
+
+### Gate A: Target & Account Verification
+Verify all target identities against Cloudflare configuration:
 
 | Resource | Identity / Target | Expected State |
 | :--- | :--- | :--- |
@@ -33,10 +36,115 @@ Before any remote command is issued, the operator session must verify the exact 
 | **D1 Database Name** | `kerem-portfolio-db-staging` | Populated staging database |
 | **D1 Database UUID** | `0efef7a7-cc93-4dc2-8cb7-db28379fe01f` | Exact match in `wrangler.jsonc` |
 | **R2 Media Bucket** | `kerem-portfolio-media-staging` | Bound staging media bucket |
-| **D1 Migration Ledger** | `d1_migrations` | Migrations `0001` and `0002` applied; `0003` pending |
-| **Canonical Projects** | `projects` | Exactly 30 canonical projects + 1 draft (31 total) |
-| **Project Media** | `project_media` | Exactly 72 records in staging |
-| **Canonical Videos** | `portfolio_videos` | Exactly 21 canonical videos (19 portrait, 2 landscape) |
+
+```bash
+# Verify Wrangler authentication and active account
+npx wrangler whoami
+```
+
+---
+
+### Gate B: Active Worker Rollback Version-ID Resolution & Cross-Check
+Before deploying new Worker code, capture machine-readable status and historical deployment list, and resolve the exact rollback target Version ID:
+
+```bash
+# Capture authoritative snapshots
+npx wrangler deployments status --config cloudflare/portfolio-api/wrangler.jsonc --env staging --json > "$BACKUP_DIR/pre-deployments-status.json"
+npx wrangler deployments list --config cloudflare/portfolio-api/wrangler.jsonc --env staging --json > "$BACKUP_DIR/pre-deployments-list.json"
+
+# Resolve active Worker VERSION ID (fails closed on discrepancy, split traffic, or missing current flag)
+node scripts/resolve-worker-rollback-version.mjs \
+  --status-json "$BACKUP_DIR/pre-deployments-status.json" \
+  --list-json "$BACKUP_DIR/pre-deployments-list.json" \
+  --output "$BACKUP_DIR/active-worker-version-id.txt"
+
+PRE_DEPLOY_VERSION_ID=$(cat "$BACKUP_DIR/active-worker-version-id.txt")
+test -n "$PRE_DEPLOY_VERSION_ID" || { echo "FATAL: Pre-deployment Worker Version ID unresolved"; exit 1; }
+echo "Pre-Deployment Verified Rollback Target (Version ID): $PRE_DEPLOY_VERSION_ID"
+```
+
+---
+
+### Gate C: Migration Directory Inventory & Allowlist Guard
+Scan local migrations directory recursively. Ensure strictly only the 3 authorized migration files exist and their cryptographic SHA-256 hashes match:
+
+```bash
+node scripts/verify-migration-admission.mjs
+```
+*Pass Criteria:* Exactly `0001_initial_schema.sql`, `0002_videos_and_reels_schema.sql`, and `0003_personal_gallery_schema.sql` present. Zero extra, nested, or unreviewed files.
+
+---
+
+### Gate D: Remote D1 Migration Ledger Verification
+Reconcile remote Cloudflare D1 migration table (`d1_migrations`):
+
+```bash
+node scripts/verify-migration-admission.mjs --online
+```
+*Pass Criteria:* Remote ledger strictly has `0001` and `0002` applied; `0003_personal_gallery_schema.sql` is strictly pending. Rejects if `0003` is already applied or if any unknown migration is pending.
+
+---
+
+### Gate E: Pre-Migration D1 Backup Export
+Export full remote database dump to an isolated directory outside git with restricted permissions (`umask 077`):
+
+```bash
+BACKUP_SQL="$BACKUP_DIR/kerem-portfolio-db-staging-backup.sql"
+npx wrangler d1 export kerem-portfolio-db-staging \
+  --config cloudflare/portfolio-api/wrangler.jsonc \
+  --env staging \
+  --remote \
+  --output "$BACKUP_SQL"
+
+test -s "$BACKUP_SQL" || { echo "FATAL: Backup file is empty"; exit 1; }
+shasum -a 256 "$BACKUP_SQL" > "${BACKUP_SQL}.sha256"
+```
+
+---
+
+### Gate F: Pre-Migration Backup Integrity Verification
+Restore the SQL backup into an isolated in-memory SQLite sandbox, verify SQL syntax, integrity check, and baseline invariants:
+
+```bash
+node scripts/verify-backup-integrity.mjs "$BACKUP_SQL"
+```
+*Pass Criteria:*
+- Clean PRAGMA integrity_check.
+- Contains 31 projects (30 canonical published + 1 draft).
+- Contains 72 project media items.
+- Contains 21 canonical videos (19 portrait, 2 landscape).
+- Migration 0003 table structure does NOT yet exist in backup.
+
+---
+
+### Gate G: Canonical Video Parity Check (Remote Dry Run)
+Run read-only dry-run reconciliation against remote staging Worker:
+
+```bash
+node scripts/import-canonical-videos-to-d1.mjs --remote-staging --dry-run
+```
+*Pass Criteria:* Confirms all 21 canonical videos present in remote staging with 100% field parity. Zero missing, zero conflicting identities.
+
+---
+
+### Gate H: Final Reconfirmation of Pending Migrations
+Directly inspect remote D1 migration engine status via Wrangler CLI:
+
+```bash
+npx wrangler d1 migrations list kerem-portfolio-db-staging \
+  --config cloudflare/portfolio-api/wrangler.jsonc \
+  --env staging \
+  --remote
+```
+*Pass Criteria:* Output confirms strictly `0003_personal_gallery_schema.sql` is pending.
+
+---
+
+### Gate I: Fail-Stop Policy
+If ANY check from Gate A through Gate H fails, **STOP IMMEDIATELY**.
+- Do NOT proceed to `wrangler d1 migrations apply`.
+- Do NOT deploy Worker code.
+- Report the specific gate failure and retain all diagnostic logs in `$BACKUP_DIR`.
 
 ---
 
@@ -240,6 +348,8 @@ npx wrangler rollback "$PREV_VERSION_ID" \
 ---
 
 ## 4. Decision Gate
+
+**Current Deployment Gate Status:** ⛔ **BLOCKED** — All local tests and preflight verifications passed; remote execution halted pending Operator Verdict A.
 
 | Verdict | Meaning | Next Action |
 | :--- | :--- | :--- |

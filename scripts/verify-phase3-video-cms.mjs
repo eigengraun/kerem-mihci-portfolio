@@ -24,28 +24,17 @@ import path from "node:path";
 import crypto from "node:crypto";
 import os from "node:os";
 import net from "node:net";
+import http from "node:http";
 import { execSync, spawnSync, spawn } from "node:child_process";
 import { DatabaseSync } from "node:sqlite";
 import { videosData } from "../src/data/videos.ts";
 
 const rootDir = process.cwd();
 const localDbPath = path.join(rootDir, ".local-d1", "portfolio.sqlite");
-let baseUrl = "http://127.0.0.1:3099";
+let baseUrl = "";
+let activeTestServerProcess = null;
 
-async function isPortFree(port) {
-  return new Promise((resolve) => {
-    const tester = net
-      .createServer()
-      .once("error", () => resolve(false))
-      .once("listening", () => {
-        tester.once("close", () => resolve(true)).close();
-      })
-      .listen(port, "127.0.0.1");
-  });
-}
-
-async function getAvailablePort(preferred = 3099) {
-  if (await isPortFree(preferred)) return preferred;
+async function getFreePort() {
   return new Promise((resolve, reject) => {
     const srv = net.createServer();
     srv.unref();
@@ -57,9 +46,46 @@ async function getAvailablePort(preferred = 3099) {
   });
 }
 
-async function waitForServer(url, timeoutMs = 20000) {
+async function runProcessAsync(cmd, args, options = {}) {
+  return new Promise((resolve) => {
+    const child = spawn(cmd, args, options);
+    let stdout = "";
+    let stderr = "";
+    if (child.stdout) {
+      child.stdout.on("data", (d) => {
+        stdout += d.toString();
+      });
+    }
+    if (child.stderr) {
+      child.stderr.on("data", (d) => {
+        stderr += d.toString();
+      });
+    }
+    child.on("close", (status) => {
+      resolve({ status, stdout, stderr });
+    });
+    child.on("error", (err) => {
+      resolve({ status: 1, stdout, stderr, error: err });
+    });
+  });
+}
+
+function hashAdminPasswordScrypt(password) {
+  const salt = crypto.randomBytes(16);
+  const derived = crypto.scryptSync(password, salt, 64);
+  return `scrypt:${salt.toString("hex")}:${derived.toString("hex")}`;
+}
+
+function assertServerProcessAlive() {
+  if (!activeTestServerProcess || activeTestServerProcess.exitCode !== null || activeTestServerProcess.killed) {
+    throw new Error("TASK_OWNED_SERVER_DEAD: Task-owned Next.js server process is no longer running");
+  }
+}
+
+async function waitForServer(url, timeoutMs = 25000) {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
+    assertServerProcessAlive();
     try {
       const res = await fetch(`${url}/api/videos`);
       if (res.status < 500) return true;
@@ -131,16 +157,67 @@ async function runSuite() {
   const sandboxMediaDir = path.join(sandboxDir, "media");
   fs.mkdirSync(sandboxMediaDir, { recursive: true });
 
-  fs.copyFileSync(localDbPath, sandboxDbPath);
-  if (fs.existsSync(`${localDbPath}-wal`)) {
-    fs.copyFileSync(`${localDbPath}-wal`, `${sandboxDbPath}-wal`);
-  }
-  if (fs.existsSync(`${localDbPath}-shm`)) {
-    fs.copyFileSync(`${localDbPath}-shm`, `${sandboxDbPath}-shm`);
-  }
+  // Construct fresh disposable canonical fixture from committed schema migrations and canonical data
+  // Zero naive file copying of active host SQLite / WAL / SHM!
+  execSync(`LOCAL_D1_DB_PATH="${sandboxDbPath}" node scripts/migrate-d1.mjs`, {
+    stdio: "ignore",
+    env: { ...process.env, LOCAL_D1_DB_PATH: sandboxDbPath }
+  });
 
-  let db = null;
-  let testServerProcess = null;
+  const db = new DatabaseSync(sandboxDbPath);
+  db.exec("PRAGMA foreign_keys = ON;");
+
+  const m2Sql = fs.readFileSync(
+    path.join(rootDir, "cloudflare", "portfolio-api", "migrations", "0002_videos_and_reels_schema.sql"),
+    "utf-8"
+  );
+  db.exec(m2Sql);
+
+  const m3Sql = fs.readFileSync(
+    path.join(rootDir, "cloudflare", "portfolio-api", "migrations", "0003_personal_gallery_schema.sql"),
+    "utf-8"
+  );
+  db.exec(m3Sql);
+
+  const nowIso = new Date().toISOString();
+  const insertVideo = db.prepare(`
+    INSERT INTO portfolio_videos (
+      id, slug, status, orientation, video_type, production_method, ai_assisted,
+      client_name, year, duration, aspect_ratio, featured, sort_order,
+      autoplay_preview, created_at, updated_at, published_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  const insertVideoTr = db.prepare(`
+    INSERT INTO portfolio_video_translations (
+      id, video_id, locale, title, short_title, description, full_description, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  db.exec("BEGIN TRANSACTION;");
+  for (const v of videosData) {
+    insertVideo.run(
+      v.id,
+      v.slug,
+      "published",
+      v.orientation || "portrait",
+      v.type || "reel",
+      v.productionMethod || "ai-assisted",
+      v.aiAssisted ? 1 : 0,
+      v.client || null,
+      v.year || null,
+      v.duration || null,
+      v.orientation === "landscape" ? "16:9" : "9:16",
+      v.featured ? 1 : 0,
+      v.sortOrder || 0,
+      v.autoplayPreview ? 1 : 0,
+      nowIso,
+      nowIso,
+      nowIso
+    );
+    insertVideoTr.run(`tr-${v.id}-tr`, v.id, "tr", v.titleTR, v.shortTitleTR || null, v.descriptionTR || "", v.fullDescriptionTR || "", nowIso);
+    insertVideoTr.run(`tr-${v.id}-en`, v.id, "en", v.titleEN, v.shortTitleEN || null, v.descriptionEN || "", v.fullDescriptionEN || "", nowIso);
+  }
+  db.exec("COMMIT;");
 
   try {
     // ------------------------------------------------------------
@@ -149,48 +226,79 @@ async function runSuite() {
     setGroup("Group A: Canonical Import Parity & CLI Guardrails");
     assert(fs.existsSync(localDbPath), "Local D1 database exists (.local-d1/portfolio.sqlite)");
 
-    db = new DatabaseSync(sandboxDbPath);
     const videoRows = db.prepare(`SELECT * FROM portfolio_videos ORDER BY sort_order ASC`).all();
-  assert(videoRows.length === 21, `Database contains exactly 21 videos (found ${videoRows.length})`);
+    assert(videoRows.length === 21, `Database contains exactly 21 videos (found ${videoRows.length})`);
 
-  const portraitRows = videoRows.filter((r) => r.orientation === "portrait");
-  const landscapeRows = videoRows.filter((r) => r.orientation === "landscape");
-  assert(portraitRows.length === 19, `19 portrait 9:16 videos present (found ${portraitRows.length})`);
-  assert(landscapeRows.length === 2, `2 landscape 16:9 videos present (found ${landscapeRows.length})`);
+    const portraitRows = videoRows.filter((r) => r.orientation === "portrait");
+    const landscapeRows = videoRows.filter((r) => r.orientation === "landscape");
+    assert(portraitRows.length === 19, `19 portrait 9:16 videos present (found ${portraitRows.length})`);
+    assert(landscapeRows.length === 2, `2 landscape 16:9 videos present (found ${landscapeRows.length})`);
 
-  // CLI Fail-Closed Check on unknown argument
-  let unknownArgCaught = false;
-  try {
-    execSync("node scripts/import-canonical-videos-to-d1.mjs --staging", { stdio: "pipe" });
-  } catch (err) {
-    unknownArgCaught = err.status === 1;
-  }
-  assert(unknownArgCaught, "Unknown CLI argument (--staging) fails closed with exit code 1");
+    // CLI Fail-Closed Check on unknown argument
+    let unknownArgCaught = false;
+    try {
+      execSync("node scripts/import-canonical-videos-to-d1.mjs --staging", { stdio: "pipe" });
+    } catch (err) {
+      unknownArgCaught = err.status === 1;
+    }
+    assert(unknownArgCaught, "Unknown CLI argument (--staging) fails closed with exit code 1");
 
-  // CLI Fail-Closed Check on remote-staging with force
-  let remoteForceCaught = false;
-  try {
-    execSync("node scripts/import-canonical-videos-to-d1.mjs --remote-staging --force", { stdio: "pipe" });
-  } catch (err) {
-    remoteForceCaught = err.status === 1;
-  }
-  assert(remoteForceCaught, "--force against remote-staging fails closed with exit code 1");
+    // CLI Fail-Closed Check on remote-staging with force
+    let remoteForceCaught = false;
+    try {
+      execSync("node scripts/import-canonical-videos-to-d1.mjs --remote-staging --force", { stdio: "pipe" });
+    } catch (err) {
+      remoteForceCaught = err.status === 1;
+    }
+    assert(remoteForceCaught, "--force against remote-staging fails closed with exit code 1");
 
-  // Remote-staging dry run execution: defaults to read-only dry-run and validates staging config
-  const remoteDryRunRes = spawnSync("node", ["scripts/import-canonical-videos-to-d1.mjs", "--remote-staging", "--dry-run"], {
-    cwd: rootDir,
-    encoding: "utf8"
-  });
-  assert(remoteDryRunRes.stdout.includes("Target Mode: DRY RUN"), "Remote staging importer defaults to read-only dry-run");
-  assert(remoteDryRunRes.stdout.includes("0efef7a7-cc93-4dc2-8cb7-db28379fe01f"), "Remote staging importer validates exact approved D1 database ID");
+    // Start temporary local mock server for remote-staging dry-run importer checks (zero external network dependency)
+    const mockStagingServer = http.createServer((req, res) => {
+      if (req.url === "/api/v1/public/health") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ status: "ok", environment: "staging" }));
+      }
+      if (req.url === "/api/v1/admin/videos") {
+        const auth = req.headers.authorization || "";
+        if (auth.includes("invalid-token-fails-auth")) {
+          res.writeHead(401, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify({ error: "UNAUTHORIZED" }));
+        }
+        res.writeHead(200, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ ok: true, videos: [] }));
+      }
+      res.writeHead(404);
+      res.end();
+    });
 
-  // Remote-staging failure test: importer strictly aborts with exit code 1 when remote inventory query fails
-  const remoteFailingAuthRes = spawnSync("node", ["scripts/import-canonical-videos-to-d1.mjs", "--remote-staging", "--dry-run"], {
-    cwd: rootDir,
-    encoding: "utf8",
-    env: { ...process.env, CLOUDFLARE_API_SERVICE_TOKEN: "invalid-token-fails-auth" }
-  });
-  assert(remoteFailingAuthRes.status === 1, "Importer aborts with exit code 1 when remote admin inventory is unmigrated or fails (Section 1)");
+    const mockStagingPort = await getFreePort();
+    await new Promise((resolve) => mockStagingServer.listen(mockStagingPort, "127.0.0.1", resolve));
+    const mockStagingUrl = `http://127.0.0.1:${mockStagingPort}`;
+
+    // Remote-staging dry run execution: defaults to read-only dry-run and validates staging config
+    const remoteDryRunRes = await runProcessAsync("node", ["scripts/import-canonical-videos-to-d1.mjs", "--remote-staging", "--dry-run"], {
+      cwd: rootDir,
+      env: {
+        ...process.env,
+        TEST_MOCK_STAGING_WORKER_URL: mockStagingUrl,
+        CLOUDFLARE_API_SERVICE_TOKEN: "mock-valid-service-token-12345"
+      }
+    });
+    assert(remoteDryRunRes.stdout.includes("Target Mode: DRY RUN"), "Remote staging importer defaults to read-only dry-run");
+    assert(remoteDryRunRes.stdout.includes("0efef7a7-cc93-4dc2-8cb7-db28379fe01f"), "Remote staging importer validates exact approved D1 database ID");
+
+    // Remote-staging failure test: importer strictly aborts with exit code 1 when remote inventory query fails
+    const remoteFailingAuthRes = await runProcessAsync("node", ["scripts/import-canonical-videos-to-d1.mjs", "--remote-staging", "--dry-run"], {
+      cwd: rootDir,
+      env: {
+        ...process.env,
+        TEST_MOCK_STAGING_WORKER_URL: mockStagingUrl,
+        CLOUDFLARE_API_SERVICE_TOKEN: "invalid-token-fails-auth"
+      }
+    });
+    assert(remoteFailingAuthRes.status === 1, "Importer aborts with exit code 1 when remote admin inventory is unmigrated or fails (Section 1)");
+
+    mockStagingServer.close();
 
   // Local dry run
   const localDryRunOut = execSync("node scripts/import-canonical-videos-to-d1.mjs --local --dry-run", { encoding: "utf8" });
@@ -315,81 +423,57 @@ async function runSuite() {
   fs.rmSync(tmpDbDir, { recursive: true, force: true });
 
   // ------------------------------------------------------------
-  // Ensure Isolated Next.js Server is running on baseUrl
+  // Allocate Independent Loopback Port & Spawn Task-Owned Server
   // ------------------------------------------------------------
-  let serverRunning = false;
-  try {
-    const ping = await fetch(`${baseUrl}/api/videos`, { signal: AbortSignal.timeout(1000) });
-    if (ping.status < 500) serverRunning = true;
-  } catch {}
+  const testPort = await getFreePort();
+  console.log(`[SERVER] Allocated independent loopback port: ${testPort}`);
+  baseUrl = `http://127.0.0.1:${testPort}`;
 
-  if (!serverRunning) {
-    const testPort = await getAvailablePort(3099);
-    baseUrl = `http://127.0.0.1:${testPort}`;
+  // Temporary in-memory test admin credentials (zero persistent file access)
+  const testAdminEmail = "operator-p3-test@isolated.local";
+  const testAdminPassword = `IsolatedPassphrase-${crypto.randomBytes(16).toString("hex")}!`;
+  const testAdminHash = hashAdminPasswordScrypt(testAdminPassword);
+  const testSessionSecret = crypto.randomBytes(32).toString("hex");
 
-    const nextBin = path.join(rootDir, "node_modules", "next", "dist", "bin", "next");
-    const envStagingPath = path.join(rootDir, ".env.staging.local");
-    const stagingEnv = {};
-    if (fs.existsSync(envStagingPath)) {
-      const content = fs.readFileSync(envStagingPath, "utf-8");
-      for (const line of content.split("\n")) {
-        const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith("#")) continue;
-        const eqIdx = trimmed.indexOf("=");
-        if (eqIdx > 0) {
-          stagingEnv[trimmed.slice(0, eqIdx).trim()] = trimmed.slice(eqIdx + 1).trim();
-        }
-      }
-    }
+  const nextBin = path.join(rootDir, "node_modules", "next", "dist", "bin", "next");
+  const testEnv = {
+    ...process.env,
+    NODE_ENV: "production",
+    CMS_STORAGE_MODE: "local",
+    CMS_DATA_SOURCE: "local",
+    LOCAL_D1_DB_PATH: sandboxDbPath,
+    LOCAL_D1_FILE_PATH: sandboxDbPath,
+    LOCAL_R2_DIR_PATH: sandboxMediaDir,
+    PORT: String(testPort),
+    HOSTNAME: "127.0.0.1",
+    ADMIN_SESSION_SECRET: testSessionSecret,
+    ADMIN_ALLOWED_EMAILS: testAdminEmail,
+    ADMIN_EMAIL: testAdminEmail,
+    ADMIN_EMAILS: testAdminEmail,
+    ADMIN_PASSWORD_HASH: testAdminHash,
+    SESSION_SECRET: testSessionSecret,
+    ADMIN_TRUSTED_ORIGINS: `${baseUrl},http://localhost:${testPort}`
+  };
+  delete testEnv.CLOUDFLARE_CMS_API_URL;
+  delete testEnv.CLOUDFLARE_API_SERVICE_TOKEN;
+  delete testEnv.ADMIN_MASTER_PASSWORD;
 
-    const testEnv = {
-      ...process.env,
-      ...stagingEnv,
-      NODE_ENV: "production",
-      CMS_STORAGE_MODE: "local",
-      CMS_DATA_SOURCE: "local",
-      LOCAL_D1_DB_PATH: sandboxDbPath,
-      LOCAL_D1_FILE_PATH: sandboxDbPath,
-      LOCAL_R2_DIR_PATH: sandboxMediaDir,
-      PORT: String(testPort),
-      HOSTNAME: "127.0.0.1",
-      ADMIN_TRUSTED_ORIGINS: `${baseUrl},http://localhost:${testPort}`
-    };
-    delete testEnv.CLOUDFLARE_CMS_API_URL;
-    delete testEnv.CLOUDFLARE_API_SERVICE_TOKEN;
+  activeTestServerProcess = spawn(process.execPath, [nextBin, "start", "-p", String(testPort), "-H", "127.0.0.1"], {
+    cwd: rootDir,
+    env: testEnv,
+    stdio: "pipe"
+  });
 
-    testServerProcess = spawn(process.execPath, [nextBin, "start", "-p", String(testPort), "-H", "127.0.0.1"], {
-      cwd: rootDir,
-      env: testEnv,
-      stdio: "pipe"
-    });
-
-    await waitForServer(baseUrl, 20000);
-  }
+  await waitForServer(baseUrl, 25000);
+  assertServerProcessAlive();
 
   // ------------------------------------------------------------
-  // Authenticate Admin Session
+  // Authenticate Admin Session (In-Memory Generated Credentials)
   // ------------------------------------------------------------
-  const credPath = path.join(rootDir, ".staging-admin-credentials.local");
-  let adminEmail = "staging-admin@local.test";
-  let adminPassword = "";
-
-  if (fs.existsSync(credPath)) {
-    const credLines = fs.readFileSync(credPath, "utf-8").split("\n");
-    for (const line of credLines) {
-      const trimmed = line.trim();
-      if (trimmed.startsWith("ADMIN_EMAIL=")) {
-        adminEmail = trimmed.slice("ADMIN_EMAIL=".length).trim();
-      } else if (trimmed.startsWith("ADMIN_PASSWORD=")) {
-        adminPassword = trimmed.slice("ADMIN_PASSWORD=".length).trim();
-      }
-    }
-  }
-
   const authRes = await fetch(`${baseUrl}/api/admin/auth`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Origin: baseUrl },
-    body: JSON.stringify({ email: adminEmail, password: adminPassword })
+    body: JSON.stringify({ email: testAdminEmail, password: testAdminPassword })
   });
   const authJson = await authRes.json();
   const setCookies = typeof authRes.headers.getSetCookie === "function"
@@ -398,7 +482,7 @@ async function runSuite() {
   const cookieHeader = setCookies.map((c) => c.split(";")[0].trim()).filter(Boolean).join("; ");
   const csrfToken = authJson.session?.csrfToken || authJson.csrfToken || "";
 
-  assert(authRes.ok && Boolean(cookieHeader), `Admin authenticated successfully as ${adminEmail}`);
+  assert(authRes.ok && Boolean(cookieHeader), `Admin authenticated successfully as ${testAdminEmail}`);
 
   // ------------------------------------------------------------
   // GROUP D: Real Admin Video CRUD via HTTP Endpoints
@@ -1259,9 +1343,21 @@ async function runSuite() {
       throw new Error(`HOST_DB_POLLUTED: .local-d1/portfolio.sqlite SHA-256 changed from ${hostDbShaBefore} to ${hostDbShaAfter}`);
     }
   } finally {
-    if (testServerProcess) {
+    if (activeTestServerProcess) {
       try {
-        testServerProcess.kill("SIGTERM");
+        activeTestServerProcess.kill("SIGTERM");
+        let exited = false;
+        const killStart = Date.now();
+        while (Date.now() - killStart < 3000) {
+          if (activeTestServerProcess.exitCode !== null) {
+            exited = true;
+            break;
+          }
+          await new Promise((r) => setTimeout(r, 100));
+        }
+        if (!exited) {
+          activeTestServerProcess.kill("SIGKILL");
+        }
       } catch {}
     }
     if (db) {

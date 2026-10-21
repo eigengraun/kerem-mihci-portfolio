@@ -110,6 +110,21 @@ export const CANONICAL_VIDEO_SLUGS = [
  * Validates that local migration files match reviewed cryptographic hashes.
  */
 export function verifyLocalMigrationFiles(migrationsDir = path.join(rootDir, "cloudflare", "portfolio-api", "migrations")) {
+  if (!fs.existsSync(migrationsDir)) {
+    throw new Error(`MIGRATIONS_DIR_MISSING: Migrations directory does not exist: ${migrationsDir}`);
+  }
+
+  // Scan directory for any unauthorized SQL files
+  const entries = fs.readdirSync(migrationsDir);
+  const sqlFiles = entries.filter((e) => e.endsWith(".sql"));
+  const expectedFiles = Object.keys(REVIEWED_MIGRATION_HASHES);
+
+  for (const f of sqlFiles) {
+    if (!expectedFiles.includes(f)) {
+      throw new Error(`UNAUTHORIZED_MIGRATION_DETECTED: Migration directory contains unexpected SQL file: "${f}"`);
+    }
+  }
+
   for (const [filename, expectedSha] of Object.entries(REVIEWED_MIGRATION_HASHES)) {
     const fullPath = path.join(migrationsDir, filename);
     if (!fs.existsSync(fullPath)) {

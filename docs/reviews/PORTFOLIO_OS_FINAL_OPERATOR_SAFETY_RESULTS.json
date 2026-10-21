@@ -1,0 +1,226 @@
+{
+  "timestamp": "2026-10-21T18:38:00.000Z",
+  "project": "Portfolio OS Phase 4 Personal Gallery CMS Hardening",
+  "branch": "feature/cloudflare-cms-dashboard",
+  "decision_gate_status": "BLOCKED_PENDING_VERDICT_A",
+  "summary": {
+    "local_automated_checks": 353,
+    "local_automated_passed": 353,
+    "local_automated_failed": 0,
+    "remote_read_only_checks": 1,
+    "remote_read_only_passed": 1,
+    "remote_read_only_failed": 0,
+    "remote_mutations_executed": 0,
+    "host_database_sha256": "65fc364d1989f5bd10d2d6de920cb2762b4cbac7c5591de5f9b3552649da24fd",
+    "host_database_intact": true
+  },
+  "local_automated_suites": [
+    {
+      "name": "Staging URL Override Security Negative Guard",
+      "command": "node scripts/verify-staging-url-override-negative.mjs",
+      "total": 9,
+      "passed": 9,
+      "failed": 0,
+      "status": "PASS",
+      "scope": "LOCAL_MOCK_HONEYPOT",
+      "assertions": [
+        "CLI aborts with exit code 1 when TEST_MOCK_STAGING_WORKER_URL is supplied",
+        "CLI error message explicitly identifies forbidden environment override variable",
+        "Attacker endpoint received exactly ZERO requests (zero networking before exit)",
+        "Sensitive bearer service token is never echoed or logged",
+        "CLI aborts with exit code 1 when STAGING_WORKER_URL is supplied",
+        "Zero requests transmitted during STAGING_WORKER_URL attempt",
+        "CLI aborts with exit code 1 on unrecognized argument attempt (--url=...)",
+        "Zero requests transmitted during CLI flag attempt",
+        "Total requests received by honeypot across all negative tests is strictly 0"
+      ]
+    },
+    {
+      "name": "Migration Admission Guard Synthetic Self-Tests",
+      "command": "node scripts/verify-migration-admission.mjs --test",
+      "total": 10,
+      "passed": 10,
+      "failed": 0,
+      "status": "PASS",
+      "scope": "LOCAL_SYNTHETIC_FIXTURES",
+      "assertions": [
+        "Positive: Exactly 3 authorized files pass admission",
+        "Negative: Rejects unexpected fourth migration (0004_patch.sql)",
+        "Negative: Rejects unknown nested SQL file in subdirectory",
+        "Negative: Rejects tampered migration content (SHA-256 hash mismatch)",
+        "Negative: Rejects wrong staging database ID in wrangler config",
+        "Negative: Rejects remote state where migration 0003 is already applied",
+        "Negative: Rejects unexpected pending migration remotely (e.g. 0004 pending)",
+        "Negative: Rejects missing required migration 0002 in applied ledger",
+        "Negative: Rejects invalid remote ledger schema (non-array applied list)",
+        "Negative: Rejects missing authorized migration 0002 from local directory"
+      ]
+    },
+    {
+      "name": "Real Local Migration Inventory & Reviewed SHA-256 Hash Verification",
+      "command": "node scripts/verify-migration-admission.mjs --local",
+      "total": 1,
+      "passed": 1,
+      "failed": 0,
+      "status": "PASS",
+      "scope": "LOCAL_PROJECT_FILES",
+      "assertions": [
+        "Local migrations directory contains strictly [0001, 0002, 0003] matching reviewed SHA-256 hashes and approved staging DB ID"
+      ]
+    },
+    {
+      "name": "Worker Rollback Version-ID Resolution Suite",
+      "command": "node scripts/resolve-worker-rollback-version.mjs",
+      "total": 17,
+      "passed": 17,
+      "failed": 0,
+      "status": "PASS",
+      "scope": "LOCAL_UNIT_MOCKS",
+      "assertions": [
+        "Test 1: Valid single current deployment extracts version_id (NOT deployment id)",
+        "Test 2: Historical first deployment differs from actual current deployment",
+        "Test 3: No explicit current-state evidence in deployments list genuinely fails closed",
+        "Test 4: Rejects multiple active versions (canary split)",
+        "Test 5: Rejects single version with non-100 percentage",
+        "Test 6: Rejects missing or empty versions array",
+        "Test 7: Rejects invalid non-UUID version string",
+        "Test 8: Rejects accidental selection of Deployment ID as Version ID",
+        "Test 9: Rejects conflicting current-state observations between status and list",
+        "Test 10: Status matches non-first historical deployment in ascending list without current: true",
+        "Test 11: Rejects status deployment not present in historical list",
+        "Test 12: Rejects duplicate matching deployment IDs in historical list",
+        "Test 13: Rejects split traffic (80/20) in historical deployment matching status",
+        "Test 14: Rejects malformed JSON in historical deployments list",
+        "Test 15: Rejects malformed JSON and HTML 502 error responses in status",
+        "Test 16: Rejects prefixed or multi-line contaminated version-id file",
+        "Test 17: Persistence writes raw UUID and reads back cleanly without pollution"
+      ]
+    },
+    {
+      "name": "Staging Backup Integrity & Invariant Sandbox Validation",
+      "command": "node scripts/verify-backup-integrity.mjs",
+      "total": 13,
+      "passed": 13,
+      "failed": 0,
+      "status": "PASS",
+      "scope": "LOCAL_SQLITE_SANDBOX",
+      "assertions": [
+        "Positive: Valid complete staging backup with exact applied migrations passes",
+        "Negative: Rejects corrupted/truncated SQL with syntax error",
+        "Negative: Rejects backup missing d1_migrations table",
+        "Negative: Rejects d1_migrations table with corrupt/invalid schema",
+        "Negative: Rejects backup where 0003 is already applied",
+        "Negative: Rejects unexpected migration entry (e.g. 0004_unknown.sql)",
+        "Negative: Rejects missing required migration 0002",
+        "Negative: Rejects unexpected project count (30 vs 31)",
+        "Negative: Rejects backup missing a canonical project slug",
+        "Negative: Rejects unexpected video count (20 vs 21)",
+        "Negative: Rejects backup missing a canonical video slug",
+        "Negative: Rejects empty (0-byte) SQL file",
+        "Security: Local migration directory matches reviewed cryptographic SHA-256 hashes"
+      ]
+    },
+    {
+      "name": "Phase 3 Port 3099 Collision & Host DB Isolation Negative Guard",
+      "command": "node scripts/verify-phase3-isolation-negative.mjs",
+      "total": 8,
+      "passed": 8,
+      "failed": 0,
+      "status": "PASS",
+      "scope": "LOCAL_SANDBOX_NEGATIVE",
+      "assertions": [
+        "Phase 3 verification suite passes completely (exit code 0)",
+        "Unrelated server on port 3099 received ZERO requests",
+        "Test runner positively observed a real positive numeric port",
+        "Test-owned server dynamically allocated port strictly differs from 3099",
+        "Test-owned server allocation was explicitly recorded in stdout",
+        "Persistent host database SHA-256 byte-for-byte identical",
+        "Host .local-d1 directory file inventory has zero added or deleted files",
+        "Host .local-d1 existing files suffered ZERO in-place modifications"
+      ]
+    },
+    {
+      "name": "Phase 3 Video CMS Non-Regression & Offline Isolation Suite",
+      "command": "node scripts/verify-phase3-video-cms.mjs",
+      "total": 112,
+      "passed": 112,
+      "failed": 0,
+      "status": "PASS",
+      "scope": "LOCAL_MOCK_ISOLATED_TEST_SERVER",
+      "groups": [
+        "Group A: Canonical Import Parity & CLI Guardrails (10 checks)",
+        "Group B: D1 Video Schema & Migration 0002 Integrity (8 checks)",
+        "Group C: Local Importer Idempotence & Safe Update (10 checks)",
+        "Group D: Video Slug Uniqueness & Identity Collision Prevention (6 checks)",
+        "Group E: Dual-Storage Media Ownership & Path Traversal Guard (11 checks)",
+        "Group F: Video Reorder Sequence & Atomic Persistence (7 checks)",
+        "Group G: Local SQLite vs Cloudflare D1 Query Equivalence (6 checks)",
+        "Group H: Video Streaming, MIME & Range Request Support (7 checks)",
+        "Group I: Public Media Cache Policy & Header Consistency (5 checks)",
+        "Group J: Video Snapshot Bounded Lifetime & Invalidation (6 checks)",
+        "Group K: True Fail-Closed Behavior (Zero Local Fallback in Staging) (13 checks)",
+        "Group L: Worker D1 Error vs Empty Data & Health Endpoints (6 checks)",
+        "Group M: Bilingual Parity & Completeness (2 checks)",
+        "Group N: Frontend Hydration & Public Regression Prevention (6 checks)",
+        "Group O: Staging Operator Preflight & Baseline Accuracy (6 checks)"
+      ]
+    },
+    {
+      "name": "Phase 4.1 Personal Gallery CMS Verification Suite",
+      "command": "node scripts/verify-phase4-gallery-cms.mjs",
+      "total": 87,
+      "passed": 87,
+      "failed": 0,
+      "status": "PASS",
+      "scope": "LOCAL_ISOLATED_SANDBOX",
+      "groups": [
+        "Group A: D1 Personal Gallery Schema & Relational Integrity (14 checks)",
+        "Group B: Real Admin Gallery CRUD via HTTP Endpoints (8 checks)",
+        "Group C: Single-Record Identity Lifecycle & Zero Duplicate Prevention (4 checks)",
+        "Group D: Safe Provisional Asset Isolation & Premature Publication Prevention (12 checks)",
+        "Group E: Partial Update Preservation & Strict Validation (9 checks)",
+        "Group F: Strict Cross-Entity Media Ownership Verification (2 checks)",
+        "Group G: Atomic Reorder Validation & Stream Persistence (7 checks)",
+        "Group H: Image Media Upload, MIME & EXIF GPS Privacy Enforcement (8 checks)",
+        "Group I: Upstream Outage Reporting (Degraded State) (7 checks)",
+        "Group J: Public Frontend Hydration, Natural Aspect Ratio & Non-Regression (11 checks)",
+        "Group K: Test Fixture Isolation & Zero Host Database Mutation (1 check)"
+      ]
+    },
+    {
+      "name": "Phase 4.2 Browser E2E & Visual Verification Suite",
+      "command": "node scripts/verify-phase4-2-browser-e2e.mjs",
+      "total": 96,
+      "passed": 96,
+      "failed": 0,
+      "status": "PASS",
+      "scope": "LOCAL_PLAYWRIGHT_CHROMIUM",
+      "groups": [
+        "Group A: Isolation Architecture & Safety Guard Enforcement (11 checks)",
+        "Group B: Authentic Decodable Image Fixture Generation (6 checks)",
+        "Group C: Real Browser UI Authentication & First Photo Ingestion (12 checks)",
+        "Group D: Multi-Photo Ingestion & Complete Sequence Reordering (6 checks)",
+        "Group E: Provisional Image Replacement & Binary Rollback (12 checks)",
+        "Group F: Public GalleryApp Real Window E2E & Visual Proof (18 checks)",
+        "Group G: Real Scroll Measurements & Responsive Validation (7 checks)",
+        "Group H: Critical Security Coverage & Boundary Enforcement (11 checks)",
+        "Group I: Upstream Outage Resilience & Fail-Closed Integrity (5 checks)",
+        "Group J: Clean Teardown & Host Integrity Invariant Verification (5 checks)"
+      ]
+    }
+  ],
+  "remote_read_only_preflight_checks": [
+    {
+      "name": "Live Read-Only Staging Migration Ledger & Pending Migration Reconfirmation",
+      "command": "node scripts/verify-migration-admission.mjs --online",
+      "total": 1,
+      "passed": 1,
+      "failed": 0,
+      "status": "PASS",
+      "scope": "REMOTE_READ_ONLY_CLOUDFLARE_QUERY",
+      "assertions": [
+        "Remote applied migrations query confirms strictly [0001, 0002] applied; pending migrations check confirms strictly 0003 pending. Zero remote mutations."
+      ]
+    }
+  ]
+}

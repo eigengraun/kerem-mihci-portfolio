@@ -25,13 +25,13 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, "..");
 
-const APPROVED_STAGING_CONFIG = {
-  workerUrl: process.env.TEST_MOCK_STAGING_WORKER_URL || "https://kerem-mihci-portfolio-api-staging.kerem-mihci.workers.dev",
+export const APPROVED_STAGING_CONFIG = Object.freeze({
+  workerUrl: "https://kerem-mihci-portfolio-api-staging.kerem-mihci.workers.dev",
   workerName: "kerem-mihci-portfolio-api-staging",
   databaseName: "kerem-portfolio-db-staging",
   databaseId: "0efef7a7-cc93-4dc2-8cb7-db28379fe01f",
   r2Bucket: "kerem-portfolio-media-staging"
-};
+});
 
 function verifyStagingTargetConfiguration() {
   const wranglerPath = path.join(ROOT, "cloudflare", "portfolio-api", "wrangler.jsonc");
@@ -111,6 +111,24 @@ if (isMain) {
   isForce = rawArgs.includes("--force");
   isExecute = rawArgs.includes("--execute");
   isDryRun = rawArgs.includes("--dry-run") || (!isExecute && !isForce);
+
+  if (isRemoteStaging) {
+    const FORBIDDEN_OVERRIDE_VARS = [
+      "TEST_MOCK_STAGING_WORKER_URL",
+      "STAGING_WORKER_URL",
+      "WORKER_URL",
+      "CF_WORKER_URL"
+    ];
+    for (const varName of FORBIDDEN_OVERRIDE_VARS) {
+      if (process.env[varName]) {
+        console.error(`\nFATAL: Unsafe Worker URL override detected in environment variable "${varName}".`);
+        console.error("Remote staging operations must strictly target the approved Worker URL:");
+        console.error(`  ${APPROVED_STAGING_CONFIG.workerUrl}`);
+        console.error("Endpoint overrides are strictly prohibited to prevent credential leakage or unintended target redirection.");
+        process.exit(1);
+      }
+    }
+  }
 
   if (isRemoteStaging && isForce) {
     console.error("FATAL: --force overwrite is strictly prohibited against remote staging. Remote seeding must be non-destructive.");
@@ -352,11 +370,21 @@ export function mapLocalRowsToCmsVideos(videoRows, translationRows, assetRows) {
   });
 }
 
-async function runRemoteStagingSeed(canonicalVideos) {
+export async function runRemoteStagingSeed(canonicalVideos, di = null) {
+  if (di !== null) {
+    if (di.testSandboxGuard !== "EXPLICIT_TEST_SANDBOX_DI_GUARD_TOKEN") {
+      throw new Error("SECURITY_VIOLATION: Injected staging seed options require explicit testSandboxGuard token.");
+    }
+  }
+
+  const isDryRunActive = di ? Boolean(di.isDryRun ?? true) : isDryRun;
+  const targetWorkerUrl = di?.workerUrl || APPROVED_STAGING_CONFIG.workerUrl;
+  const fetcher = di?.fetchImpl || fetch;
+
   console.log("============================================================");
   console.log("REMOTE CLOUDFLARE STAGING CANONICAL VIDEO SEED ENGINE");
   console.log("============================================================");
-  console.log("Target Mode:", isDryRun ? "DRY RUN (Read-Only Validation)" : "LIVE EXECUTION");
+  console.log("Target Mode:", isDryRunActive ? "DRY RUN (Read-Only Validation)" : "LIVE EXECUTION");
 
   // 1. Strict Configuration Verification
   let verified;
@@ -364,40 +392,47 @@ async function runRemoteStagingSeed(canonicalVideos) {
     verified = verifyStagingTargetConfiguration();
     console.log("✓ Verified Wrangler Staging Environment Configuration:");
     console.log("  Worker Name:  ", verified.workerName);
-    console.log("  Worker URL:   ", APPROVED_STAGING_CONFIG.workerUrl);
+    console.log("  Worker URL:   ", targetWorkerUrl);
     console.log("  D1 Database:  ", `${verified.d1.database_name} (${verified.d1.database_id})`);
     console.log("  R2 Bucket:    ", verified.r2.bucket_name);
   } catch (err) {
     console.error(`FATAL: Configuration verification failed: ${err.message}`);
+    if (di) throw err;
     process.exit(1);
   }
 
   // 2. Authentication Requirement
-  const token = resolveServiceToken();
+  const token = di?.token !== undefined ? di.token : resolveServiceToken();
   if (!token) {
     console.error("\nFATAL: Remote staging inventory preflight strictly requires a valid service token (CLOUDFLARE_API_SERVICE_TOKEN).");
     console.error("Token not found in environment or local credential files.");
+    if (di) throw new Error("TOKEN_MISSING: Remote staging inventory preflight requires a valid service token.");
     process.exit(1);
   }
 
   // 3. Remote Worker Target Health Check
   console.log("\nProbing remote staging Worker health...");
   try {
-    const healthRes = await fetch(`${APPROVED_STAGING_CONFIG.workerUrl}/api/v1/public/health`, {
+    const healthRes = await fetcher(`${targetWorkerUrl}/api/v1/public/health`, {
       headers: { "Cache-Control": "no-store" }
     });
     if (!healthRes.ok) {
-      console.error(`FATAL: Remote Worker health endpoint failed: HTTP ${healthRes.status} ${healthRes.statusText}`);
+      const err = new Error(`Remote Worker health endpoint failed: HTTP ${healthRes.status} ${healthRes.statusText}`);
+      console.error(`FATAL: ${err.message}`);
+      if (di) throw err;
       process.exit(1);
     }
     const healthData = await healthRes.json();
     if (healthData.environment && healthData.environment !== "staging") {
-      console.error(`FATAL: Remote Worker reported unexpected environment "${healthData.environment}". Expected "staging".`);
+      const err = new Error(`Remote Worker reported unexpected environment "${healthData.environment}". Expected "staging".`);
+      console.error(`FATAL: ${err.message}`);
+      if (di) throw err;
       process.exit(1);
     }
     console.log("✓ Remote staging Worker is healthy and responsive.");
   } catch (err) {
     console.error(`FATAL: Failed to connect to remote staging Worker: ${err.message}`);
+    if (di) throw err;
     process.exit(1);
   }
 
@@ -405,7 +440,7 @@ async function runRemoteStagingSeed(canonicalVideos) {
   console.log("Fetching complete remote video inventory via authenticated admin endpoint...");
   let remoteVideos = [];
   try {
-    const adminRes = await fetch(`${APPROVED_STAGING_CONFIG.workerUrl}/api/v1/admin/videos`, {
+    const adminRes = await fetcher(`${targetWorkerUrl}/api/v1/admin/videos`, {
       headers: {
         Authorization: `Bearer ${token}`,
         "X-Actor-Email": "staging-seed@keremmihci.com",
@@ -414,7 +449,9 @@ async function runRemoteStagingSeed(canonicalVideos) {
     });
 
     if (adminRes.status === 401 || adminRes.status === 403) {
-      console.error(`FATAL: Remote admin endpoint rejected authentication: HTTP ${adminRes.status} ${adminRes.statusText}`);
+      const err = new Error(`Remote admin endpoint rejected authentication: HTTP ${adminRes.status} ${adminRes.statusText}`);
+      console.error(`FATAL: ${err.message}`);
+      if (di) throw err;
       process.exit(1);
     }
 
@@ -424,17 +461,22 @@ async function runRemoteStagingSeed(canonicalVideos) {
       if (errText.includes("SCHEMA_NOT_INITIALIZED") || errText.includes("no such table")) {
         console.error("Notice: Remote database requires schema migration 0002_videos_and_reels_schema.sql before seeding.");
       }
+      const err = new Error(`Remote admin inventory failed: HTTP ${adminRes.status}`);
+      if (di) throw err;
       process.exit(1);
     }
 
     const adminData = await adminRes.json();
     if (!adminData.ok || !Array.isArray(adminData.videos)) {
-      console.error("FATAL: Remote admin endpoint returned invalid inventory response structure.");
+      const err = new Error("Remote admin endpoint returned invalid inventory response structure.");
+      console.error(`FATAL: ${err.message}`);
+      if (di) throw err;
       process.exit(1);
     }
     remoteVideos = adminData.videos;
   } catch (err) {
     console.error(`FATAL: Error contacting remote admin video endpoint: ${err.message}`);
+    if (di) throw err;
     process.exit(1);
   }
 
@@ -476,7 +518,7 @@ async function runRemoteStagingSeed(canonicalVideos) {
   const missingVideos = reconciliation.missing;
 
   // 6. Dry Run Guardrail
-  if (isDryRun) {
+  if (isDryRunActive) {
     console.log("\n========================================================");
     console.log("[DRY RUN COMPLETE] Zero remote writes executed.");
     console.log("Staging target identity and authenticated inventory verified.");
@@ -484,7 +526,11 @@ async function runRemoteStagingSeed(canonicalVideos) {
     console.log(`To execute live remote seeding upon authorized approval, run:`);
     console.log("  node scripts/import-canonical-videos-to-d1.mjs --remote-staging --execute");
     console.log("========================================================");
-    return;
+    return { dryRun: true, reconciliation, verified, missingVideos };
+  }
+
+  if (di) {
+    throw new Error("MUTATION_BLOCKED: Test harness does not permit live remote mutations.");
   }
 
   // 7. Live Execution Gate (Requires explicit --execute)
@@ -533,7 +579,7 @@ async function runRemoteStagingSeed(canonicalVideos) {
       actionType: "create"
     };
 
-    const res = await fetch(`${APPROVED_STAGING_CONFIG.workerUrl}/api/v1/admin/videos`, {
+    const res = await fetcher(`${targetWorkerUrl}/api/v1/admin/videos`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -562,7 +608,7 @@ async function runRemoteStagingSeed(canonicalVideos) {
   console.log("\nPerforming post-seeding read-only verification via GET /api/v1/admin/videos...");
   let postSeedRemoteVideos = [];
   try {
-    const postRes = await fetch(`${APPROVED_STAGING_CONFIG.workerUrl}/api/v1/admin/videos`, {
+    const postRes = await fetcher(`${targetWorkerUrl}/api/v1/admin/videos`, {
       headers: {
         Authorization: `Bearer ${token}`,
         "X-Actor-Email": "staging-seed@keremmihci.com",
@@ -1063,6 +1109,22 @@ async function main() {
   } else {
     await runLocalSeed(canonicalVideos);
   }
+}
+
+export async function runStagingImporterTestHarness({
+  canonicalVideos,
+  fetchImpl,
+  workerUrl,
+  token,
+  isDryRun = true
+}) {
+  return runRemoteStagingSeed(canonicalVideos, {
+    testSandboxGuard: "EXPLICIT_TEST_SANDBOX_DI_GUARD_TOKEN",
+    fetchImpl,
+    workerUrl,
+    token,
+    isDryRun
+  });
 }
 
 if (isMain) {

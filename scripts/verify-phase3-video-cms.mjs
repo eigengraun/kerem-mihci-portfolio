@@ -151,11 +151,31 @@ async function runSuite() {
   }
   const hostDbShaBefore = crypto.createHash("sha256").update(fs.readFileSync(localDbPath)).digest("hex");
 
+  // Snapshot entire persistent .local-d1 directory to guarantee complete zero-pollution isolation
+  const hostLocalD1Dir = path.join(rootDir, ".local-d1");
+  const hostDirFilesBefore = fs.readdirSync(hostLocalD1Dir).sort();
+  const hostDirHashesBefore = {};
+  for (const f of hostDirFilesBefore) {
+    const fPath = path.join(hostLocalD1Dir, f);
+    if (fs.statSync(fPath).isFile()) {
+      hostDirHashesBefore[f] = crypto.createHash("sha256").update(fs.readFileSync(fPath)).digest("hex");
+    }
+  }
+
   // Setup isolated temporary SQLite sandbox database and media directory
   const sandboxDir = fs.mkdtempSync(path.join(os.tmpdir(), "portfolio-p3-sandbox-"));
   const sandboxDbPath = path.join(sandboxDir, "portfolio.sqlite");
   const sandboxMediaDir = path.join(sandboxDir, "media");
   fs.mkdirSync(sandboxMediaDir, { recursive: true });
+  process.env.CMS_SNAPSHOT_COORDINATION_PATH = path.join(sandboxDir, "snapshot-coordination.json");
+
+  function safeRemoveSandboxResource(targetPath) {
+    const resolved = path.resolve(targetPath);
+    if (!resolved.startsWith(path.resolve(sandboxDir))) {
+      throw new Error(`SAFETY_VIOLATION: Attempted to delete path outside task sandbox: ${resolved}`);
+    }
+    fs.rmSync(resolved, { recursive: true, force: true });
+  }
 
   // Construct fresh disposable canonical fixture from committed schema migrations and canonical data
   // Zero naive file copying of active host SQLite / WAL / SHM!
@@ -275,32 +295,35 @@ async function runSuite() {
     await new Promise((resolve) => mockStagingServer.listen(mockStagingPort, "127.0.0.1", resolve));
     const mockStagingUrl = `http://127.0.0.1:${mockStagingPort}`;
 
-    // Remote-staging dry run execution: defaults to read-only dry-run and validates staging config
-    const remoteDryRunRes = await runProcessAsync("node", ["scripts/import-canonical-videos-to-d1.mjs", "--remote-staging", "--dry-run"], {
-      cwd: rootDir,
-      env: {
-        ...process.env,
-        TEST_MOCK_STAGING_WORKER_URL: mockStagingUrl,
-        CLOUDFLARE_API_SERVICE_TOKEN: "mock-valid-service-token-12345"
-      }
-    });
-    assert(remoteDryRunRes.stdout.includes("Target Mode: DRY RUN"), "Remote staging importer defaults to read-only dry-run");
-    assert(remoteDryRunRes.stdout.includes("0efef7a7-cc93-4dc2-8cb7-db28379fe01f"), "Remote staging importer validates exact approved D1 database ID");
+    // Programmatic test harness execution via structural dependency injection (zero CLI environment variable override)
+    const { runStagingImporterTestHarness } = await import("./import-canonical-videos-to-d1.mjs");
 
-    // Remote-staging failure test: importer strictly aborts with exit code 1 when remote inventory query fails
-    const remoteFailingAuthRes = await runProcessAsync("node", ["scripts/import-canonical-videos-to-d1.mjs", "--remote-staging", "--dry-run"], {
-      cwd: rootDir,
-      env: {
-        ...process.env,
-        TEST_MOCK_STAGING_WORKER_URL: mockStagingUrl,
-        CLOUDFLARE_API_SERVICE_TOKEN: "invalid-token-fails-auth"
-      }
+    const diDryRunRes = await runStagingImporterTestHarness({
+      canonicalVideos: videosData,
+      workerUrl: mockStagingUrl,
+      token: "mock-valid-service-token-12345",
+      isDryRun: true
     });
-    assert(remoteFailingAuthRes.status === 1, "Importer aborts with exit code 1 when remote admin inventory is unmigrated or fails (Section 1)");
+    assert(diDryRunRes.dryRun === true, "Remote staging importer defaults to read-only dry-run");
+    assert(diDryRunRes.verified.d1.database_id === "0efef7a7-cc93-4dc2-8cb7-db28379fe01f", "Remote staging importer validates exact approved D1 database ID");
+
+    // Negative DI check: importer strictly throws when remote inventory query fails
+    let diAuthFailed = false;
+    try {
+      await runStagingImporterTestHarness({
+        canonicalVideos: videosData,
+        workerUrl: mockStagingUrl,
+        token: "invalid-token-fails-auth",
+        isDryRun: true
+      });
+    } catch {
+      diAuthFailed = true;
+    }
+    assert(diAuthFailed, "Importer aborts with exit code 1 when remote admin inventory is unmigrated or fails (Section 1)");
 
     mockStagingServer.close();
 
-  // Local dry run
+  // Local dry run against host canonical database
   const localDryRunOut = execSync("node scripts/import-canonical-videos-to-d1.mjs --local --dry-run", { encoding: "utf8" });
   assert(localDryRunOut.includes("skipped=21"), "Local importer skips existing canonical records by default (non-destructive)");
 
@@ -386,7 +409,7 @@ async function runSuite() {
   // GROUP C: Fresh Local Database Initialization (Section 11)
   // ------------------------------------------------------------
   setGroup("Group C: Fresh Local Database Initialization & No-Reseeding");
-  const tmpDbDir = path.join(rootDir, ".local-d1", "test-tmp-init");
+  const tmpDbDir = path.join(sandboxDir, "test-tmp-init");
   fs.mkdirSync(tmpDbDir, { recursive: true });
   const tmpDbPath = path.join(tmpDbDir, `fresh-${Date.now()}.sqlite`);
 
@@ -419,8 +442,8 @@ async function runSuite() {
   assert(initialCountMatch && Number(initialCountMatch[1]) === 0, "Fresh database initializes with exactly 0 videos (no silent auto-seed)");
   assert(readOnlyCountMatch && Number(readOnlyCountMatch[1]) === 0, "Subsequent read-only queries preserve 0 videos (no unexpected writes)");
 
-  // Clean up test DB
-  fs.rmSync(tmpDbDir, { recursive: true, force: true });
+  // Clean up test DB using strict sandbox boundary guard
+  safeRemoveSandboxResource(tmpDbDir);
 
   // ------------------------------------------------------------
   // Allocate Independent Loopback Port & Spawn Task-Owned Server
@@ -452,6 +475,7 @@ async function runSuite() {
     ADMIN_EMAILS: testAdminEmail,
     ADMIN_PASSWORD_HASH: testAdminHash,
     SESSION_SECRET: testSessionSecret,
+    CMS_SNAPSHOT_COORDINATION_PATH: path.join(sandboxDir, "snapshot-coordination.json"),
     ADMIN_TRUSTED_ORIGINS: `${baseUrl},http://localhost:${testPort}`
   };
   delete testEnv.CLOUDFLARE_CMS_API_URL;
@@ -918,6 +942,7 @@ async function runSuite() {
 
     process.env.CMS_STORAGE_MODE = "local";
     process.env.CMS_DATA_SOURCE = "cloudflare";
+    process.env.CMS_SNAPSHOT_COORDINATION_PATH = "${path.join(sandboxDir, "snapshot-coordination.json")}";
     // Set tight 150ms TTL for testing expiry
     process.env.CMS_VIDEO_SNAPSHOT_MAX_STALE_MS = "150";
 
@@ -978,6 +1003,7 @@ async function runSuite() {
     // 2. Simulate Worker outage in staging mode
     process.env.CMS_STORAGE_MODE = "staging";
     process.env.CMS_DATA_SOURCE = "cloudflare";
+    process.env.CMS_SNAPSHOT_COORDINATION_PATH = "${path.join(sandboxDir, "snapshot-coordination.json")}";
     process.env.CLOUDFLARE_CMS_API_URL = "https://unreachable-staging-worker.invalid";
 
     const stagingOutageRes = await getPublishedVideosWithMeta();
@@ -1038,6 +1064,7 @@ async function runSuite() {
 
     process.env.CMS_STORAGE_MODE = "staging";
     process.env.CMS_DATA_SOURCE = "cloudflare";
+    process.env.CMS_SNAPSHOT_COORDINATION_PATH = "${path.join(sandboxDir, "snapshot-coordination.json")}";
     process.env.CLOUDFLARE_CMS_API_URL = "https://unreachable-staging-worker.invalid";
     process.env.CLOUDFLARE_API_SERVICE_TOKEN = "test-token-1234567890123456";
     process.env.LOCAL_D1_DB_PATH = fixtureDb;
@@ -1342,6 +1369,21 @@ async function runSuite() {
     if (hostDbShaBefore !== hostDbShaAfter) {
       throw new Error(`HOST_DB_POLLUTED: .local-d1/portfolio.sqlite SHA-256 changed from ${hostDbShaBefore} to ${hostDbShaAfter}`);
     }
+
+    // Verify entire persistent .local-d1 directory inventory has ZERO new, deleted, or mutated files
+    const hostDirFilesAfter = fs.readdirSync(hostLocalD1Dir).sort();
+    if (JSON.stringify(hostDirFilesBefore) !== JSON.stringify(hostDirFilesAfter)) {
+      throw new Error(`HOST_DIR_INVENTORY_CHANGED: .local-d1 directory files changed during test run! Before: ${hostDirFilesBefore.join(",")}, After: ${hostDirFilesAfter.join(",")}`);
+    }
+    for (const f of hostDirFilesBefore) {
+      const fPath = path.join(hostLocalD1Dir, f);
+      if (fs.statSync(fPath).isFile()) {
+        const hashAfter = crypto.createHash("sha256").update(fs.readFileSync(fPath)).digest("hex");
+        if (hashAfter !== hostDirHashesBefore[f]) {
+          throw new Error(`HOST_FILE_MUTATED: File .local-d1/${f} SHA-256 changed from ${hostDirHashesBefore[f]} to ${hashAfter}`);
+        }
+      }
+    }
   } finally {
     if (activeTestServerProcess) {
       try {
@@ -1366,7 +1408,9 @@ async function runSuite() {
       } catch {}
     }
     try {
-      fs.rmSync(sandboxDir, { recursive: true, force: true });
+      if (path.resolve(sandboxDir).startsWith(os.tmpdir())) {
+        fs.rmSync(sandboxDir, { recursive: true, force: true });
+      }
     } catch {}
   }
 

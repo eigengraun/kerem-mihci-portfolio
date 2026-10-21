@@ -311,62 +311,94 @@ export function verifyMigrationAdmission(options = {}) {
   };
 }
 
-// ============================================================
-// SELF-TEST SUITE
-// ============================================================
-if (process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1]))) {
-  const args = process.argv.slice(2);
-
-  // Optional online live staging check
-  if (args.includes("--online")) {
-    console.log("Running Live Read-Only Cloudflare Staging Migration Admission Check...\n");
-    try {
-      const migrationsDir = resolveMigrationsDirectoryFromWrangler();
-      console.log(`✓ Resolved migrations directory: ${migrationsDir}`);
-
-      const localRes = verifyLocalMigrationInventory({ migrationsDir });
-      console.log(`✓ Local migration files verified: ${localRes.files.join(", ")} (3/3)`);
-      console.log(`✓ Reviewed cryptographic SHA-256 hashes match 100%`);
-
-      // Read remote applied migrations via read-only SQL query
-      const cmd = `npx wrangler d1 execute kerem-portfolio-db-staging --config cloudflare/portfolio-api/wrangler.jsonc --env staging --remote --command "SELECT id, name, applied_at FROM d1_migrations ORDER BY id ASC;" --json`;
-      const stdout = execSync(cmd, { encoding: "utf8" });
-      const parsed = JSON.parse(stdout);
-      const rows = parsed[0]?.results || [];
-      const appliedNames = rows.map((r) => r.name);
-
-      console.log(`✓ Remote applied migrations query: ${appliedNames.join(", ")}`);
-
-      // Read remote pending migrations list
-      const listCmd = `npx wrangler d1 migrations list kerem-portfolio-db-staging --config cloudflare/portfolio-api/wrangler.jsonc --env staging --remote`;
-      const listOut = execSync(listCmd, { encoding: "utf8" });
-
-      const pendingMatches = [];
-      for (const line of listOut.split("\n")) {
-        const trimmed = line.replace(/[│┌┐└┘├┤─\s]/g, "");
-        if (trimmed.endsWith(".sql")) {
-          pendingMatches.push(trimmed);
-        }
-      }
-      console.log(`✓ Remote pending migrations check: ${pendingMatches.join(", ")}`);
-
-      verifyRemoteMigrationLedger({
-        appliedMigrations: appliedNames,
-        pendingMigrations: pendingMatches
-      });
-
-      console.log("\n============================================================");
-      console.log("VERDICT: MIGRATION 0003 ADMISSION GUARD PASSED (SAFE TO APPLY UPON OPERATOR AUTHORIZATION)");
-      console.log("============================================================\n");
-      process.exit(0);
-    } catch (err) {
-      console.error(`\n✗ MIGRATION ADMISSION GUARD FAILED: ${err.message}\n`);
-      process.exit(1);
-    }
+/**
+ * Executes the real local migration admission check on project files.
+ */
+export function runLocalAdmissionCheck(options = {}) {
+  const { wranglerConfigPath, env = "staging", silent = false } = options;
+  if (!silent) {
+    console.log("Running Real Local Migration Admission Check...\n");
   }
 
-  // Unit self-tests
-  console.log("Running Migration Admission Guard self-tests...\n");
+  try {
+    const migrationsDir = resolveMigrationsDirectoryFromWrangler(wranglerConfigPath, env);
+    if (!silent) {
+      console.log(`✓ Resolved migrations directory: ${migrationsDir}`);
+      console.log(`✓ Target staging database ID verified: ${APPROVED_STAGING_TARGET.databaseId}`);
+    }
+
+    const localRes = verifyLocalMigrationInventory({ migrationsDir });
+    if (!silent) {
+      console.log(`✓ Local migration files verified: ${localRes.files.join(", ")} (${localRes.filesCount}/${AUTHORIZED_LOCAL_MIGRATIONS.length})`);
+      console.log("✓ Reviewed cryptographic SHA-256 hashes match 100%:");
+      for (const [file, hash] of Object.entries(localRes.hashes)) {
+        console.log(`    - ${file}: ${hash}`);
+      }
+      console.log("\n============================================================");
+      console.log("VERDICT: LOCAL MIGRATION ADMISSION GUARD PASSED (3/3 VALID)");
+      console.log("============================================================\n");
+    }
+
+    return { success: true, migrationsDir, localRes };
+  } catch (err) {
+    if (!silent) {
+      console.error(`\n✗ LOCAL MIGRATION ADMISSION GUARD FAILED: ${err.message}\n`);
+    }
+    throw err;
+  }
+}
+
+/**
+ * Executes the live read-only Cloudflare staging migration admission check.
+ */
+export function runOnlineAdmissionCheck(options = {}) {
+  const { wranglerConfigPath, env = "staging" } = options;
+  console.log("Running Live Read-Only Cloudflare Staging Migration Admission Check...\n");
+  try {
+    const { localRes } = runLocalAdmissionCheck({ wranglerConfigPath, env, silent: false });
+
+    // Read remote applied migrations via read-only SQL query
+    const cmd = `npx wrangler d1 execute kerem-portfolio-db-staging --config cloudflare/portfolio-api/wrangler.jsonc --env staging --remote --command "SELECT id, name, applied_at FROM d1_migrations ORDER BY id ASC;" --json`;
+    const stdout = execSync(cmd, { encoding: "utf8" });
+    const parsed = JSON.parse(stdout);
+    const rows = parsed[0]?.results || [];
+    const appliedNames = rows.map((r) => r.name);
+
+    console.log(`✓ Remote applied migrations query: ${appliedNames.join(", ")}`);
+
+    // Read remote pending migrations list
+    const listCmd = `npx wrangler d1 migrations list kerem-portfolio-db-staging --config cloudflare/portfolio-api/wrangler.jsonc --env staging --remote`;
+    const listOut = execSync(listCmd, { encoding: "utf8" });
+
+    const pendingMatches = [];
+    for (const line of listOut.split("\n")) {
+      const trimmed = line.replace(/[│┌┐└┘├┤─\s]/g, "");
+      if (trimmed.endsWith(".sql")) {
+        pendingMatches.push(trimmed);
+      }
+    }
+    console.log(`✓ Remote pending migrations check: ${pendingMatches.join(", ")}`);
+
+    verifyRemoteMigrationLedger({
+      appliedMigrations: appliedNames,
+      pendingMigrations: pendingMatches
+    });
+
+    console.log("\n============================================================");
+    console.log("VERDICT: MIGRATION 0003 ADMISSION GUARD PASSED (SAFE TO APPLY UPON OPERATOR AUTHORIZATION)");
+    console.log("============================================================\n");
+    return { success: true, localRes, appliedNames, pendingMatches };
+  } catch (err) {
+    console.error(`\n✗ ONLINE MIGRATION ADMISSION GUARD FAILED: ${err.message}\n`);
+    throw err;
+  }
+}
+
+/**
+ * Runs the unit self-tests against synthetic fixtures.
+ */
+export function runSelfTests() {
+  console.log("Running Migration Admission Guard self-tests (synthetic fixtures)...\n");
   let passed = 0;
   let failed = 0;
 
@@ -546,5 +578,35 @@ if (process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1])))
   }
 
   console.log(`\nSelf-test results: ${passed} passed, ${failed} failed.\n`);
-  if (failed > 0) process.exit(1);
+  return { passed, failed };
+}
+
+// ============================================================
+// CLI ENTRY POINT
+// ============================================================
+if (process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1]))) {
+  const args = process.argv.slice(2);
+
+  if (args.includes("--online")) {
+    try {
+      runOnlineAdmissionCheck();
+      process.exit(0);
+    } catch {
+      process.exit(1);
+    }
+  } else if (args.includes("--test")) {
+    const { failed } = runSelfTests();
+    process.exit(failed > 0 ? 1 : 0);
+  } else if (args.includes("--local") || args.length === 0) {
+    try {
+      runLocalAdmissionCheck();
+      process.exit(0);
+    } catch {
+      process.exit(1);
+    }
+  } else {
+    console.error(`Unknown argument(s): ${args.join(" ")}`);
+    console.error("Usage: node scripts/verify-migration-admission.mjs [--local | --test | --online]");
+    process.exit(1);
+  }
 }

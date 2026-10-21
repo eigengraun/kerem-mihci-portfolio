@@ -1,9 +1,10 @@
 {
-  "manifestVersion": "1.0.0",
+  "manifestVersion": "1.1.0",
   "environment": "staging",
-  "generatedAt": "2026-10-21T20:10:00.000Z",
+  "generatedAt": "2026-10-21T20:32:00.000Z",
   "verdict": "STAGING_PASS",
-  "gitCommit": "a37757daf6a4fad99d46219bbcf04b7cfe77f132",
+  "auditStatus": "AUDIT_RECONCILED",
+  "gitCommit": "a1723998fd52f2106fe161cc82f03b803a287a40",
   "gitBranch": "feature/cloudflare-cms-dashboard",
   "cloudflare": {
     "accountId": "9791a288e2e99e7f3403590480e3ad6f",
@@ -14,21 +15,22 @@
       "activeDeploymentId": "6350e919-68dc-4fb8-a29c-e3eb773ca953",
       "trafficPercent": 100,
       "rollbackTargetVersionId": "3c0fcc95-989b-4856-8fad-bc5c8d6d8061",
-      "rollbackTargetDeploymentId": "32d195df-2187-4673-898e-ca70df0e6c3c"
+      "rollbackTargetDeploymentId": "32d195df-2187-4673-898e-ca70df0e6c3c",
+      "deployedWorkerCommit": "a37757daf6a4fad99d46219bbcf04b7cfe77f132"
     },
     "d1": {
       "databaseName": "kerem-portfolio-db-staging",
       "databaseUuid": "0efef7a7-cc93-4dc2-8cb7-db28379fe01f",
       "migrationsApplied": [
         "0001_initial_schema.sql",
-        "0002_canonical_video_schema.sql",
+        "0002_videos_and_reels_schema.sql",
         "0003_personal_gallery_schema.sql"
       ],
       "pendingMigrationsCount": 0,
       "verifiedCounts": {
-        "portfolio_projects": 31,
+        "projects": 31,
         "portfolio_videos": 21,
-        "portfolio_project_media": 72,
+        "project_media": 72,
         "portfolio_gallery_items": 0,
         "portfolio_gallery_assets": 0,
         "portfolio_gallery_translations": 0,
@@ -37,7 +39,14 @@
     },
     "r2": {
       "bucketName": "kerem-portfolio-media-staging",
-      "residualTestObjects": 0
+      "residualTestObjects": 0,
+      "verificationMethod": "read_only_exact_key_get",
+      "verifiedAbsentKeys": [
+        "gallery/photo-staging-e2e-1792613306796-639436-p1/1792613311949-staging-p1-portrait.jpg.jpg",
+        "gallery/photo-staging-e2e-1792613306796-639436-p2/1792613314178-staging-p2-landscape.jpg.jpg",
+        "gallery/photo-staging-e2e-1792613306796-639436-p3/1792613315246-staging-p3-square.jpg.jpg",
+        "gallery/photo-staging-e2e-1792613306796-639436-p1/1792613316997-replacement-b.jpg.jpg"
+      ]
     }
   },
   "preDeploymentBackup": {
@@ -47,9 +56,9 @@
     "sha256": "5ba5484693c72469dde78cc03689b78ce926e14a9ed7928715970f4120f8959c",
     "integrityVerified": true,
     "verifiedCounts": {
-      "portfolio_projects": 31,
+      "projects": 31,
       "portfolio_videos": 21,
-      "portfolio_project_media": 72
+      "project_media": 72
     }
   },
   "e2eVerification": {
@@ -58,6 +67,14 @@
     "totalChecks": 65,
     "passedChecks": 65,
     "failedChecks": 0,
+    "groupBreakdown": {
+      "group1_guardrails": 6,
+      "group2_security_negatives": 5,
+      "group3_mutating_lifecycle": 31,
+      "group4_browser_e2e": 18,
+      "group5_cleanup_d1": 1,
+      "group6_baseline_invariants": 4
+    },
     "screenshots": [
       "docs/reviews/screenshots/phase4_staging/public_gallery_desktop_1440x900.png",
       "docs/reviews/screenshots/phase4_staging/admin_gallery_desktop_1440x900.png",

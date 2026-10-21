@@ -1649,9 +1649,12 @@ export async function uploadGalleryAsset(params: {
       Authorization: `Bearer ${serviceToken}`,
       "X-Actor-Email": params.actorEmail
     };
-    if (process.env.CLOUDFLARE_API_SERVICE_SECRET) {
-      headers["CF-Access-Client-Id"] = process.env.CLOUDFLARE_API_SERVICE_TOKEN || "";
-      headers["CF-Access-Client-Secret"] = process.env.CLOUDFLARE_API_SERVICE_SECRET;
+    // Cloudflare Access Service Auth (strictly separated from Worker service bearer token)
+    const accessClientId = (process.env.CLOUDFLARE_ACCESS_CLIENT_ID || process.env.CF_ACCESS_CLIENT_ID || "").trim();
+    const accessClientSecret = (process.env.CLOUDFLARE_ACCESS_CLIENT_SECRET || process.env.CF_ACCESS_CLIENT_SECRET || "").trim();
+    if (accessClientId && accessClientSecret) {
+      headers["CF-Access-Client-Id"] = accessClientId;
+      headers["CF-Access-Client-Secret"] = accessClientSecret;
     }
 
     const response = await fetch(workerUrl, {

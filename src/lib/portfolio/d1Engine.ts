@@ -4601,7 +4601,7 @@ export function upsertProfileInD1(input: UpsertProfileInput, actorEmail: string)
   const email = input.email !== undefined ? input.email : (existing?.email || "info@keremmihci.com");
   const image = input.image !== undefined ? input.image : (existing?.image || "/profile/kerem-mihci-profile.webp");
   const avatar = input.avatar !== undefined ? input.avatar : (existing?.avatar || "/profile/kerem-mihci-avatar.webp");
-  const status = input.status !== undefined ? input.status : (existing?.status || "published");
+  const status = input.status !== undefined ? input.status : (existing?.status || "draft");
   const stats = input.stats !== undefined ? input.stats : (existing?.stats || []);
 
   const publishedAt = status === "published" ? (existing?.publishedAt || now) : null;
@@ -5753,7 +5753,7 @@ export function upsertSkillInD1(
   const skillId = input.id || `skill-${input.category}-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`;
   const existing = getSkillByIdFromD1(skillId);
 
-  const status = input.status || (existing?.status || "published");
+  const status = input.status || (existing?.status || "draft");
   const sortOrder = input.sortOrder !== undefined ? input.sortOrder : (existing?.sortOrder ?? 0);
 
   db.prepare(`

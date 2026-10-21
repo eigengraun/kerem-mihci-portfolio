@@ -120,20 +120,47 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
       .catch(() => {});
   }, [selectedWorkspace]);
 
+  const getAuthHeaders = (contentType: string | null = "application/json") => {
+    const headers: Record<string, string> = {};
+    if (contentType) headers["Content-Type"] = contentType;
+    if (session?.csrfToken) headers["x-csrf-token"] = session.csrfToken;
+    return headers;
+  };
+
   // --- Profile Save Handler ---
-  const handleSaveProfile = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleSaveProfile = async (targetStatus?: "draft" | "published") => {
     if (!profile) return;
+    const finalStatus = targetStatus || profile.status || "draft";
+
+    if (finalStatus === "published") {
+      if (!profile.name?.trim() || !profile.email?.trim()) {
+        showNotification("err", "Name and email are required to publish profile.");
+        return;
+      }
+      if (!profile.headline?.tr?.trim() || !profile.headline?.en?.trim()) {
+        showNotification("err", "Bilingual headlines (TR & EN) required to publish profile.");
+        return;
+      }
+      if (!profile.location?.tr?.trim() || !profile.location?.en?.trim()) {
+        showNotification("err", "Bilingual locations (TR & EN) required to publish profile.");
+        return;
+      }
+      if (!profile.summary?.tr?.length || !profile.summary?.en?.length) {
+        showNotification("err", "Bilingual summary paragraphs (TR & EN) required to publish profile.");
+        return;
+      }
+    }
+
     try {
       const res = await fetch("/api/admin/profile", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           name: profile.name,
           email: profile.email,
           image: profile.image,
           avatar: profile.avatar,
-          status: profile.status,
+          status: finalStatus,
           headlineTR: profile.headline.tr,
           headlineEN: profile.headline.en,
           locationTR: profile.location.tr,
@@ -150,7 +177,7 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
       const data = await res.json();
       if (res.ok) {
         setProfile(data.profile);
-        showNotification("ok", "Profile updated successfully.");
+        showNotification("ok", finalStatus === "published" ? "Profile published successfully." : "Profile draft saved.");
       } else {
         showNotification("err", data.error || "Failed to update profile.");
       }
@@ -160,8 +187,25 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
   };
 
   // --- Note Save Handler ---
-  const handleSaveNote = async () => {
+  const handleSaveNote = async (targetStatus?: "draft" | "published") => {
     if (!editingNote) return;
+    const finalStatus = targetStatus || editingNote.status || "draft";
+
+    if (finalStatus === "published") {
+      const titleTR = editingNote.title?.tr?.trim() || "";
+      const titleEN = editingNote.title?.en?.trim() || "";
+      const contentTR = editingNote.content?.tr?.trim() || "";
+      const contentEN = editingNote.content?.en?.trim() || "";
+      if (!titleTR || !titleEN) {
+        showNotification("err", "Bilingual titles (TR & EN) required to publish note.");
+        return;
+      }
+      if (!contentTR || !contentEN) {
+        showNotification("err", "Bilingual contents (TR & EN) required to publish note.");
+        return;
+      }
+    }
+
     try {
       const isCreate = !editingNote.id;
       const url = isCreate ? "/api/admin/notes" : `/api/admin/notes/${editingNote.id}`;
@@ -169,10 +213,10 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
 
       const res = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           workspaceId: selectedWorkspace,
-          status: editingNote.status || "published",
+          status: finalStatus,
           sortOrder: editingNote.sortOrder ?? notes.length,
           filename: editingNote.filename || "note.txt",
           titleTR: editingNote.title?.tr || "",
@@ -184,8 +228,7 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
       const data = await res.json();
       if (res.ok) {
         setEditingNote(null);
-        showNotification("ok", "Workspace note saved.");
-        // refresh notes
+        showNotification("ok", finalStatus === "published" ? "Workspace note published." : "Workspace note draft saved.");
         const r = await fetch(`/api/admin/notes?workspaceId=${selectedWorkspace}`);
         const d = await r.json();
         setNotes(d.notes || []);
@@ -197,10 +240,50 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
     }
   };
 
+  const handleToggleNoteStatus = async (note: CmsWorkspaceNote) => {
+    const nextStatus = note.status === "published" ? "draft" : "published";
+    if (nextStatus === "published") {
+      if (!note.title.tr?.trim() || !note.title.en?.trim() || !note.content.tr?.trim() || !note.content.en?.trim()) {
+        showNotification("err", "Cannot publish note: Bilingual title and content required.");
+        return;
+      }
+    }
+    try {
+      const res = await fetch(`/api/admin/notes/${note.id}`, {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          workspaceId: note.workspaceId,
+          status: nextStatus,
+          sortOrder: note.sortOrder,
+          filename: note.filename,
+          titleTR: note.title.tr,
+          titleEN: note.title.en,
+          contentTR: note.content.tr,
+          contentEN: note.content.en
+        })
+      });
+      if (res.ok) {
+        showNotification("ok", `Note marked as ${nextStatus}.`);
+        const r = await fetch(`/api/admin/notes?workspaceId=${selectedWorkspace}`);
+        const d = await r.json();
+        setNotes(d.notes || []);
+      } else {
+        const d = await res.json();
+        showNotification("err", d.error || "Failed to update note status.");
+      }
+    } catch {
+      showNotification("err", "Network error updating note status.");
+    }
+  };
+
   const handleDeleteNote = async (id: string) => {
     if (!confirm("Are you sure you want to delete this note?")) return;
     try {
-      const res = await fetch(`/api/admin/notes/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/admin/notes/${id}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(null)
+      });
       if (res.ok) {
         showNotification("ok", "Note deleted.");
         setNotes((prev) => prev.filter((n) => n.id !== id));
@@ -214,8 +297,31 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
   };
 
   // --- Experience Handlers ---
-  const handleSaveExp = async () => {
+  const handleSaveExp = async (targetStatus?: "draft" | "published") => {
     if (!editingExp) return;
+    const finalStatus = targetStatus || editingExp.status || "draft";
+
+    if (finalStatus === "published") {
+      const org = editingExp.organization?.trim() || "";
+      const start = editingExp.startDate?.trim() || "";
+      const roleTR = editingExp.role?.tr?.trim() || "";
+      const roleEN = editingExp.role?.en?.trim() || "";
+      const descTR = editingExp.description?.tr?.trim() || "";
+      const descEN = editingExp.description?.en?.trim() || "";
+      if (!org || !start) {
+        showNotification("err", "Organization and Start Date required to publish experience.");
+        return;
+      }
+      if (!roleTR || !roleEN) {
+        showNotification("err", "Bilingual roles (TR & EN) required to publish experience.");
+        return;
+      }
+      if (!descTR || !descEN) {
+        showNotification("err", "Bilingual descriptions (TR & EN) required to publish experience.");
+        return;
+      }
+    }
+
     try {
       const isCreate = !editingExp.id;
       const url = isCreate ? "/api/admin/experience" : `/api/admin/experience/${editingExp.id}`;
@@ -223,13 +329,13 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
 
       const res = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           organization: editingExp.organization || "",
           startDate: editingExp.startDate || "",
           category: editingExp.category || "work",
           skills: editingExp.skills || [],
-          status: editingExp.status || "published",
+          status: finalStatus,
           sortOrder: editingExp.sortOrder ?? experience.length,
           roleTR: editingExp.role?.tr || "",
           roleEN: editingExp.role?.en || "",
@@ -246,7 +352,7 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
       const data = await res.json();
       if (res.ok) {
         setEditingExp(null);
-        showNotification("ok", "Experience saved.");
+        showNotification("ok", finalStatus === "published" ? "Experience published." : "Experience draft saved.");
         const r = await fetch("/api/admin/experience");
         const d = await r.json();
         setExperience(d.experience || []);
@@ -258,10 +364,55 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
     }
   };
 
+  const handleToggleExpStatus = async (exp: CmsExperienceItem) => {
+    const nextStatus = exp.status === "published" ? "draft" : "published";
+    if (nextStatus === "published") {
+      if (!exp.organization || !exp.startDate || !exp.role.tr || !exp.role.en) {
+        showNotification("err", "Cannot publish experience: Required fields missing.");
+        return;
+      }
+    }
+    try {
+      const res = await fetch(`/api/admin/experience/${exp.id}`, {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          organization: exp.organization,
+          startDate: exp.startDate,
+          category: exp.category,
+          skills: exp.skills,
+          status: nextStatus,
+          sortOrder: exp.sortOrder,
+          roleTR: exp.role.tr,
+          roleEN: exp.role.en,
+          endDateTR: exp.endDate.tr,
+          endDateEN: exp.endDate.en,
+          locationTR: exp.location?.tr || "",
+          locationEN: exp.location?.en || "",
+          employmentTypeTR: exp.employmentType?.tr || "",
+          employmentTypeEN: exp.employmentType?.en || "",
+          descriptionTR: exp.description.tr,
+          descriptionEN: exp.description.en
+        })
+      });
+      if (res.ok) {
+        showNotification("ok", `Experience marked as ${nextStatus}.`);
+        const r = await fetch("/api/admin/experience");
+        const d = await r.json();
+        setExperience(d.experience || []);
+      }
+    } catch {
+      showNotification("err", "Network error toggling experience status.");
+    }
+  };
+
   const handleDeleteExp = async (id: string) => {
     if (!confirm("Delete this experience item?")) return;
     try {
-      const res = await fetch(`/api/admin/experience/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/admin/experience/${id}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(null)
+      });
       if (res.ok) {
         showNotification("ok", "Experience deleted.");
         setExperience((prev) => prev.filter((e) => e.id !== id));
@@ -272,8 +423,25 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
   };
 
   // --- Education Handlers ---
-  const handleSaveEdu = async () => {
+  const handleSaveEdu = async (targetStatus?: "draft" | "published") => {
     if (!editingEdu) return;
+    const finalStatus = targetStatus || editingEdu.status || "draft";
+
+    if (finalStatus === "published") {
+      const instTR = editingEdu.institution?.tr?.trim() || "";
+      const instEN = editingEdu.institution?.en?.trim() || "";
+      const progTR = editingEdu.program?.tr?.trim() || "";
+      const progEN = editingEdu.program?.en?.trim() || "";
+      if (!instTR || !instEN) {
+        showNotification("err", "Bilingual institutions (TR & EN) required to publish education.");
+        return;
+      }
+      if (!progTR || !progEN) {
+        showNotification("err", "Bilingual programs (TR & EN) required to publish education.");
+        return;
+      }
+    }
+
     try {
       const isCreate = !editingEdu.id;
       const url = isCreate ? "/api/admin/education" : `/api/admin/education/${editingEdu.id}`;
@@ -281,11 +449,10 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
 
       const res = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
-          startYear: editingEdu.startYear || "",
           sortOrder: editingEdu.sortOrder ?? education.length,
-          status: editingEdu.status || "published",
+          status: finalStatus,
           institutionTR: editingEdu.institution?.tr || "",
           institutionEN: editingEdu.institution?.en || "",
           programTR: editingEdu.program?.tr || "",
@@ -301,7 +468,7 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
       const data = await res.json();
       if (res.ok) {
         setEditingEdu(null);
-        showNotification("ok", "Education saved.");
+        showNotification("ok", finalStatus === "published" ? "Education published." : "Education draft saved.");
         const r = await fetch("/api/admin/education");
         const d = await r.json();
         setEducation(d.education || []);
@@ -313,10 +480,52 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
     }
   };
 
+  const handleToggleEduStatus = async (edu: CmsEducationItem) => {
+    const nextStatus = edu.status === "published" ? "draft" : "published";
+    if (nextStatus === "published") {
+      if (!edu.institution.tr || !edu.institution.en || !edu.program.tr || !edu.program.en) {
+        showNotification("err", "Cannot publish education: Required fields missing.");
+        return;
+      }
+    }
+    try {
+      const res = await fetch(`/api/admin/education/${edu.id}`, {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          startYear: edu.startYear || "",
+          sortOrder: edu.sortOrder,
+          status: nextStatus,
+          institutionTR: edu.institution.tr,
+          institutionEN: edu.institution.en,
+          programTR: edu.program.tr,
+          programEN: edu.program.en,
+          endYearTR: edu.endYear.tr,
+          endYearEN: edu.endYear.en,
+          statusLabelTR: edu.statusLabel.tr,
+          statusLabelEN: edu.statusLabel.en,
+          descriptionTR: edu.description?.tr || "",
+          descriptionEN: edu.description?.en || ""
+        })
+      });
+      if (res.ok) {
+        showNotification("ok", `Education marked as ${nextStatus}.`);
+        const r = await fetch("/api/admin/education");
+        const d = await r.json();
+        setEducation(d.education || []);
+      }
+    } catch {
+      showNotification("err", "Network error toggling education status.");
+    }
+  };
+
   const handleDeleteEdu = async (id: string) => {
     if (!confirm("Delete this education item?")) return;
     try {
-      const res = await fetch(`/api/admin/education/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/admin/education/${id}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(null)
+      });
       if (res.ok) {
         showNotification("ok", "Education deleted.");
         setEducation((prev) => prev.filter((e) => e.id !== id));
@@ -327,8 +536,19 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
   };
 
   // --- Skill Handlers ---
-  const handleSaveSkill = async () => {
+  const handleSaveSkill = async (targetStatus?: "draft" | "published") => {
     if (!editingSkill) return;
+    const finalStatus = targetStatus || editingSkill.status || "draft";
+
+    if (finalStatus === "published") {
+      const nameTR = editingSkill.name?.tr?.trim() || "";
+      const nameEN = editingSkill.name?.en?.trim() || "";
+      if (!nameTR || !nameEN) {
+        showNotification("err", "Bilingual skill names (TR & EN) required to publish skill.");
+        return;
+      }
+    }
+
     try {
       const isCreate = !editingSkill.id;
       const url = isCreate ? "/api/admin/skills" : `/api/admin/skills/${editingSkill.id}`;
@@ -336,10 +556,10 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
 
       const res = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           category: editingSkill.category || "design",
-          status: editingSkill.status || "published",
+          status: finalStatus,
           sortOrder: editingSkill.sortOrder ?? skills.length,
           nameTR: editingSkill.name?.tr || "",
           nameEN: editingSkill.name?.en || ""
@@ -348,7 +568,7 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
       const data = await res.json();
       if (res.ok) {
         setEditingSkill(null);
-        showNotification("ok", "Skill saved.");
+        showNotification("ok", finalStatus === "published" ? "Skill published." : "Skill draft saved.");
         const r = await fetch("/api/admin/skills");
         const d = await r.json();
         setSkills(d.skills || []);
@@ -360,10 +580,44 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
     }
   };
 
+  const handleToggleSkillStatus = async (skill: CmsSkillItem) => {
+    const nextStatus = skill.status === "published" ? "draft" : "published";
+    if (nextStatus === "published") {
+      if (!skill.name.tr || !skill.name.en) {
+        showNotification("err", "Cannot publish skill: Bilingual name required.");
+        return;
+      }
+    }
+    try {
+      const res = await fetch(`/api/admin/skills/${skill.id}`, {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          category: skill.category,
+          status: nextStatus,
+          sortOrder: skill.sortOrder,
+          nameTR: skill.name.tr,
+          nameEN: skill.name.en
+        })
+      });
+      if (res.ok) {
+        showNotification("ok", `Skill marked as ${nextStatus}.`);
+        const r = await fetch("/api/admin/skills");
+        const d = await r.json();
+        setSkills(d.skills || []);
+      }
+    } catch {
+      showNotification("err", "Network error toggling skill status.");
+    }
+  };
+
   const handleDeleteSkill = async (id: string) => {
     if (!confirm("Delete this skill?")) return;
     try {
-      const res = await fetch(`/api/admin/skills/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/admin/skills/${id}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(null)
+      });
       if (res.ok) {
         showNotification("ok", "Skill deleted.");
         setSkills((prev) => prev.filter((s) => s.id !== id));
@@ -391,6 +645,7 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
     try {
       const res = await fetch("/api/admin/cv/upload", {
         method: "POST",
+        headers: getAuthHeaders(null),
         body: formData
       });
       const data = await res.json();
@@ -415,7 +670,7 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
     try {
       const res = await fetch(`/api/admin/cv/${doc.locale}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ status: nextStatus })
       });
       const data = await res.json();
@@ -477,6 +732,7 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
             <button
               key={tab.id}
               type="button"
+              data-testid={`cms-tab-${tab.id}`}
               onClick={() => setSubSection(tab.id)}
               className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
                 subSection === tab.id
@@ -498,7 +754,7 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
           {/* 1. PROFILE SECTION */}
           {/* ============================================================ */}
           {subSection === "profile" && profile && (
-            <form onSubmit={handleSaveProfile} className="space-y-5">
+            <form onSubmit={(e) => { e.preventDefault(); handleSaveProfile(); }} className="space-y-5">
               <div className="p-5 rounded-xl bg-[#121418] border border-[#252A33] space-y-4">
                 <div className="flex items-center justify-between border-b border-[#252A33] pb-3">
                   <h3 className="text-xs font-mono uppercase tracking-wider font-bold text-amber-400">
@@ -507,6 +763,7 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-[#A0A8B5]">Status:</span>
                     <select
+                      data-testid="profile-status-select"
                       value={profile.status}
                       onChange={(e) => setProfile({ ...profile, status: e.target.value as "draft" | "published" })}
                       className="px-2.5 py-1 rounded bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA]"
@@ -521,6 +778,7 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
                   <div>
                     <label className="block text-xs font-mono text-[#A0A8B5] mb-1">Full Name</label>
                     <input
+                      data-testid="profile-name-input"
                       type="text"
                       value={profile.name}
                       onChange={(e) => setProfile({ ...profile, name: e.target.value })}
@@ -561,6 +819,7 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
                   <div>
                     <label className="block text-xs font-mono text-[#A0A8B5] mb-1">Headline (TR)</label>
                     <input
+                      data-testid="profile-headline-tr-input"
                       type="text"
                       value={profile.headline.tr}
                       onChange={(e) => setProfile({ ...profile, headline: { ...profile.headline, tr: e.target.value } })}
@@ -570,6 +829,7 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
                   <div>
                     <label className="block text-xs font-mono text-[#A0A8B5] mb-1">Headline (EN)</label>
                     <input
+                      data-testid="profile-headline-en-input"
                       type="text"
                       value={profile.headline.en}
                       onChange={(e) => setProfile({ ...profile, headline: { ...profile.headline, en: e.target.value } })}
@@ -618,13 +878,33 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
                   </div>
                 </div>
 
-                <div className="pt-2">
+                <div className="pt-2 flex flex-wrap items-center gap-2">
                   <button
-                    type="submit"
-                    className="px-5 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-black text-xs font-bold transition-colors cursor-pointer"
+                    type="button"
+                    data-testid="profile-save-draft-btn"
+                    onClick={() => handleSaveProfile("draft")}
+                    className="px-4 py-2 rounded-lg bg-[#181B22] border border-[#252A33] hover:bg-[#1E222A] text-amber-300 text-xs font-bold transition-colors cursor-pointer"
                   >
-                    Save Profile Changes
+                    Save Draft
                   </button>
+                  <button
+                    type="button"
+                    data-testid="profile-publish-btn"
+                    onClick={() => handleSaveProfile("published")}
+                    className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    Publish Profile
+                  </button>
+                  {profile.status === "published" && (
+                    <button
+                      type="button"
+                      data-testid="profile-unpublish-btn"
+                      onClick={() => handleSaveProfile("draft")}
+                      className="px-3.5 py-2 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-mono transition-colors cursor-pointer"
+                    >
+                      Unpublish (Move to Draft)
+                    </button>
+                  )}
                 </div>
               </div>
             </form>
@@ -643,6 +923,7 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
                     <button
                       key={ws}
                       type="button"
+                      data-testid={`notes-workspace-tab-${ws}`}
                       onClick={() => setSelectedWorkspace(ws)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold uppercase transition-colors cursor-pointer ${
                         selectedWorkspace === ws
@@ -657,7 +938,8 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
 
                 <button
                   type="button"
-                  onClick={() => setEditingNote({ workspaceId: selectedWorkspace, status: "published", sortOrder: notes.length, filename: `note-0${notes.length + 1}.txt`, title: { tr: "", en: "" }, content: { tr: "", en: "" } })}
+                  data-testid="notes-add-btn"
+                  onClick={() => setEditingNote({ workspaceId: selectedWorkspace, status: "draft", sortOrder: notes.length, filename: `note-0${notes.length + 1}.txt`, title: { tr: "", en: "" }, content: { tr: "", en: "" } })}
                   className="px-3.5 py-1.5 rounded-lg bg-[#181B22] hover:bg-[#1E222A] border border-amber-500/30 text-xs font-bold text-amber-300 transition-colors cursor-pointer"
                 >
                   + Add Note to {selectedWorkspace.toUpperCase()}
@@ -717,6 +999,7 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
                     <div>
                       <label className="block text-xs font-mono text-[#A0A8B5] mb-1">Title (TR)</label>
                       <input
+                        data-testid="note-title-tr-input"
                         type="text"
                         value={editingNote.title?.tr || ""}
                         onChange={(e) => setEditingNote({ ...editingNote, title: { tr: e.target.value, en: editingNote.title?.en || "" } })}
@@ -726,6 +1009,7 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
                     <div>
                       <label className="block text-xs font-mono text-[#A0A8B5] mb-1">Title (EN)</label>
                       <input
+                        data-testid="note-title-en-input"
                         type="text"
                         value={editingNote.title?.en || ""}
                         onChange={(e) => setEditingNote({ ...editingNote, title: { tr: editingNote.title?.tr || "", en: e.target.value } })}
@@ -738,6 +1022,7 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
                     <div>
                       <label className="block text-xs font-mono text-[#A0A8B5] mb-1">Content (TR)</label>
                       <textarea
+                        data-testid="note-content-tr-input"
                         rows={4}
                         value={editingNote.content?.tr || ""}
                         onChange={(e) => setEditingNote({ ...editingNote, content: { tr: e.target.value, en: editingNote.content?.en || "" } })}
@@ -747,6 +1032,7 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
                     <div>
                       <label className="block text-xs font-mono text-[#A0A8B5] mb-1">Content (EN)</label>
                       <textarea
+                        data-testid="note-content-en-input"
                         rows={4}
                         value={editingNote.content?.en || ""}
                         onChange={(e) => setEditingNote({ ...editingNote, content: { tr: editingNote.content?.tr || "", en: e.target.value } })}
@@ -755,18 +1041,36 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 pt-2">
+                  <div className="flex flex-wrap items-center gap-2 pt-2">
                     <button
                       type="button"
-                      onClick={handleSaveNote}
-                      className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-black font-bold text-xs"
+                      data-testid="note-save-draft-btn"
+                      onClick={() => handleSaveNote("draft")}
+                      className="px-3.5 py-2 rounded-lg bg-[#181B22] border border-[#252A33] hover:bg-[#1E222A] text-amber-300 font-bold text-xs"
                     >
-                      Save Note
+                      Save Draft
                     </button>
                     <button
                       type="button"
+                      data-testid="note-publish-btn"
+                      onClick={() => handleSaveNote("published")}
+                      className="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs"
+                    >
+                      Publish Note
+                    </button>
+                    {editingNote.id && editingNote.status === "published" && (
+                      <button
+                        type="button"
+                        onClick={() => handleSaveNote("draft")}
+                        className="px-3 py-2 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-mono"
+                      >
+                        Unpublish
+                      </button>
+                    )}
+                    <button
+                      type="button"
                       onClick={() => setEditingNote(null)}
-                      className="px-4 py-2 rounded-lg bg-[#181B22] text-[#A0A8B5] text-xs hover:text-white"
+                      className="px-3.5 py-2 rounded-lg bg-[#181B22] text-[#A0A8B5] text-xs hover:text-white"
                     >
                       Cancel
                     </button>
@@ -808,6 +1112,17 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <button
                           type="button"
+                          onClick={() => handleToggleNoteStatus(note)}
+                          className={`px-2.5 py-1.5 rounded-lg border text-xs font-mono font-medium transition-colors ${
+                            note.status === "published"
+                              ? "bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30"
+                              : "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
+                          }`}
+                        >
+                          {note.status === "published" ? "Unpublish" : "Publish"}
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => setEditingNote(note)}
                           className="px-3 py-1.5 rounded-lg bg-[#181B22] hover:bg-[#1E222A] text-xs font-medium text-[#F5F7FA] border border-[#252A33]"
                         >
@@ -842,7 +1157,8 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
                 </div>
                 <button
                   type="button"
-                  onClick={() => setEditingExp({ status: "published", category: "work", skills: [], role: { tr: "", en: "" }, endDate: { tr: "", en: "" }, description: { tr: "", en: "" } })}
+                  data-testid="exp-add-btn"
+                  onClick={() => setEditingExp({ status: "draft", category: "work", skills: [], role: { tr: "", en: "" }, endDate: { tr: "", en: "" }, description: { tr: "", en: "" } })}
                   className="px-3.5 py-1.5 rounded-lg bg-[#181B22] hover:bg-[#1E222A] border border-amber-500/30 text-xs font-bold text-amber-300"
                 >
                   + Add Experience
@@ -863,6 +1179,7 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
                     <div>
                       <label className="block text-xs font-mono text-[#A0A8B5] mb-1">Organization</label>
                       <input
+                        data-testid="exp-org-input"
                         type="text"
                         value={editingExp.organization || ""}
                         onChange={(e) => setEditingExp({ ...editingExp, organization: e.target.value })}
@@ -872,6 +1189,7 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
                     <div>
                       <label className="block text-xs font-mono text-[#A0A8B5] mb-1">Start Date</label>
                       <input
+                        data-testid="exp-start-input"
                         type="text"
                         value={editingExp.startDate || ""}
                         onChange={(e) => setEditingExp({ ...editingExp, startDate: e.target.value })}
@@ -898,6 +1216,7 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
                     <div>
                       <label className="block text-xs font-mono text-[#A0A8B5] mb-1">Role (TR)</label>
                       <input
+                        data-testid="exp-role-tr-input"
                         type="text"
                         value={editingExp.role?.tr || ""}
                         onChange={(e) => setEditingExp({ ...editingExp, role: { tr: e.target.value, en: editingExp.role?.en || "" } })}
@@ -907,6 +1226,7 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
                     <div>
                       <label className="block text-xs font-mono text-[#A0A8B5] mb-1">Role (EN)</label>
                       <input
+                        data-testid="exp-role-en-input"
                         type="text"
                         value={editingExp.role?.en || ""}
                         onChange={(e) => setEditingExp({ ...editingExp, role: { tr: editingExp.role?.tr || "", en: e.target.value } })}
@@ -937,6 +1257,7 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
                     <div>
                       <label className="block text-xs font-mono text-[#A0A8B5] mb-1">Description (TR)</label>
                       <textarea
+                        data-testid="exp-desc-tr-input"
                         rows={3}
                         value={editingExp.description?.tr || ""}
                         onChange={(e) => setEditingExp({ ...editingExp, description: { tr: e.target.value, en: editingExp.description?.en || "" } })}
@@ -946,6 +1267,7 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
                     <div>
                       <label className="block text-xs font-mono text-[#A0A8B5] mb-1">Description (EN)</label>
                       <textarea
+                        data-testid="exp-desc-en-input"
                         rows={3}
                         value={editingExp.description?.en || ""}
                         onChange={(e) => setEditingExp({ ...editingExp, description: { tr: editingExp.description?.tr || "", en: e.target.value } })}
@@ -954,9 +1276,13 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 pt-2">
-                    <button type="button" onClick={handleSaveExp} className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-black font-bold text-xs">Save</button>
-                    <button type="button" onClick={() => setEditingExp(null)} className="px-4 py-2 rounded-lg bg-[#181B22] text-[#A0A8B5] text-xs hover:text-white">Cancel</button>
+                  <div className="flex flex-wrap items-center gap-2 pt-2">
+                    <button type="button" data-testid="exp-save-draft-btn" onClick={() => handleSaveExp("draft")} className="px-3.5 py-2 rounded-lg bg-[#181B22] border border-[#252A33] hover:bg-[#1E222A] text-amber-300 font-bold text-xs">Save Draft</button>
+                    <button type="button" data-testid="exp-publish-btn" onClick={() => handleSaveExp("published")} className="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs">Publish Experience</button>
+                    {editingExp.id && editingExp.status === "published" && (
+                      <button type="button" onClick={() => handleSaveExp("draft")} className="px-3 py-2 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-mono">Unpublish</button>
+                    )}
+                    <button type="button" onClick={() => setEditingExp(null)} className="px-3.5 py-2 rounded-lg bg-[#181B22] text-[#A0A8B5] text-xs hover:text-white">Cancel</button>
                   </div>
                 </div>
               )}
@@ -969,10 +1295,26 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-sm text-[#F5F7FA]">{item.role.tr || item.role.en}</span>
                         <span className="text-xs text-amber-500 font-mono">@{item.organization}</span>
+                        <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded uppercase ${
+                          item.status === "published" ? "text-emerald-400 bg-emerald-500/10" : "text-amber-400 bg-amber-500/10"
+                        }`}>
+                          {item.status}
+                        </span>
                       </div>
                       <span className="text-xs text-[#A0A8B5] font-mono">{item.startDate} — {item.endDate.tr || item.endDate.en}</span>
                     </div>
                     <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleExpStatus(item)}
+                        className={`px-2.5 py-1.5 rounded-lg border text-xs font-mono font-medium transition-colors ${
+                          item.status === "published"
+                            ? "bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30"
+                            : "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
+                        }`}
+                      >
+                        {item.status === "published" ? "Unpublish" : "Publish"}
+                      </button>
                       <button type="button" onClick={() => setEditingExp(item)} className="px-3 py-1.5 rounded-lg bg-[#181B22] text-xs text-[#F5F7FA] border border-[#252A33]">Edit</button>
                       <button type="button" onClick={() => handleDeleteExp(item.id)} className="px-3 py-1.5 rounded-lg bg-red-500/10 text-xs text-red-300 border border-red-500/30">Delete</button>
                     </div>
@@ -996,7 +1338,8 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
                 </div>
                 <button
                   type="button"
-                  onClick={() => setEditingEdu({ status: "published", institution: { tr: "", en: "" }, program: { tr: "", en: "" }, endYear: { tr: "", en: "" }, statusLabel: { tr: "", en: "" } })}
+                  data-testid="edu-add-btn"
+                  onClick={() => setEditingEdu({ status: "draft", institution: { tr: "", en: "" }, program: { tr: "", en: "" }, endYear: { tr: "", en: "" }, statusLabel: { tr: "", en: "" } })}
                   className="px-3.5 py-1.5 rounded-lg bg-[#181B22] hover:bg-[#1E222A] border border-amber-500/30 text-xs font-bold text-amber-300"
                 >
                   + Add Education
@@ -1017,6 +1360,7 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
                     <div>
                       <label className="block text-xs font-mono text-[#A0A8B5] mb-1">Institution (TR)</label>
                       <input
+                        data-testid="edu-inst-tr-input"
                         type="text"
                         value={editingEdu.institution?.tr || ""}
                         onChange={(e) => setEditingEdu({ ...editingEdu, institution: { tr: e.target.value, en: editingEdu.institution?.en || "" } })}
@@ -1026,6 +1370,7 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
                     <div>
                       <label className="block text-xs font-mono text-[#A0A8B5] mb-1">Institution (EN)</label>
                       <input
+                        data-testid="edu-inst-en-input"
                         type="text"
                         value={editingEdu.institution?.en || ""}
                         onChange={(e) => setEditingEdu({ ...editingEdu, institution: { tr: editingEdu.institution?.tr || "", en: e.target.value } })}
@@ -1035,6 +1380,7 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
                     <div>
                       <label className="block text-xs font-mono text-[#A0A8B5] mb-1">Program (TR)</label>
                       <input
+                        data-testid="edu-prog-tr-input"
                         type="text"
                         value={editingEdu.program?.tr || ""}
                         onChange={(e) => setEditingEdu({ ...editingEdu, program: { tr: e.target.value, en: editingEdu.program?.en || "" } })}
@@ -1044,6 +1390,7 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
                     <div>
                       <label className="block text-xs font-mono text-[#A0A8B5] mb-1">Program (EN)</label>
                       <input
+                        data-testid="edu-prog-en-input"
                         type="text"
                         value={editingEdu.program?.en || ""}
                         onChange={(e) => setEditingEdu({ ...editingEdu, program: { tr: editingEdu.program?.tr || "", en: e.target.value } })}
@@ -1052,9 +1399,13 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 pt-2">
-                    <button type="button" onClick={handleSaveEdu} className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-black font-bold text-xs">Save</button>
-                    <button type="button" onClick={() => setEditingEdu(null)} className="px-4 py-2 rounded-lg bg-[#181B22] text-[#A0A8B5] text-xs hover:text-white">Cancel</button>
+                  <div className="flex flex-wrap items-center gap-2 pt-2">
+                    <button type="button" data-testid="edu-save-draft-btn" onClick={() => handleSaveEdu("draft")} className="px-3.5 py-2 rounded-lg bg-[#181B22] border border-[#252A33] hover:bg-[#1E222A] text-amber-300 font-bold text-xs">Save Draft</button>
+                    <button type="button" data-testid="edu-publish-btn" onClick={() => handleSaveEdu("published")} className="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs">Publish Education</button>
+                    {editingEdu.id && editingEdu.status === "published" && (
+                      <button type="button" onClick={() => handleSaveEdu("draft")} className="px-3 py-2 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-mono">Unpublish</button>
+                    )}
+                    <button type="button" onClick={() => setEditingEdu(null)} className="px-3.5 py-2 rounded-lg bg-[#181B22] text-[#A0A8B5] text-xs hover:text-white">Cancel</button>
                   </div>
                 </div>
               )}
@@ -1064,10 +1415,28 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
                 {education.map((item) => (
                   <div key={item.id} className="p-4 rounded-xl bg-[#121418] border border-[#252A33] flex items-center justify-between gap-3">
                     <div>
-                      <h4 className="font-bold text-sm text-[#F5F7FA]">{item.institution.tr || item.institution.en}</h4>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-bold text-sm text-[#F5F7FA]">{item.institution.tr || item.institution.en}</h4>
+                        <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded uppercase ${
+                          item.status === "published" ? "text-emerald-400 bg-emerald-500/10" : "text-amber-400 bg-amber-500/10"
+                        }`}>
+                          {item.status}
+                        </span>
+                      </div>
                       <p className="text-xs text-amber-500 font-mono">{item.program.tr || item.program.en}</p>
                     </div>
                     <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleEduStatus(item)}
+                        className={`px-2.5 py-1.5 rounded-lg border text-xs font-mono font-medium transition-colors ${
+                          item.status === "published"
+                            ? "bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30"
+                            : "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
+                        }`}
+                      >
+                        {item.status === "published" ? "Unpublish" : "Publish"}
+                      </button>
                       <button type="button" onClick={() => setEditingEdu(item)} className="px-3 py-1.5 rounded-lg bg-[#181B22] text-xs text-[#F5F7FA] border border-[#252A33]">Edit</button>
                       <button type="button" onClick={() => handleDeleteEdu(item.id)} className="px-3 py-1.5 rounded-lg bg-red-500/10 text-xs text-red-300 border border-red-500/30">Delete</button>
                     </div>
@@ -1089,6 +1458,7 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
                     <button
                       key={cat}
                       type="button"
+                      data-testid={`skill-filter-${cat}`}
                       onClick={() => setSelectedSkillCat(cat)}
                       className={`px-2.5 py-1 rounded text-xs font-mono font-medium transition-colors cursor-pointer ${
                         selectedSkillCat === cat
@@ -1103,7 +1473,8 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
 
                 <button
                   type="button"
-                  onClick={() => setEditingSkill({ category: selectedSkillCat === "all" ? "design" : selectedSkillCat, status: "published", name: { tr: "", en: "" } })}
+                  data-testid="skill-add-btn"
+                  onClick={() => setEditingSkill({ category: selectedSkillCat === "all" ? "design" : selectedSkillCat, status: "draft", name: { tr: "", en: "" } })}
                   className="px-3.5 py-1.5 rounded-lg bg-[#181B22] hover:bg-[#1E222A] border border-amber-500/30 text-xs font-bold text-amber-300"
                 >
                   + Add Skill
@@ -1117,6 +1488,7 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
                     <div>
                       <label className="block text-xs font-mono text-[#A0A8B5] mb-1">Category</label>
                       <select
+                        data-testid="skill-cat-select"
                         value={editingSkill.category || "design"}
                         onChange={(e) => setEditingSkill({ ...editingSkill, category: e.target.value as CmsSkillCategory })}
                         className="w-full px-3 py-1.5 rounded bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA]"
@@ -1132,6 +1504,7 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
                     <div>
                       <label className="block text-xs font-mono text-[#A0A8B5] mb-1">Name (TR)</label>
                       <input
+                        data-testid="skill-name-tr-input"
                         type="text"
                         value={editingSkill.name?.tr || ""}
                         onChange={(e) => setEditingSkill({ ...editingSkill, name: { tr: e.target.value, en: editingSkill.name?.en || "" } })}
@@ -1141,6 +1514,7 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
                     <div>
                       <label className="block text-xs font-mono text-[#A0A8B5] mb-1">Name (EN)</label>
                       <input
+                        data-testid="skill-name-en-input"
                         type="text"
                         value={editingSkill.name?.en || ""}
                         onChange={(e) => setEditingSkill({ ...editingSkill, name: { tr: editingSkill.name?.tr || "", en: e.target.value } })}
@@ -1148,9 +1522,13 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
                       />
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button type="button" onClick={handleSaveSkill} className="px-4 py-1.5 rounded bg-amber-500 text-black font-bold text-xs">Save</button>
-                    <button type="button" onClick={() => setEditingSkill(null)} className="px-4 py-1.5 rounded bg-[#181B22] text-[#A0A8B5] text-xs">Cancel</button>
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <button type="button" data-testid="skill-save-draft-btn" onClick={() => handleSaveSkill("draft")} className="px-3.5 py-1.5 rounded bg-[#181B22] border border-[#252A33] hover:bg-[#1E222A] text-amber-300 font-bold text-xs">Save Draft</button>
+                    <button type="button" data-testid="skill-publish-btn" onClick={() => handleSaveSkill("published")} className="px-3.5 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs">Publish Skill</button>
+                    {editingSkill.id && editingSkill.status === "published" && (
+                      <button type="button" onClick={() => handleSaveSkill("draft")} className="px-3 py-1.5 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-mono">Unpublish</button>
+                    )}
+                    <button type="button" onClick={() => setEditingSkill(null)} className="px-3.5 py-1.5 rounded bg-[#181B22] text-[#A0A8B5] text-xs">Cancel</button>
                   </div>
                 </div>
               )}
@@ -1162,8 +1540,20 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
                     key={sk.id}
                     className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#181B22] border border-[#252A33] text-xs text-[#F5F7FA]"
                   >
-                    <span>{sk.name.tr || sk.name.en}</span>
+                    <span>{sk.name.tr}{sk.name.en && sk.name.en !== sk.name.tr ? ` (${sk.name.en})` : ""}</span>
                     <span className="text-[10px] font-mono text-amber-500/70">[{sk.category}]</span>
+                    <span className={`text-[9px] font-mono px-1 rounded uppercase ${
+                      sk.status === "published" ? "text-emerald-400 bg-emerald-500/10" : "text-amber-400 bg-amber-500/10"
+                    }`}>
+                      {sk.status}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleSkillStatus(sk)}
+                      className="text-[10px] font-mono text-[#A0A8B5] hover:text-white underline ml-0.5"
+                    >
+                      {sk.status === "published" ? "draft" : "pub"}
+                    </button>
                     <button
                       type="button"
                       onClick={() => handleDeleteSkill(sk.id)}
@@ -1248,6 +1638,7 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
                         <label className="px-3.5 py-1.5 rounded-lg bg-[#181B22] hover:bg-[#1E222A] text-xs font-bold text-amber-300 border border-amber-500/30 cursor-pointer">
                           {uploadingCv ? "Uploading..." : "Upload New PDF"}
                           <input
+                            data-testid={`cv-file-input-${loc}`}
                             type="file"
                             accept=".pdf,application/pdf"
                             className="hidden"
@@ -1259,6 +1650,7 @@ export const AdminProfileNotesCms: React.FC<AdminProfileNotesCmsProps> = ({ sess
                         {hasFile && (
                           <button
                             type="button"
+                            data-testid={`cv-toggle-btn-${loc}`}
                             onClick={() => handleToggleCvStatus(doc!)}
                             className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
                               isPublished

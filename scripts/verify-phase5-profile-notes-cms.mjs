@@ -214,6 +214,33 @@ async function runSuite() {
     assert(videoCount === 21, `Existing 21 canonical videos preserved intact (found ${videoCount})`);
     assert(galleryCount >= 3, `Existing gallery items preserved intact (found ${galleryCount})`);
 
+    // Verify 13 indexes created in migration 0004
+    const localIndexes = testDbConnection
+      .prepare("SELECT name FROM sqlite_master WHERE type='index'")
+      .all()
+      .map((r) => r.name);
+
+    const requiredIndexes = [
+      "idx_portfolio_workspace_notes_lookup",
+      "idx_portfolio_workspace_notes_tr_lookup",
+      "idx_portfolio_workspace_notes_rev",
+      "idx_portfolio_experience_status_sort",
+      "idx_portfolio_experience_tr_lookup",
+      "idx_portfolio_experience_rev",
+      "idx_portfolio_education_status_sort",
+      "idx_portfolio_education_tr_lookup",
+      "idx_portfolio_education_rev",
+      "idx_portfolio_skills_category_sort",
+      "idx_portfolio_skill_tr_lookup",
+      "idx_portfolio_cv_locale",
+      "idx_portfolio_cv_rev"
+    ];
+
+    assert(requiredIndexes.length === 13, "Migration 0004 defines exactly 13 explicit indexes");
+    for (const idx of requiredIndexes) {
+      assert(localIndexes.includes(idx), `Index ${idx} exists in isolated test D1`);
+    }
+
     // Verify foreign key cascades
     testDbConnection.exec("PRAGMA foreign_keys = ON;");
     const dummyNoteId = `cascade-test-note-${Date.now()}`;
@@ -235,6 +262,32 @@ async function runSuite() {
     assert(orphanExpTrans === 0, "FK cascade deletes experience translations when item deleted");
     assert(orphanExpRev === 0, "FK cascade deletes experience revisions when item deleted");
 
+    // Verify Importer Safety & CLI Contract
+    const importerScriptPath = path.join(rootDir, "scripts", "import-profile-notes-to-d1.mjs");
+
+    try {
+      execSync(`node "${importerScriptPath}" --unknown-flag-test`, { stdio: "pipe" });
+      assert(false, "Importer rejects unknown flags with exit code 1");
+    } catch (err) {
+      assert(err.status === 1, "Importer rejects unknown flags with exit code 1", `Exit code: ${err.status}`);
+    }
+
+    try {
+      execSync(`node "${importerScriptPath}" --remote-staging`, { stdio: "pipe" });
+      assert(false, "Importer blocks remote staging seeding with exit code 1");
+    } catch (err) {
+      assert(err.status === 1, "Importer blocks remote staging seeding with exit code 1", `Exit code: ${err.status}`);
+    }
+
+    const nonexistentDbPath = path.join(os.tmpdir(), `nonexistent-p5-test-${Date.now()}.sqlite`);
+    try {
+      execSync(`node "${importerScriptPath}" --dry-run --db-path "${nonexistentDbPath}"`, { stdio: "pipe" });
+      assert(false, "Importer rejects missing DB in dry-run with exit code 1");
+    } catch (err) {
+      assert(err.status === 1, "Importer rejects missing DB in dry-run with exit code 1", `Exit code: ${err.status}`);
+      assert(!fs.existsSync(nonexistentDbPath), "Dry-run invariant: missing database was not created on disk");
+    }
+
     testDbConnection.close();
     testDbConnection = null;
 
@@ -244,25 +297,16 @@ async function runSuite() {
     console.log(`\nSpawning isolated test server on port ${testPort}...`);
     const nextBin = path.join(rootDir, "node_modules", "next", "dist", "bin", "next");
 
-    const envStagingPath = path.join(rootDir, ".env.staging.local");
-    const stagingEnv = {};
-    if (fs.existsSync(envStagingPath)) {
-      const content = fs.readFileSync(envStagingPath, "utf-8");
-      for (const line of content.split("\n")) {
-        const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith("#")) continue;
-        const eqIdx = trimmed.indexOf("=");
-        if (eqIdx > 0) {
-          const key = trimmed.slice(0, eqIdx).trim();
-          const val = trimmed.slice(eqIdx + 1).trim();
-          stagingEnv[key] = val;
-        }
-      }
-    }
+    // Ephemeral admin credentials - NEVER read real staging or production files
+    const testAdminEmail = "ephemeral-admin@local.test";
+    const testAdminPassword = `EphemeralPass_${crypto.randomBytes(8).toString("hex")}!`;
+    const testSalt = crypto.randomBytes(16);
+    const testDerived = crypto.scryptSync(testAdminPassword, testSalt, 64);
+    const testAdminHash = `scrypt:${testSalt.toString("hex")}:${testDerived.toString("hex")}`;
+    const testSessionSecret = `ephemeral-session-secret-${crypto.randomBytes(16).toString("hex")}`;
 
     const testEnv = {
       ...process.env,
-      ...stagingEnv,
       NODE_ENV: "production",
       CMS_STORAGE_MODE: "local",
       CMS_DATA_SOURCE: "local",
@@ -270,11 +314,15 @@ async function runSuite() {
       LOCAL_R2_DIR_PATH: tempR2Dir,
       PORT: String(testPort),
       HOSTNAME: "127.0.0.1",
+      ADMIN_SESSION_SECRET: testSessionSecret,
+      ADMIN_ALLOWED_EMAILS: testAdminEmail,
+      ADMIN_PASSWORD_HASH: testAdminHash,
       ADMIN_TRUSTED_ORIGINS: `http://127.0.0.1:${testPort},http://localhost:${testPort}`
     };
 
     delete testEnv.CLOUDFLARE_CMS_API_URL;
     delete testEnv.CLOUDFLARE_API_SERVICE_TOKEN;
+    delete testEnv.ADMIN_MASTER_PASSWORD;
 
     testServerProcess = spawn(process.execPath, [nextBin, "start", "-p", String(testPort), "-H", "127.0.0.1"], {
       cwd: rootDir,
@@ -287,23 +335,10 @@ async function runSuite() {
 
     testDbConnection = new DatabaseSync(tempDbPath);
 
-    // Read admin credentials from .staging-admin-credentials.local
-    let adminEmail = "staging-admin@local.test";
-    let adminPassword = "";
-    const credFile = path.join(rootDir, ".staging-admin-credentials.local");
-    if (fs.existsSync(credFile)) {
-      const lines = fs.readFileSync(credFile, "utf-8").split("\n");
-      for (const l of lines) {
-        const t = l.trim();
-        if (t.startsWith("ADMIN_EMAIL=")) adminEmail = t.slice("ADMIN_EMAIL=".length).trim();
-        if (t.startsWith("ADMIN_PASSWORD=")) adminPassword = t.slice("ADMIN_PASSWORD=".length).trim();
-      }
-    }
-
     const authRes = await fetch(`${baseUrl}/api/admin/auth`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Origin: baseUrl },
-      body: JSON.stringify({ email: adminEmail, password: adminPassword })
+      body: JSON.stringify({ email: testAdminEmail, password: testAdminPassword })
     });
     const authJson = await authRes.json();
     const setCookies = typeof authRes.headers.getSetCookie === "function"
@@ -312,7 +347,7 @@ async function runSuite() {
     const cookieHeader = setCookies.map((c) => c.split(";")[0].trim()).filter(Boolean).join("; ");
     const csrfToken = authJson.session?.csrfToken || authJson.csrfToken || "";
 
-    assert(authRes.ok && Boolean(cookieHeader), `Admin authenticated successfully as ${adminEmail}`);
+    assert(authRes.ok && Boolean(cookieHeader), `Admin authenticated successfully as ${testAdminEmail}`);
     assert(Boolean(csrfToken), "CSRF token returned by auth endpoint");
 
     const adminHeaders = {
@@ -875,6 +910,17 @@ async function runSuite() {
 
     const notesCvSrc = fs.readFileSync(path.join(rootDir, "src", "components", "applications", "notes", "NotesCvTab.tsx"), "utf-8");
     assert(notesCvSrc.includes("sessionCv"), "NotesCvTab consumes CMS sessionCv");
+
+    // Fail-Closed & Degraded State Architecture checks
+    assert(sessionStoreSrc.includes("phase5Degraded"), "sessionStore tracks phase5Degraded state");
+    const repoSrc = fs.readFileSync(path.join(rootDir, "src", "lib", "portfolio", "repository.ts"), "utf-8");
+    assert(repoSrc.includes("degraded"), "repository.ts exposes degraded indicator on upstream failure");
+    const pageSrc = fs.readFileSync(path.join(rootDir, "src", "app", "[locale]", "page.tsx"), "utf-8");
+    assert(pageSrc.includes("isDegraded"), "page.tsx handles fail-closed degradation on Phase 5 CMS fetch error");
+    const notesAboutSrc = fs.readFileSync(path.join(rootDir, "src", "components", "applications", "notes", "NotesAboutTab.tsx"), "utf-8");
+    assert(notesAboutSrc.includes("phase5Degraded"), "NotesAboutTab handles phase5Degraded without silent fallback");
+    assert(notesOverviewSrc.includes("phase5Degraded"), "NotesOverviewTab handles phase5Degraded state");
+    assert(notesCvSrc.includes("phase5Degraded"), "NotesCvTab handles phase5Degraded state");
 
     // Check Cloudflare Worker API
     const workerSrc = fs.readFileSync(path.join(rootDir, "cloudflare", "portfolio-api", "src", "index.ts"), "utf-8");

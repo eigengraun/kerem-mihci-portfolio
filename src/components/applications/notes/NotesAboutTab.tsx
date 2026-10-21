@@ -13,35 +13,60 @@ interface NotesAboutTabProps {
 
 export const NotesAboutTab: React.FC<NotesAboutTabProps> = ({ locale, isLight }) => {
   const [imgError, setImgError] = useState(false);
-  const { sessionProfile } = useSessionStore();
+  const { sessionProfile, isCmsMode, phase5Degraded } = useSessionStore();
   const isEn = locale === "en";
 
-  const name = sessionProfile?.name || profileData.name;
-  const headline = isEn
-    ? (sessionProfile?.headline?.en || profileData.headlineEN)
-    : (sessionProfile?.headline?.tr || profileData.headlineTR);
-  const location = isEn
-    ? (sessionProfile?.location?.en || profileData.locationEN)
-    : (sessionProfile?.location?.tr || profileData.locationTR);
-  const alt = isEn
-    ? (sessionProfile?.alt?.en || profileData.altEN)
-    : (sessionProfile?.alt?.tr || profileData.altTR);
+  if (isCmsMode && phase5Degraded) {
+    return (
+      <div className="p-8 text-center space-y-2 font-mono">
+        <div className="text-amber-400 text-xs font-bold">
+          {isEn ? "PROFILE TEMPORARILY DEGRADED" : "PROFİL GEÇİCİ OLARAK KULLANILAMIYOR"}
+        </div>
+        <p className="text-xs text-[#A0A8B5]">
+          {isEn
+            ? "Upstream CMS service is experiencing technical difficulties. Please try again later."
+            : "Üst düzey CMS servisinde teknik aksaklık yaşanıyor. Lütfen daha sonra tekrar deneyiniz."}
+        </p>
+      </div>
+    );
+  }
 
-  const cmsSummary = isEn ? sessionProfile?.summary?.en : sessionProfile?.summary?.tr;
-  const summaries = cmsSummary && cmsSummary.length > 0
-    ? cmsSummary
+  if (isCmsMode && !sessionProfile) {
+    return (
+      <div className="p-8 text-center space-y-2 font-mono">
+        <p className="text-xs text-[#A0A8B5]">
+          {isEn ? "No published profile is currently available." : "Şu anda yayınlanmış bir profil bulunmuyor."}
+        </p>
+      </div>
+    );
+  }
+
+  const name = isCmsMode ? sessionProfile!.name : profileData.name;
+  const headline = isCmsMode
+    ? (isEn ? sessionProfile!.headline?.en : sessionProfile!.headline?.tr) || ""
+    : (isEn ? profileData.headlineEN : profileData.headlineTR);
+  const location = isCmsMode
+    ? (isEn ? sessionProfile!.location?.en : sessionProfile!.location?.tr) || ""
+    : (isEn ? profileData.locationEN : profileData.locationTR);
+  const alt = isCmsMode
+    ? (isEn ? sessionProfile!.alt?.en : sessionProfile!.alt?.tr) || ""
+    : (isEn ? profileData.altEN : profileData.altTR);
+
+  const summaries = isCmsMode
+    ? ((isEn ? sessionProfile!.summary?.en : sessionProfile!.summary?.tr) || [])
     : (isEn ? profileData.summaryEN : profileData.summaryTR);
 
-  const cmsFocus = isEn ? sessionProfile?.focusAreas?.en : sessionProfile?.focusAreas?.tr;
-  const focusAreas = cmsFocus && cmsFocus.length > 0
-    ? cmsFocus
+  const focusAreas = isCmsMode
+    ? ((isEn ? sessionProfile!.focusAreas?.en : sessionProfile!.focusAreas?.tr) || [])
     : (isEn ? profileData.focusAreasEN : profileData.focusAreasTR);
 
-  const stats = sessionProfile?.stats && sessionProfile.stats.length > 0
-    ? sessionProfile.stats
+  const stats = isCmsMode
+    ? (sessionProfile!.stats || [])
     : profileData.stats;
 
-  const imageSrc = sessionProfile?.image || sessionProfile?.avatar || profileData.image || profileData.avatar;
+  const imageSrc = isCmsMode
+    ? (sessionProfile!.image || sessionProfile!.avatar || "")
+    : (profileData.image || profileData.avatar);
 
   return (
     <div className="space-y-5 animate-in fade-in duration-200">

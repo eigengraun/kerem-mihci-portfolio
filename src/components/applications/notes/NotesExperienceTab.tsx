@@ -12,10 +12,34 @@ interface NotesExperienceTabProps {
 
 export const NotesExperienceTab: React.FC<NotesExperienceTabProps> = ({ locale, isLight }) => {
   const isEn = locale === "en";
-  const { sessionExperience } = useSessionStore();
+  const { sessionExperience, isCmsMode, phase5Degraded } = useSessionStore();
 
-  const hasCms = sessionExperience && sessionExperience.length > 0;
-  const items = hasCms
+  if (isCmsMode && phase5Degraded) {
+    return (
+      <div className="p-8 text-center space-y-2 font-mono">
+        <div className="text-amber-400 text-xs font-bold">
+          {isEn ? "EXPERIENCE LOG TEMPORARILY DEGRADED" : "DENEYİM KAYITLARI GEÇİCİ OLARAK KULLANILAMIYOR"}
+        </div>
+        <p className="text-xs text-[#A0A8B5]">
+          {isEn
+            ? "Upstream CMS service is experiencing technical difficulties. Please try again later."
+            : "Üst düzey CMS servisinde teknik aksaklık yaşanıyor. Lütfen daha sonra tekrar deneyiniz."}
+        </p>
+      </div>
+    );
+  }
+
+  if (isCmsMode && (!sessionExperience || sessionExperience.length === 0)) {
+    return (
+      <div className="p-8 text-center space-y-2 font-mono">
+        <p className="text-xs text-[#A0A8B5]">
+          {isEn ? "No published experience records available." : "Yayınlanmış deneyim kaydı bulunmuyor."}
+        </p>
+      </div>
+    );
+  }
+
+  const items = isCmsMode
     ? sessionExperience.map((item) => ({
         id: item.id,
         role: isEn ? (item.role.en || item.role.tr) : (item.role.tr || item.role.en),

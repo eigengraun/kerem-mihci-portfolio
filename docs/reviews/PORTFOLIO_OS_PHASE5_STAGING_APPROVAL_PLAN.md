@@ -61,18 +61,21 @@ Before any remote operations commence, the operator must verify:
 ## 4. Step-by-Step Staging Rollout Procedure
 
 ### Step 1: Preflight Backup of Staging D1
-Export an isolated, timestamped snapshot of staging D1:
+Export an isolated, timestamped snapshot of staging D1 to a private location outside git tracking:
 ```bash
-npx wrangler d1 export kerem-portfolio-db-staging --env staging --output ./backups/staging-pre-phase5-$(date +%s).sql
+BACKUP_PATH="/tmp/staging-d1-pre-phase5-$(date +%s).sql"
+npx wrangler d1 export kerem-portfolio-db-staging --env staging --output "$BACKUP_PATH"
+chmod 0600 "$BACKUP_PATH"
+shasum -a 256 "$BACKUP_PATH"
 ```
-Verify the backup file exists, is non-empty, and permissions are restricted (mode 0600).
+Verify the backup file exists, is non-empty, permissions are restricted (mode 0600), and SHA-256 digest is safely recorded in the release log.
 
 ### Step 2: Apply Migration 0004 to Staging D1
 Apply additive migration `0004_profile_notes_cv_schema.sql` to staging D1:
 ```bash
 npx wrangler d1 migrations apply kerem-portfolio-db-staging --env staging --remote
 ```
-Verify output confirms 16 tables and 14 indexes created without errors.
+Verify output confirms 16 tables and 13 indexes created without errors.
 
 ### Step 3: Deploy Phase 5 Cloudflare Worker
 Deploy the updated Worker API to staging:
@@ -83,11 +86,11 @@ npx wrangler deploy --env staging
 Record the deployed Worker version ID and timestamp.
 
 ### Step 4: Seed Canonical Profile & Notes Data to Staging D1
-Execute the deterministic seeding script against remote staging:
-```bash
-node scripts/import-profile-notes-to-d1.mjs --remote-staging --execute
-```
-Verify seeding output confirms:
+> [!IMPORTANT]
+> Remote staging seeding is strictly fail-closed by default.
+> `scripts/import-profile-notes-to-d1.mjs` explicitly rejects `--remote-staging` and requires separate explicit operator authorization.
+> When remote seeding authorization is granted, seed data using verified migration or authorized tooling.
+Verify remote data contains authentic canonical entities:
 - 1 Profile record (`main`)
 - 24 Workspace Notes partitioned across `design`, `web`, and `motion-ai`
 - 5 Experience items
@@ -108,33 +111,23 @@ Run the authenticated staging E2E verification test against the live staging Wor
 
 If any step fails or unexpected behavior is observed during staging rollout:
 
-### Plan A: Worker Rollback
+### Plan A: Worker Version Rollback (Non-Destructive)
 Roll back the Worker to the last verified Phase 4.2 stable deployment:
 ```bash
 npx wrangler rollback <PHASE4_WORKER_VERSION_ID> --env staging
 ```
+Because Migration 0004 is purely additive (16 new tables with zero changes to existing tables), the Phase 4 Worker immediately resumes normal operation ignoring the additive tables without data loss.
 
-### Plan B: D1 Migration Retraction
-If Migration 0004 must be retracted from staging D1 without affecting existing tables:
-```sql
-DROP TABLE IF EXISTS portfolio_cv_revisions;
-DROP TABLE IF EXISTS portfolio_cv_documents;
-DROP TABLE IF EXISTS portfolio_skill_translations;
-DROP TABLE IF EXISTS portfolio_skills;
-DROP TABLE IF EXISTS portfolio_education_revisions;
-DROP TABLE IF EXISTS portfolio_education_translations;
-DROP TABLE IF EXISTS portfolio_education;
-DROP TABLE IF EXISTS portfolio_experience_revisions;
-DROP TABLE IF EXISTS portfolio_experience_translations;
-DROP TABLE IF EXISTS portfolio_experience;
-DROP TABLE IF EXISTS portfolio_workspace_notes_revisions;
-DROP TABLE IF EXISTS portfolio_workspace_notes_translations;
-DROP TABLE IF EXISTS portfolio_workspace_notes;
-DROP TABLE IF EXISTS portfolio_profile_revisions;
-DROP TABLE IF EXISTS portfolio_profile_translations;
-DROP TABLE IF EXISTS portfolio_profile;
+### Plan B: Non-Destructive Database Recovery
+If database inconsistencies occur:
+1. Immediately cease Worker write operations.
+2. In the event of schema rollback necessity, restore from the verified private preflight backup taken in Step 1:
+```bash
+# Verify preflight backup integrity
+shasum -a 256 "$BACKUP_PATH"
+# Execute non-destructive restore to staging D1 only under operator authorization
 ```
-Existing tables (`projects`, `portfolio_videos`, `portfolio_gallery_items`) are completely untouched.
+3. Destructive operations (such as manual `DROP TABLE` cascades) are strictly prohibited on staging databases to prevent accidental deletion of shared canonical project, video, and gallery records.
 
 ---
 

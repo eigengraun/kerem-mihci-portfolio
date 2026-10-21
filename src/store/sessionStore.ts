@@ -83,6 +83,9 @@ export interface SessionStoreState {
   sessionEducation: CmsEducationItem[];
   sessionSkills: CmsSkillItem[];
   sessionCv: { tr: CmsCvDocument | null; en: CmsCvDocument | null };
+  isCmsMode: boolean;
+  phase5Degraded: boolean;
+  phase5ErrorMessage?: string;
   desktopPlacements: Record<string, Record<string, ResolvedDesktopPosition>>;
   manualPlacements: Record<string, Record<string, ResolvedDesktopPosition>>;
   isDraggingProject: boolean;
@@ -90,14 +93,19 @@ export interface SessionStoreState {
   hydrateProjects: (projects: Project[]) => void;
   hydrateVideos: (videos: PortfolioVideo[], isCmsMode?: boolean) => void;
   hydrateGallery: (gallery: GalleryItem[], isCmsMode?: boolean) => void;
-  hydratePhase5Content: (payload: {
-    profile?: CmsProfileRecord | null;
-    notes?: Record<string, CmsWorkspaceNote[]>;
-    experience?: CmsExperienceItem[];
-    education?: CmsEducationItem[];
-    skills?: CmsSkillItem[];
-    cv?: { tr: CmsCvDocument | null; en: CmsCvDocument | null };
-  }) => void;
+  hydratePhase5Content: (
+    payload: {
+      profile?: CmsProfileRecord | null;
+      notes?: Record<string, CmsWorkspaceNote[]>;
+      experience?: CmsExperienceItem[];
+      education?: CmsEducationItem[];
+      skills?: CmsSkillItem[];
+      cv?: { tr: CmsCvDocument | null; en: CmsCvDocument | null };
+      isDegraded?: boolean;
+      errorMessage?: string;
+    },
+    isCmsMode?: boolean
+  ) => void;
   updateDesktopPosition: (workspaceId: string, projectId: string, pos: { x: number; y: number }) => void;
 }
 
@@ -117,6 +125,9 @@ export const useSessionStore = create<SessionStoreState>((set) => ({
   sessionEducation: [],
   sessionSkills: [],
   sessionCv: { tr: null, en: null },
+  isCmsMode: false,
+  phase5Degraded: false,
+  phase5ErrorMessage: undefined,
   desktopPlacements: initialPlacements,
   manualPlacements: {},
   isDraggingProject: false,
@@ -181,8 +192,11 @@ export const useSessionStore = create<SessionStoreState>((set) => ({
       };
     });
   },
-  hydratePhase5Content: (payload) => {
+  hydratePhase5Content: (payload, isCmsMode) => {
     set((state) => ({
+      isCmsMode: isCmsMode !== undefined ? isCmsMode : state.isCmsMode,
+      phase5Degraded: payload.isDegraded !== undefined ? payload.isDegraded : state.phase5Degraded,
+      phase5ErrorMessage: payload.errorMessage,
       sessionProfile: payload.profile !== undefined ? payload.profile : state.sessionProfile,
       sessionWorkspaceNotes: payload.notes !== undefined ? { ...state.sessionWorkspaceNotes, ...payload.notes } : state.sessionWorkspaceNotes,
       sessionExperience: payload.experience !== undefined ? payload.experience : state.sessionExperience,

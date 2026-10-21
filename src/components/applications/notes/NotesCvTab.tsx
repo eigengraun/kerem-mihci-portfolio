@@ -12,15 +12,42 @@ interface NotesCvTabProps {
 
 export const NotesCvTab: React.FC<NotesCvTabProps> = ({ locale, isLight }) => {
   const isEn = locale === "en";
-  const { sessionCv } = useSessionStore();
+  const { sessionCv, isCmsMode, phase5Degraded } = useSessionStore();
 
-  const trCms = sessionCv?.tr;
-  const trAvailable = Boolean(trCms && trCms.status === "published" && trCms.publicUrl) || profileData.cv.trAvailable;
-  const trPath = (trCms && trCms.status === "published" && trCms.publicUrl) ? trCms.publicUrl : profileData.cv.trPath;
+  if (isCmsMode && phase5Degraded) {
+    return (
+      <div className="p-8 text-center space-y-2 font-mono">
+        <div className="text-amber-400 text-xs font-bold">
+          {isEn ? "CV SERVICE TEMPORARILY DEGRADED" : "CV SERVİSİ GEÇİCİ OLARAK KULLANILAMIYOR"}
+        </div>
+        <p className="text-xs text-[#A0A8B5]">
+          {isEn
+            ? "Upstream CMS service is experiencing technical difficulties. Please try again later."
+            : "Üst düzey CMS servisinde teknik aksaklık yaşanıyor. Lütfen daha sonra tekrar deneyiniz."}
+        </p>
+      </div>
+    );
+  }
 
-  const enCms = sessionCv?.en;
-  const enAvailable = Boolean(enCms && enCms.status === "published" && enCms.publicUrl) || profileData.cv.enAvailable;
-  const enPath = (enCms && enCms.status === "published" && enCms.publicUrl) ? enCms.publicUrl : profileData.cv.enPath;
+  let trAvailable = false;
+  let trPath = "";
+  let enAvailable = false;
+  let enPath = "";
+
+  if (isCmsMode) {
+    const trCms = sessionCv?.tr;
+    trAvailable = Boolean(trCms && trCms.status === "published" && trCms.publicUrl && trCms.byteSize > 0);
+    trPath = trAvailable ? trCms!.publicUrl : "";
+
+    const enCms = sessionCv?.en;
+    enAvailable = Boolean(enCms && enCms.status === "published" && enCms.publicUrl && enCms.byteSize > 0);
+    enPath = enAvailable ? enCms!.publicUrl : "";
+  } else {
+    trAvailable = profileData.cv.trAvailable;
+    trPath = profileData.cv.trPath;
+    enAvailable = profileData.cv.enAvailable;
+    enPath = profileData.cv.enPath;
+  }
 
   return (
     <div className="space-y-4 animate-in fade-in duration-200">

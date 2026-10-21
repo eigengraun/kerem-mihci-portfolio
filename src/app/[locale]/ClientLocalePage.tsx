@@ -25,6 +25,8 @@ export interface Phase5InitialData {
   education?: CmsEducationItem[];
   skills?: CmsSkillItem[];
   cv?: { tr: CmsCvDocument | null; en: CmsCvDocument | null };
+  isDegraded?: boolean;
+  errorMessage?: string;
 }
 
 interface ClientLocalePageProps {
@@ -57,7 +59,7 @@ export function ClientLocalePage({ initialProjects, initialVideos, initialGaller
       useSessionStore.getState().hydrateProjects(initialProjects);
     }
     if (initialPhase5) {
-      useSessionStore.getState().hydratePhase5Content(initialPhase5);
+      useSessionStore.getState().hydratePhase5Content(initialPhase5, isCmsMode);
     }
     isHydratedRef.current = true;
   }
@@ -82,9 +84,9 @@ export function ClientLocalePage({ initialProjects, initialVideos, initialGaller
 
   useEffect(() => {
     if (initialPhase5) {
-      hydratePhase5Content(initialPhase5);
+      hydratePhase5Content(initialPhase5, isCmsMode);
     }
-  }, [initialPhase5, hydratePhase5Content]);
+  }, [initialPhase5, hydratePhase5Content, isCmsMode]);
 
   useEffect(() => {
     if (locale === "tr" || locale === "en") {

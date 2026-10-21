@@ -12,10 +12,34 @@ interface NotesEducationTabProps {
 
 export const NotesEducationTab: React.FC<NotesEducationTabProps> = ({ locale, isLight }) => {
   const isEn = locale === "en";
-  const { sessionEducation } = useSessionStore();
+  const { sessionEducation, isCmsMode, phase5Degraded } = useSessionStore();
 
-  const hasCms = sessionEducation && sessionEducation.length > 0;
-  const items = hasCms
+  if (isCmsMode && phase5Degraded) {
+    return (
+      <div className="p-8 text-center space-y-2 font-mono">
+        <div className="text-amber-400 text-xs font-bold">
+          {isEn ? "EDUCATION RECORDS TEMPORARILY DEGRADED" : "EĞİTİM KAYITLARI GEÇİCİ OLARAK KULLANILAMIYOR"}
+        </div>
+        <p className="text-xs text-[#A0A8B5]">
+          {isEn
+            ? "Upstream CMS service is experiencing technical difficulties. Please try again later."
+            : "Üst düzey CMS servisinde teknik aksaklık yaşanıyor. Lütfen daha sonra tekrar deneyiniz."}
+        </p>
+      </div>
+    );
+  }
+
+  if (isCmsMode && (!sessionEducation || sessionEducation.length === 0)) {
+    return (
+      <div className="p-8 text-center space-y-2 font-mono">
+        <p className="text-xs text-[#A0A8B5]">
+          {isEn ? "No published education records available." : "Yayınlanmış eğitim kaydı bulunmuyor."}
+        </p>
+      </div>
+    );
+  }
+
+  const items = isCmsMode
     ? sessionEducation.map((item) => ({
         id: item.id,
         institution: isEn ? (item.institution.en || item.institution.tr) : (item.institution.tr || item.institution.en),

@@ -2468,7 +2468,7 @@ export async function upsertProfileInWorkerD1(
   const email = input.email !== undefined ? String(input.email) : (existing?.email ? String(existing.email) : "info@keremmihci.com");
   const image = input.image !== undefined ? String(input.image) : (existing?.image ? String(existing.image) : "/profile/kerem-mihci-profile.webp");
   const avatar = input.avatar !== undefined ? String(input.avatar) : (existing?.avatar ? String(existing.avatar) : "/profile/kerem-mihci-avatar.webp");
-  const status = input.status !== undefined ? String(input.status) : (existing?.status ? String(existing.status) : "published");
+  const status = input.status !== undefined ? String(input.status) : (existing?.status ? String(existing.status) : "draft");
   const stats = input.stats !== undefined ? input.stats : (existing?.stats || []);
 
   const publishedAt = status === "published" ? (existing?.publishedAt ? String(existing.publishedAt) : now) : null;
@@ -3268,7 +3268,7 @@ export async function upsertSkillInWorkerD1(
   const existingList = await queryCmsSkillsFromWorkerD1(db, "WHERE id = ?", [skillId]);
   const existing = existingList[0] || null;
 
-  const status = String(input.status || existing?.status || "published");
+  const status = String(input.status || existing?.status || "draft");
   const sortOrder = input.sortOrder !== undefined ? Number(input.sortOrder) : Number(existing?.sortOrder ?? 0);
 
   await db.prepare(`

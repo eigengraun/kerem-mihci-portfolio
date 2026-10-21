@@ -1747,14 +1747,10 @@ export const rollbackGalleryRevisionInD1 = rollbackGalleryRevision;
 
 export async function getPublishedProfile(): Promise<CmsProfileRecord | null> {
   if (shouldUseWorkerApi()) {
-    try {
-      const res = await fetchWorkerJson<{ ok: boolean; profile: CmsProfileRecord | null }>(
-        "/api/v1/public/profile"
-      );
-      return res.profile || null;
-    } catch {
-      return null;
-    }
+    const res = await fetchWorkerJson<{ ok: boolean; profile: CmsProfileRecord | null }>(
+      "/api/v1/public/profile"
+    );
+    return res.profile || null;
   }
   assertLocalSimulationAllowed("getPublishedProfile");
   const p = getProfileLocal();
@@ -1841,14 +1837,10 @@ export async function getPublishedWorkspaceNotes(
   workspaceId: WorkspaceCategory
 ): Promise<CmsWorkspaceNote[]> {
   if (shouldUseWorkerApi()) {
-    try {
-      const res = await fetchWorkerJson<{ ok: boolean; notes: CmsWorkspaceNote[] }>(
-        `/api/v1/public/notes/${encodeURIComponent(workspaceId)}`
-      );
-      return res.notes || [];
-    } catch {
-      return [];
-    }
+    const res = await fetchWorkerJson<{ ok: boolean; notes: CmsWorkspaceNote[] }>(
+      `/api/v1/public/notes/${encodeURIComponent(workspaceId)}`
+    );
+    return res.notes || [];
   }
   assertLocalSimulationAllowed("getPublishedWorkspaceNotes");
   return listPublishedWorkspaceNotesLocal(workspaceId);
@@ -1994,13 +1986,9 @@ export const rollbackWorkspaceNoteRevisionInD1 = rollbackWorkspaceNoteRevision;
 
 export async function getPublishedExperience(category?: string): Promise<CmsExperienceItem[]> {
   if (shouldUseWorkerApi()) {
-    try {
-      const path = category ? `/api/v1/public/experience?category=${encodeURIComponent(category)}` : "/api/v1/public/experience";
-      const res = await fetchWorkerJson<{ ok: boolean; experience: CmsExperienceItem[] }>(path);
-      return res.experience || [];
-    } catch {
-      return [];
-    }
+    const path = category ? `/api/v1/public/experience?category=${encodeURIComponent(category)}` : "/api/v1/public/experience";
+    const res = await fetchWorkerJson<{ ok: boolean; experience: CmsExperienceItem[] }>(path);
+    return res.experience || [];
   }
   assertLocalSimulationAllowed("getPublishedExperience");
   return listPublishedExperienceLocal(category);
@@ -2144,14 +2132,10 @@ export const rollbackExperienceRevisionInD1 = rollbackExperienceRevision;
 
 export async function getPublishedEducation(): Promise<CmsEducationItem[]> {
   if (shouldUseWorkerApi()) {
-    try {
-      const res = await fetchWorkerJson<{ ok: boolean; education: CmsEducationItem[] }>(
-        "/api/v1/public/education"
-      );
-      return res.education || [];
-    } catch {
-      return [];
-    }
+    const res = await fetchWorkerJson<{ ok: boolean; education: CmsEducationItem[] }>(
+      "/api/v1/public/education"
+    );
+    return res.education || [];
   }
   assertLocalSimulationAllowed("getPublishedEducation");
   return listPublishedEducationLocal();
@@ -2294,13 +2278,9 @@ export const rollbackEducationRevisionInD1 = rollbackEducationRevision;
 
 export async function getPublishedSkills(category?: CmsSkillCategory): Promise<CmsSkillItem[]> {
   if (shouldUseWorkerApi()) {
-    try {
-      const path = category ? `/api/v1/public/skills?category=${encodeURIComponent(category)}` : "/api/v1/public/skills";
-      const res = await fetchWorkerJson<{ ok: boolean; skills: CmsSkillItem[] }>(path);
-      return res.skills || [];
-    } catch {
-      return [];
-    }
+    const path = category ? `/api/v1/public/skills?category=${encodeURIComponent(category)}` : "/api/v1/public/skills";
+    const res = await fetchWorkerJson<{ ok: boolean; skills: CmsSkillItem[] }>(path);
+    return res.skills || [];
   }
   assertLocalSimulationAllowed("getPublishedSkills");
   return listPublishedSkillsLocal(category);
@@ -2404,14 +2384,10 @@ export const updateSkillsOrderingInD1 = updateSkillsOrdering;
 
 export async function getPublishedCv(locale: "tr" | "en"): Promise<CmsCvDocument | null> {
   if (shouldUseWorkerApi()) {
-    try {
-      const res = await fetchWorkerJson<{ ok: boolean; cv: CmsCvDocument | null }>(
-        `/api/v1/public/cv/${encodeURIComponent(locale)}`
-      );
-      return res.cv || null;
-    } catch {
-      return null;
-    }
+    const res = await fetchWorkerJson<{ ok: boolean; cv: CmsCvDocument | null }>(
+      `/api/v1/public/cv/${encodeURIComponent(locale)}`
+    );
+    return res.cv || null;
   }
   assertLocalSimulationAllowed("getPublishedCv");
   const doc = getCvDocumentLocal(locale);

@@ -9,16 +9,18 @@
 
 ## 1. Executive Summary
 
-Phase 5 successfully migrates all remaining static personal profile content, workspace-specific notes, career experience, education history, technical skills, and curriculum vitae documents into a unified, bilingual, production-grade CMS engine within Cloudflare D1 and Studio OS.
+Phase 5 successfully migrates all remaining static personal profile content, workspace-specific notes, career experience, education history, technical skills, and curriculum vitae documents into a unified, bilingual, production-grade CMS engine within Cloudflare D1 and Studio OS. In Phase 5.1, release hardening, content-integrity reconciliation, CLI importer contract enforcement, fail-closed UI degradation, and interactive browser E2E workflows were completed.
 
-All Phase 5 criteria were designed, implemented, tested, and verified locally without touching staging or production infrastructure:
+All Phase 5 / 5.1 criteria were designed, implemented, tested, and verified locally without touching staging or production infrastructure:
 
-- **16 New D1 Tables & 14 Indexes**: Added via Migration `0004_profile_notes_cv_schema.sql` with zero breakage to existing projects, videos, or gallery items.
+- **16 New D1 Tables & 13 Explicit Compound Indexes**: Added via Migration `0004_profile_notes_cv_schema.sql` with zero breakage to existing projects, videos, or gallery items.
+- **Strict Content Integrity & Verification Matrix**: Retracted unverified biography claims (16+ yrs, 2008-2026 chronology, Marmara Fine Arts) and anchored CMS content strictly to verified facts in `docs/reviews/PORTFOLIO_OS_PHASE5_1_CONTENT_VERIFICATION_MATRIX.md`.
+- **Strict Importer CLI Contract**: `scripts/import-profile-notes-to-d1.mjs` enforces zero unknown flags (exit 1), blocks `--remote-staging` (exit 1), requires existing DB for `--dry-run` (exit 1), and guarantees idempotency.
 - **Strict Workspace Note Partitioning**: Notes are dynamically isolated by `workspace_id` (`design`, `web`, `motion-ai`), ensuring complete contextual separation.
 - **PDF Binary Security**: Added `%PDF-` magic byte inspection and size verification, preventing upload of corrupted or non-PDF files.
-- **Draft Leakage Prevention**: Unpublished drafts return HTTP 404 with `Cache-Control: no-store` to public visitors.
-- **Studio OS Admin Management**: Embedded `AdminProfileNotesCms` component into the admin dashboard with sub-tabs for Bio, Notes, Experience, Education, Skills, and CV Documents.
-- **Full Verification Suite**: 144 automated API/schema checks passed (100%), 12 real Chromium browser E2E checks passed (100%), Phase 3 regression passed (112/112), and Phase 4 regression passed (87/87).
+- **Draft Leakage Prevention & Fail-Closed Degraded UI**: Unpublished drafts return HTTP 404 with `Cache-Control: no-store` to public visitors. Upstream outages display clear degraded notices instead of silently serving stale fallbacks.
+- **Studio OS Admin Management**: Embedded `AdminProfileNotesCms` component into the admin dashboard with sub-tabs for Bio, Notes, Experience, Education, Skills, and CV Documents, wired with CSRF protection and draft/publish controls.
+- **Full Verification Suite**: 168 automated API/schema checks passed (100%), 47 real Chromium browser E2E checks passed (100%), Phase 3 regression passed (112/112), and Phase 4 regression passed (87/87).
 
 ---
 
@@ -34,7 +36,7 @@ All Phase 5 criteria were designed, implemented, tested, and verified locally wi
   - `portfolio_skills`, `portfolio_skill_translations`
   - `portfolio_cv_documents`, `portfolio_cv_revisions`
 - Foreign keys enforce `ON DELETE CASCADE` across all child tables.
-- 14 compound indices optimize lookup and sorting performance.
+- 13 compound indices optimize lookup and sorting performance.
 
 ### 2.2. TypeScript Interfaces & Magic Byte Validator
 - File: `src/lib/portfolio/types.ts`
@@ -119,31 +121,36 @@ All Phase 5 criteria were designed, implemented, tested, and verified locally wi
 ### 3.1. Phase 5 Complete Functional Verification Suite
 - Script: `scripts/verify-phase5-profile-notes-cms.mjs`
 - Results file: `docs/reviews/PORTFOLIO_OS_PHASE5_TEST_RESULTS.json`
-- **Total Checks:** 144
-- **Passed:** 144 (100%)
+- **Total Checks:** 168
+- **Passed:** 168 (100%)
 - **Failed:** 0
 - Test breakdown by group:
-  - **Group A (Schema & Integrity):** 34/34 PASS (all 16 tables, 14 indexes, FK cascades, existing projects/videos/gallery intact)
+  - **Group A (Schema & Integrity & CLI Contract):** 52/52 PASS (16 tables, 13 indexes, FK cascades, existing 30 projects / 21 videos / 3 gallery items intact, strict CLI flag rejection, remote staging blocked, dry-run missing DB rejection, idempotency)
   - **Group B (Profile & Bio Management):** 11/11 PASS (CRUD, dual-locale, revisions, rollback, non-empty validation)
-  - **Group C (Workspace Notes & Isolation):** 14/14 PASS (CRUD, dual-locale, reorder, revisions, rollback, design/web/motion isolation)
+  - **Group C (Workspace Notes & Isolation):** 14/14 PASS (CRUD, dual-locale, reorder, revisions, rollback, design/web/motion-ai isolation)
   - **Group D (Experience Items CMS):** 8/8 PASS (CRUD, dual-locale, reorder, revisions, rollback, delete)
   - **Group E (Education Items CMS):** 7/7 PASS (CRUD, dual-locale, reorder, revisions, rollback, delete)
   - **Group F (Skills Catalog CMS):** 13/13 PASS (CRUD, dual-locale, 6 categories, invalid category rejection, delete)
   - **Group G (CV Document Management):** 9/9 PASS (magic bytes `%PDF-` validation, fake PDF rejection, upload, revisions, rollback)
   - **Group H (Public API & Access Control):** 11/11 PASS (public endpoints, draft CV 404 no-store, published CV 200 application/pdf)
-  - **Group I (Frontend Hydration & Invariants):** 17/17 PASS (session store, NotesApp integration, Worker signatures)
+  - **Group I (Frontend Hydration, Degraded Mode & Invariants):** 21/21 PASS (session store, NotesApp integration, Worker signatures, fail-closed degraded indicator)
   - **Group J (Host Database Isolation):** 1/1 PASS (100% SHA-256 match, zero host mutations)
 
-### 3.2. Phase 5 Real Browser E2E Suite (Playwright / Chromium)
+### 3.2. Phase 5.1 Real Browser E2E Suite (Playwright / Chromium)
 - Script: `scripts/verify-phase5-browser-e2e.mjs`
-- **Total Checks:** 12
-- **Passed:** 12 (100%)
+- **Total Checks:** 47
+- **Passed:** 47 (100%)
 - **Failed:** 0
+- Real interactive browser workflows executed across all tabs with ephemeral scrypt credentials (zero staging credential file reads) and zero unconditional `assert(true)` statements.
 - Visual Evidence Generated:
-  - `docs/reviews/screenshots/phase5/public_notes_desktop_1440x900.png`
-  - `docs/reviews/screenshots/phase5/public_notes_mobile_390x844.png`
-  - `docs/reviews/screenshots/phase5/admin_profile_cms_desktop_1440x900.png`
-  - `docs/reviews/screenshots/phase5/admin_cv_cms_desktop_1440x900.png`
+  - `docs/reviews/screenshots/phase5_1/public_notes_desktop_1440x900.png`
+  - `docs/reviews/screenshots/phase5_1/public_notes_mobile_390x844.png`
+  - `docs/reviews/screenshots/phase5_1/admin_profile_cms_desktop_1440x900.png`
+  - `docs/reviews/screenshots/phase5_1/admin_notes_cms_desktop_1440x900.png`
+  - `docs/reviews/screenshots/phase5_1/admin_experience_cms_desktop_1440x900.png`
+  - `docs/reviews/screenshots/phase5_1/admin_education_cms_desktop_1440x900.png`
+  - `docs/reviews/screenshots/phase5_1/admin_skills_cms_desktop_1440x900.png`
+  - `docs/reviews/screenshots/phase5_1/admin_cv_cms_desktop_1440x900.png`
 
 ### 3.3. Regression Verification
 - Phase 3 Video CMS (`scripts/verify-phase3-video-cms.mjs`): **112/112 PASS (100%)**
@@ -152,6 +159,7 @@ All Phase 5 criteria were designed, implemented, tested, and verified locally wi
 - ESLint Check (`npm run lint`): **0 errors**
 - Next.js Production Build (`npm run build`): **Compiled successfully (0 errors)**
 - Wrangler Worker Deployment Dry-Run (`npx wrangler deploy --dry-run`): **Clean compilation (0 errors)**
+- Wrangler Worker Staging Deployment Dry-Run (`npx wrangler deploy --dry-run --env staging`): **Clean compilation (0 errors)**
 
 ---
 
@@ -160,8 +168,16 @@ All Phase 5 criteria were designed, implemented, tested, and verified locally wi
 | Invariant | Status | Verification Proof |
 | :--- | :--- | :--- |
 | **Zero Remote Mutations** | VERIFIED | No remote Cloudflare Worker deployments, no remote D1 migrations, no remote R2 writes. |
-| **Local Host DB Protection** | VERIFIED | `.local-d1/portfolio.sqlite` SHA-256 strictly identical before and after all test suites. |
+| **Local Host DB Protection** | VERIFIED | `.local-d1/portfolio.sqlite` SHA-256 (`470d8f14ce1237cc557367f0b125be489f086fb99534ffa7fb046ad607182743`) strictly identical before and after all test suites. |
 | **Schema Non-Breaking Parity** | VERIFIED | 30 canonical projects, 21 canonical videos, and 3 gallery items remain intact in D1. |
-| **Fail-Closed Dual Mode** | VERIFIED | Missing remote Worker credentials or network failures reject operations gracefully (503). |
+| **Fail-Closed Dual Mode** | VERIFIED | Missing remote Worker credentials or network failures reject operations gracefully (503) and render degraded notices instead of stale static fallbacks. |
 | **PDF Magic Byte Security** | VERIFIED | Non-PDF uploads rejected with HTTP 400 (`%PDF-` header check enforced). |
 | **Draft Protection** | VERIFIED | Draft CVs return HTTP 404 with `Cache-Control: no-store` to anonymous visitors. |
+
+---
+
+## 5. Staging Readiness Verdict
+
+**VERDICT: `LOCAL_READY_CONTENT_PENDING`**
+
+All local implementation, schema definition, CMS management tools, API endpoints, test automation, and fail-closed security invariants are 100% verified locally. Staging migration and deployment remain safely blocked pending explicit operator review of the content verification matrix (`docs/reviews/PORTFOLIO_OS_PHASE5_1_CONTENT_VERIFICATION_MATRIX.md`).

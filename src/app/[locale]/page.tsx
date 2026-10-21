@@ -3,6 +3,14 @@ import { notFound } from "next/navigation";
 import { siteConfig } from "@/lib/siteConfig";
 import { generatePersonJsonLd, generateWebSiteJsonLd } from "@/lib/seo";
 import { isValidLocale } from "@/lib/i18n";
+import type {
+  CmsProfileRecord,
+  CmsWorkspaceNote,
+  CmsExperienceItem,
+  CmsEducationItem,
+  CmsSkillItem,
+  CmsCvDocument
+} from "@/lib/portfolio/types";
 import {
   getPublishedProjects,
   getPublishedVideos,
@@ -80,34 +88,59 @@ export default async function LocaleDesktopPage({
     notFound();
   }
 
+  const isCmsMode = getCmsDataSource() !== "legacy";
+
   const [
     publishedProjects,
     publishedVideos,
-    publishedGallery,
-    publishedProfile,
-    designNotes,
-    webNotes,
-    motionAiNotes,
-    publishedExperience,
-    publishedEducation,
-    publishedSkills,
-    cvTr,
-    cvEn
+    publishedGallery
   ] = await Promise.all([
     getPublishedProjects(),
     getPublishedVideos(),
-    getPublishedGallery(),
-    getPublishedProfile().catch(() => null),
-    getPublishedWorkspaceNotes("design").catch(() => []),
-    getPublishedWorkspaceNotes("web").catch(() => []),
-    getPublishedWorkspaceNotes("motion-ai").catch(() => []),
-    getPublishedExperience().catch(() => []),
-    getPublishedEducation().catch(() => []),
-    getPublishedSkills().catch(() => []),
-    getPublishedCv("tr").catch(() => null),
-    getPublishedCv("en").catch(() => null)
+    getPublishedGallery()
   ]);
-  const isCmsMode = getCmsDataSource() !== "legacy";
+
+  let publishedProfile: CmsProfileRecord | null = null;
+  let designNotes: CmsWorkspaceNote[] = [];
+  let webNotes: CmsWorkspaceNote[] = [];
+  let motionAiNotes: CmsWorkspaceNote[] = [];
+  let publishedExperience: CmsExperienceItem[] = [];
+  let publishedEducation: CmsEducationItem[] = [];
+  let publishedSkills: CmsSkillItem[] = [];
+  let cvTr: CmsCvDocument | null = null;
+  let cvEn: CmsCvDocument | null = null;
+  let isDegraded = false;
+  let errorMessage: string | undefined = undefined;
+
+  if (isCmsMode) {
+    try {
+      [
+        publishedProfile,
+        designNotes,
+        webNotes,
+        motionAiNotes,
+        publishedExperience,
+        publishedEducation,
+        publishedSkills,
+        cvTr,
+        cvEn
+      ] = await Promise.all([
+        getPublishedProfile(),
+        getPublishedWorkspaceNotes("design"),
+        getPublishedWorkspaceNotes("web"),
+        getPublishedWorkspaceNotes("motion-ai"),
+        getPublishedExperience(),
+        getPublishedEducation(),
+        getPublishedSkills(),
+        getPublishedCv("tr"),
+        getPublishedCv("en")
+      ]);
+    } catch (err) {
+      isDegraded = true;
+      errorMessage = err instanceof Error ? err.message : String(err);
+      console.error("[LocaleDesktopPage] Phase 5 CMS fetch failed (failing closed):", errorMessage);
+    }
+  }
   const personJsonLd = generatePersonJsonLd(locale);
   const websiteJsonLd = generateWebSiteJsonLd(locale);
 
@@ -135,7 +168,9 @@ export default async function LocaleDesktopPage({
           experience: publishedExperience,
           education: publishedEducation,
           skills: publishedSkills,
-          cv: { tr: cvTr, en: cvEn }
+          cv: { tr: cvTr, en: cvEn },
+          isDegraded,
+          errorMessage
         }}
         isCmsMode={isCmsMode}
       />

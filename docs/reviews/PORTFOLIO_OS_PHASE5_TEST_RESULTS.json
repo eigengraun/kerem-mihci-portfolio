@@ -1,15 +1,15 @@
 {
   "suite": "Portfolio OS Phase 5 Profile, Notes, Skills & CV CMS Verification",
-  "timestamp": "2026-10-21T21:34:16.461Z",
-  "commit": "94de33d0e831d81da43620a5216ac4ec1ee24031",
-  "total": 144,
-  "passed": 144,
+  "timestamp": "2026-10-21T22:28:35.348Z",
+  "commit": "104d26801d5b14413fd470d646d89cad82348ff2",
+  "total": 168,
+  "passed": 168,
   "failed": 0,
   "failures": [],
   "groups": {
     "A: D1 Migration 0004 Schema & Relational Integrity": {
-      "total": 41,
-      "passed": 41,
+      "total": 59,
+      "passed": 59,
       "failed": 0,
       "checks": [
         {
@@ -193,6 +193,76 @@
           "detail": ""
         },
         {
+          "name": "Migration 0004 defines exactly 13 explicit indexes",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Index idx_portfolio_workspace_notes_lookup exists in isolated test D1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Index idx_portfolio_workspace_notes_tr_lookup exists in isolated test D1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Index idx_portfolio_workspace_notes_rev exists in isolated test D1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Index idx_portfolio_experience_status_sort exists in isolated test D1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Index idx_portfolio_experience_tr_lookup exists in isolated test D1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Index idx_portfolio_experience_rev exists in isolated test D1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Index idx_portfolio_education_status_sort exists in isolated test D1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Index idx_portfolio_education_tr_lookup exists in isolated test D1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Index idx_portfolio_education_rev exists in isolated test D1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Index idx_portfolio_skills_category_sort exists in isolated test D1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Index idx_portfolio_skill_tr_lookup exists in isolated test D1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Index idx_portfolio_cv_locale exists in isolated test D1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Index idx_portfolio_cv_rev exists in isolated test D1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
           "name": "FK cascade deletes note translations when note deleted",
           "status": "PASS",
           "detail": ""
@@ -208,7 +278,27 @@
           "detail": ""
         },
         {
-          "name": "Admin authenticated successfully as staging-admin@local.test",
+          "name": "Importer rejects unknown flags with exit code 1",
+          "status": "PASS",
+          "detail": "Exit code: 1"
+        },
+        {
+          "name": "Importer blocks remote staging seeding with exit code 1",
+          "status": "PASS",
+          "detail": "Exit code: 1"
+        },
+        {
+          "name": "Importer rejects missing DB in dry-run with exit code 1",
+          "status": "PASS",
+          "detail": "Exit code: 1"
+        },
+        {
+          "name": "Dry-run invariant: missing database was not created on disk",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Admin authenticated successfully as ephemeral-admin@local.test",
           "status": "PASS",
           "detail": ""
         },
@@ -684,8 +774,8 @@
       ]
     },
     "I: Public Frontend Hydration, NotesApp Integration & Non-Regression": {
-      "total": 19,
-      "passed": 19,
+      "total": 25,
+      "passed": 25,
       "failed": 0,
       "checks": [
         {
@@ -755,6 +845,36 @@
         },
         {
           "name": "NotesCvTab consumes CMS sessionCv",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "sessionStore tracks phase5Degraded state",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "repository.ts exposes degraded indicator on upstream failure",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "page.tsx handles fail-closed degradation on Phase 5 CMS fetch error",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "NotesAboutTab handles phase5Degraded without silent fallback",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "NotesOverviewTab handles phase5Degraded state",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "NotesCvTab handles phase5Degraded state",
           "status": "PASS",
           "detail": ""
         },

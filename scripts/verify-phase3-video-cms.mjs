@@ -199,45 +199,11 @@ async function runSuite() {
   );
   db.exec(m3Sql);
 
-  const nowIso = new Date().toISOString();
-  const insertVideo = db.prepare(`
-    INSERT INTO portfolio_videos (
-      id, slug, status, orientation, video_type, production_method, ai_assisted,
-      client_name, year, duration, aspect_ratio, featured, sort_order,
-      autoplay_preview, created_at, updated_at, published_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-  const insertVideoTr = db.prepare(`
-    INSERT INTO portfolio_video_translations (
-      id, video_id, locale, title, short_title, description, full_description, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
-  db.exec("BEGIN TRANSACTION;");
-  for (const v of videosData) {
-    insertVideo.run(
-      v.id,
-      v.slug,
-      "published",
-      v.orientation || "portrait",
-      v.type || "reel",
-      v.productionMethod || "ai-assisted",
-      v.aiAssisted ? 1 : 0,
-      v.client || null,
-      v.year || null,
-      v.duration || null,
-      v.orientation === "landscape" ? "16:9" : "9:16",
-      v.featured ? 1 : 0,
-      v.sortOrder || 0,
-      v.autoplayPreview ? 1 : 0,
-      nowIso,
-      nowIso,
-      nowIso
-    );
-    insertVideoTr.run(`tr-${v.id}-tr`, v.id, "tr", v.titleTR, v.shortTitleTR || null, v.descriptionTR || "", v.fullDescriptionTR || "", nowIso);
-    insertVideoTr.run(`tr-${v.id}-en`, v.id, "en", v.titleEN, v.shortTitleEN || null, v.descriptionEN || "", v.fullDescriptionEN || "", nowIso);
-  }
-  db.exec("COMMIT;");
+  // Seed fresh sandbox DB with canonical 21 videos using import tool in force mode
+  execSync(`node scripts/import-canonical-videos-to-d1.mjs --local --force --db="${sandboxDbPath}"`, {
+    stdio: "ignore",
+    env: { ...process.env, LOCAL_D1_DB_PATH: sandboxDbPath }
+  });
 
   try {
     // ------------------------------------------------------------
@@ -323,8 +289,8 @@ async function runSuite() {
 
     mockStagingServer.close();
 
-  // Local dry run against host canonical database
-  const localDryRunOut = execSync("node scripts/import-canonical-videos-to-d1.mjs --local --dry-run", { encoding: "utf8" });
+  // Local dry run against task-owned disposable sandbox database
+  const localDryRunOut = execSync(`node scripts/import-canonical-videos-to-d1.mjs --local --dry-run --db="${sandboxDbPath}"`, { encoding: "utf8" });
   assert(localDryRunOut.includes("skipped=21"), "Local importer skips existing canonical records by default (non-destructive)");
 
   // Target Tests: Reconciliation Logic (Section 1 & 2)
@@ -392,7 +358,7 @@ async function runSuite() {
   assert(canonPos >= 1 && (sampleCanon.sortOrder ?? canonPos) === 1, "SortOrder derivation preserves original canonical video position instead of missing-subset index");
 
   // 8. Importer repeat idempotency: multiple runs against existing database produce 0 writes
-  const localDryRunOut2 = execSync("node scripts/import-canonical-videos-to-d1.mjs --local --dry-run", { encoding: "utf8" });
+  const localDryRunOut2 = execSync(`node scripts/import-canonical-videos-to-d1.mjs --local --dry-run --db="${sandboxDbPath}"`, { encoding: "utf8" });
   assert(localDryRunOut2.includes("skipped=21") && localDryRunOut2.includes("inserted=0"), "Importer repeat idempotency: repeated execution produces 0 writes");
 
   // ------------------------------------------------------------

@@ -83,6 +83,10 @@ node scripts/verify-staging-url-override-negative.mjs
 # F. Phase 3 Test Isolation & Port Allocation Negative Guard
 node scripts/verify-phase3-isolation-negative.mjs
 # Expected: 8 / 8 PASS (port 3099 protected, .local-d1 untouched)
+
+# G. Local Dry-Run Writability & Strict Remote Admission Negative Guard
+node scripts/verify-local-dry-run-negative.mjs
+# Expected: 24 / 24 PASS (never creates DB, zero DDL, zero WAL mutation, strict admission)
 ```
 
 ---
@@ -183,13 +187,19 @@ node scripts/verify-backup-integrity.mjs "$BACKUP_SQL"
 
 ---
 
-### Gate G: Canonical Video Parity Check (Remote Dry Run)
-Run read-only dry-run reconciliation against remote staging Worker:
+### Gate G: Strict Canonical Parity Admission Preflight
+Execute the remote staging parity preflight in strict admission mode (fails closed if any canonical video is missing or conflicted):
 
 ```bash
-node scripts/import-canonical-videos-to-d1.mjs --remote-staging --dry-run
+node scripts/import-canonical-videos-to-d1.mjs --remote-staging --dry-run --strict-admission
 ```
-*Pass Criteria:* Confirms all 21 canonical videos present in remote staging with 100% field parity. Zero missing, zero conflicting identities.
+*Pass Criteria:*
+- Target Worker health verified (`/api/v1/public/health`).
+- Authenticated admin query confirms all 21 canonical videos present on staging.
+- Zero missing canonical records (fails closed with exit code 1 if missing > 0).
+- Zero identity conflicts (fails closed with exit code 1 if conflicts > 0).
+- Any owner-modified records are flagged for operator review and preserved without overwrite.
+- Zero remote writes executed.
 
 ---
 
@@ -230,15 +240,65 @@ If ANY check from Gate A through Gate H fails, **STOP IMMEDIATELY**.
 
 Upon receiving explicit operator authorization (**Verdict A**), execute the following sequence in order:
 
-### Step 1: Pre-Deployment Verification Check
-Ensure preflight artifacts from Gates B, E, and F are present and verified in `$BACKUP_DIR`:
+### Step 1: Final Time-of-Check Admission & Freshness Verification
+Do not accept stale preflight artifacts merely because files exist on disk.
+Immediately prior to applying migration 0003, re-verify all critical invariants against the live staging target:
 
-```bash
-test -d "$BACKUP_DIR" || { echo "FATAL: BACKUP_DIR does not exist. Run Section 1 & 3 preflight first."; exit 1; }
-test -s "$BACKUP_DIR/active-worker-version-id.txt" || { echo "FATAL: active-worker-version-id.txt missing"; exit 1; }
-test -s "$BACKUP_DIR/kerem-portfolio-db-staging-backup.sql" || { echo "FATAL: backup SQL missing"; exit 1; }
-echo "Preflight artifacts verified in $BACKUP_DIR. Proceeding with migration."
-```
+1. **Verify Session Directory & Target Identities**:
+   Ensure `$BACKUP_DIR` exists and target variables match approved configuration:
+   ```bash
+   test -d "$BACKUP_DIR" || { echo "FATAL: BACKUP_DIR does not exist. Run Section 1 session initialization."; exit 1; }
+   echo "Active backup directory: $BACKUP_DIR"
+   ```
+
+2. **Fresh Local Migration Inventory & Reviewed SHA-256 Hashes**:
+   Re-verify local migrations directory on current HEAD:
+   ```bash
+   node scripts/verify-migration-admission.mjs --local
+   ```
+   *Pass Criteria:* Exactly 3 authorized files (`0001`, `0002`, `0003`) matching reviewed cryptographic SHA-256 hashes. Target DB ID verified.
+
+3. **Fresh Remote Ledger & Pending Status Check**:
+   Re-query live remote Cloudflare D1 migration ledger:
+   ```bash
+   node scripts/verify-migration-admission.mjs --online
+   ```
+   *Pass Criteria:* Strictly `0001` and `0002` applied; strictly `0003_personal_gallery_schema.sql` pending. Fails closed if `0003` is already applied or if remote state changed.
+
+4. **Fresh D1 Backup Export & Isolated Integrity Verification**:
+   Capture a fresh timestamped backup immediately prior to D1 migration:
+   ```bash
+   FRESH_BACKUP_SQL="$BACKUP_DIR/kerem-portfolio-db-staging-backup-$(date +%Y%m%d-%H%M%S).sql"
+   npx wrangler d1 export "$DB_NAME" \
+     --config "$WRANGLER_CONFIG" \
+     --env staging \
+     --remote \
+     --output "$FRESH_BACKUP_SQL"
+
+   test -s "$FRESH_BACKUP_SQL" || { echo "FATAL: Fresh backup file is empty"; exit 1; }
+   shasum -a 256 "$FRESH_BACKUP_SQL" > "${FRESH_BACKUP_SQL}.sha256"
+
+   # Validate backup integrity in isolated SQLite sandbox
+   node scripts/verify-backup-integrity.mjs "$FRESH_BACKUP_SQL"
+   ```
+   *Pass Criteria:* Clean PRAGMA integrity_check, 31 projects, 72 media items, 21 canonical videos, and zero `portfolio_gallery_*` tables.
+
+5. **Fresh Strict Content Parity Check**:
+   Execute strict remote admission parity preflight:
+   ```bash
+   node scripts/import-canonical-videos-to-d1.mjs --remote-staging --dry-run --strict-admission
+   ```
+   *Pass Criteria:* Confirms all 21 canonical videos present on staging with 0 missing and 0 conflicts.
+
+6. **Fresh Rollback Target Verification**:
+   Verify active Worker Version ID is recorded and valid:
+   ```bash
+   PRE_DEPLOY_VERSION_ID=$(cat "$BACKUP_DIR/active-worker-version-id.txt")
+   node scripts/resolve-worker-rollback-version.mjs --validate "$PRE_DEPLOY_VERSION_ID"
+   echo "Verified Rollback Target Version ID: $PRE_DEPLOY_VERSION_ID"
+   ```
+
+*Fail-Stop Trigger:* If ANY state has changed between initial preflight and Step 1 execution, **STOP IMMEDIATELY FOR OPERATOR REVIEW**. Do NOT proceed to Step 2.
 
 ---
 

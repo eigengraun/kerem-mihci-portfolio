@@ -1055,7 +1055,8 @@ async function main() {
 
     assert(
       adminScrollResult.success && adminScrollResult.hasOverflow && adminScrollResult.scrolled >= 200,
-      "Desktop Admin catalog scroll container (#main-content / #admin-main-stage) measured and verified"
+      "Desktop Admin catalog scroll container (#main-content / #admin-main-stage) measured and verified",
+      `success=${adminScrollResult.success}, overflow=${adminScrollResult.hasOverflow}, scrolled=${adminScrollResult.scrolled}, scrollHeight=${adminScrollResult.scrollHeight}, clientHeight=${adminScrollResult.clientHeight}, reason=${adminScrollResult.reason}`
     );
 
     const desktopAdminCatalogShot = path.join(sanitizedScreenshotsDir, "admin_gallery_desktop_1440x900.png");

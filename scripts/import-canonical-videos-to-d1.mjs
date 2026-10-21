@@ -85,6 +85,8 @@ let isLocal = true;
 let isForce = false;
 let isExecute = false;
 let isDryRun = true;
+let isStrictAdmission = false;
+let customDbPath = null;
 
 if (isMain) {
   const rawArgs = process.argv.slice(2);
@@ -94,14 +96,24 @@ if (isMain) {
     "--remote-staging",
     "--target=remote-staging",
     "--dry-run",
+    "--strict",
+    "--strict-admission",
     "--force",
     "--execute"
   ]);
 
   for (const arg of rawArgs) {
+    if (arg.startsWith("--db=")) {
+      customDbPath = path.resolve(arg.slice("--db=".length));
+      continue;
+    }
+    if (arg.startsWith("--database=")) {
+      customDbPath = path.resolve(arg.slice("--database=".length));
+      continue;
+    }
     if (!VALID_FLAGS.has(arg)) {
       console.error(`FATAL: Unrecognized CLI argument "${arg}".`);
-      console.error("Allowed flags: --local, --remote-staging, --dry-run, --force, --execute.");
+      console.error("Allowed flags: --local, --remote-staging, --dry-run, --strict-admission, --force, --execute, --db=<path>.");
       process.exit(1);
     }
   }
@@ -111,6 +123,7 @@ if (isMain) {
   isForce = rawArgs.includes("--force");
   isExecute = rawArgs.includes("--execute");
   isDryRun = rawArgs.includes("--dry-run") || (!isExecute && !isForce);
+  isStrictAdmission = rawArgs.includes("--strict-admission") || rawArgs.includes("--strict");
 
   if (isRemoteStaging) {
     const FORBIDDEN_OVERRIDE_VARS = [
@@ -136,9 +149,11 @@ if (isMain) {
   }
 }
 
-const dbPath = process.env.LOCAL_D1_DB_PATH
-  ? path.resolve(process.env.LOCAL_D1_DB_PATH)
-  : path.join(ROOT, ".local-d1", "portfolio.sqlite");
+const dbPath = customDbPath
+  ? customDbPath
+  : process.env.LOCAL_D1_DB_PATH
+    ? path.resolve(process.env.LOCAL_D1_DB_PATH)
+    : path.join(ROOT, ".local-d1", "portfolio.sqlite");
 
 function sha256File(filePath) {
   if (!fs.existsSync(filePath)) return null;
@@ -378,13 +393,14 @@ export async function runRemoteStagingSeed(canonicalVideos, di = null) {
   }
 
   const isDryRunActive = di ? Boolean(di.isDryRun ?? true) : isDryRun;
+  const isStrictAdmissionActive = di ? Boolean(di.isStrictAdmission ?? false) : isStrictAdmission;
   const targetWorkerUrl = di?.workerUrl || APPROVED_STAGING_CONFIG.workerUrl;
   const fetcher = di?.fetchImpl || fetch;
 
   console.log("============================================================");
   console.log("REMOTE CLOUDFLARE STAGING CANONICAL VIDEO SEED ENGINE");
   console.log("============================================================");
-  console.log("Target Mode:", isDryRunActive ? "DRY RUN (Read-Only Validation)" : "LIVE EXECUTION");
+  console.log("Target Mode:", isDryRunActive ? (isStrictAdmissionActive ? "DRY RUN (Strict Admission Preflight)" : "DRY RUN (Read-Only Informational)") : "LIVE EXECUTION");
 
   // 1. Strict Configuration Verification
   let verified;
@@ -523,10 +539,47 @@ export async function runRemoteStagingSeed(canonicalVideos, di = null) {
     console.log("[DRY RUN COMPLETE] Zero remote writes executed.");
     console.log("Staging target identity and authenticated inventory verified.");
     console.log(`Status: Parity=${reconciliation.canonicalParity.length}, OwnerModified=${reconciliation.ownerModified.length}, Missing=${missingVideos.length}`);
+
+    if (isStrictAdmissionActive) {
+      console.log("\nEvaluating Strict Preflight Admission Invariants (Remote Staging):");
+      console.log(`  Expected Canonical Count: 21`);
+      console.log(`  Canonical Parity:         ${reconciliation.canonicalParity.length}`);
+      console.log(`  Owner-Modified Preserved: ${reconciliation.ownerModified.length}`);
+      console.log(`  Missing Canonical Videos: ${missingVideos.length}`);
+      console.log(`  Identity Conflicts:       ${reconciliation.identityConflicts.length}`);
+
+      if (reconciliation.identityConflicts.length > 0) {
+        console.error(`\nFATAL: Strict admission rejected: ${reconciliation.identityConflicts.length} identity conflict(s) detected.`);
+        if (di) throw new Error("STRICT_ADMISSION_FAILED: Identity conflicts detected.");
+        process.exit(1);
+      }
+
+      if (missingVideos.length > 0) {
+        console.error(`\nFATAL: Strict admission rejected: ${missingVideos.length} canonical video(s) missing from remote staging.`);
+        for (const m of missingVideos) {
+          console.error(`  - Missing: "${m.slug}" (ID: ${m.id})`);
+        }
+        if (di) throw new Error(`STRICT_ADMISSION_FAILED: ${missingVideos.length} canonical videos missing.`);
+        process.exit(1);
+      }
+
+      const totalMatched = reconciliation.canonicalParity.length + reconciliation.ownerModified.length;
+      if (totalMatched !== 21) {
+        console.error(`\nFATAL: Strict admission rejected: Total accounted canonical videos is ${totalMatched}, expected exactly 21.`);
+        if (di) throw new Error(`STRICT_ADMISSION_FAILED: Matched count mismatch: ${totalMatched} != 21.`);
+        process.exit(1);
+      }
+
+      console.log("\n============================================================");
+      console.log("VERDICT: STRICT CANONICAL PARITY ADMISSION PASSED (21/21 PRESENT)");
+      console.log("============================================================\n");
+      return { dryRun: true, strictAdmissionPassed: true, reconciliation, verified, missingVideos };
+    }
+
     console.log(`To execute live remote seeding upon authorized approval, run:`);
     console.log("  node scripts/import-canonical-videos-to-d1.mjs --remote-staging --execute");
     console.log("========================================================");
-    return { dryRun: true, reconciliation, verified, missingVideos };
+    return { dryRun: true, strictAdmissionPassed: false, reconciliation, verified, missingVideos };
   }
 
   if (di) {
@@ -647,34 +700,63 @@ export async function runRemoteStagingSeed(canonicalVideos, di = null) {
   console.log(`  Remote status: CANONICAL_PARITY=${postReconciliation.canonicalParity.length}, OWNER_MODIFIED=${postReconciliation.ownerModified.length}, MISSING=${postReconciliation.missing.length}`);
 }
 
-async function runLocalSeed(canonicalVideos) {
+export async function runLocalSeed(canonicalVideos, options = {}) {
+  const activeDbPath = options.dbPath ? path.resolve(options.dbPath) : dbPath;
+  const isDryRunActive = options.isDryRun !== undefined ? Boolean(options.isDryRun) : isDryRun;
+  const isForceActive = options.isForce !== undefined ? Boolean(options.isForce) : isForce;
+  const isStrictActive = options.isStrictAdmission !== undefined ? Boolean(options.isStrictAdmission) : isStrictAdmission;
+
   console.log("============================================================");
   console.log("CANONICAL 21 PORTFOLIO VIDEO D1 IMPORT & PARITY VALIDATOR");
   console.log("============================================================");
-  console.log("Mode:", isDryRun ? "DRY RUN (Read-Only)" : isForce ? "FORCE OVERWRITE" : "NON-DESTRUCTIVE SAFE SEED");
-  console.log("Target Database:", dbPath);
+  console.log("Mode:", isDryRunActive ? (isStrictActive ? "DRY RUN (Strict Admission Preflight)" : "DRY RUN (Read-Only)") : isForceActive ? "FORCE OVERWRITE" : "NON-DESTRUCTIVE SAFE SEED");
+  console.log("Target Database:", activeDbPath);
 
-  // 1. Ensure directory exists
-  if (!isDryRun) {
-    fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+  let db;
+  if (isDryRunActive) {
+    // 1. In dry-run mode, NEVER create a database file
+    if (!fs.existsSync(activeDbPath)) {
+      throw new Error(`LOCAL_DB_NOT_FOUND: Cannot run local dry-run on non-existent database "${activeDbPath}".`);
+    }
+
+    // 2. Open strictly in read-only mode (never creates WAL/SHM, never writes SQLite header)
+    db = new DatabaseSync(activeDbPath, { readOnly: true });
+
+    // 3. Reject missing schema instead of repairing it (NEVER execute migration DDL in dry run)
+    const requiredTables = [
+      "portfolio_videos",
+      "portfolio_video_translations",
+      "portfolio_video_assets"
+    ];
+    const foundTables = db.prepare(
+      `SELECT name FROM sqlite_master WHERE type='table' AND name IN ('portfolio_videos', 'portfolio_video_translations', 'portfolio_video_assets')`
+    ).all().map((r) => r.name);
+
+    const missingTables = requiredTables.filter((t) => !foundTables.includes(t));
+    if (missingTables.length > 0) {
+      throw new Error(
+        `SCHEMA_INCOMPLETE: Required table(s) [${missingTables.join(", ")}] missing in "${activeDbPath}". Dry-run cannot repair schema.`
+      );
+    }
+  } else {
+    // In live seed mode: ensure directory exists, open read-write, configure WAL and apply schema if needed
+    fs.mkdirSync(path.dirname(activeDbPath), { recursive: true });
+    db = new DatabaseSync(activeDbPath);
+    db.exec("PRAGMA journal_mode = WAL;");
+    db.exec("PRAGMA foreign_keys = ON;");
+
+    const migration0002 = path.join(
+      ROOT,
+      "cloudflare",
+      "portfolio-api",
+      "migrations",
+      "0002_videos_and_reels_schema.sql"
+    );
+    if (fs.existsSync(migration0002)) {
+      db.exec(fs.readFileSync(migration0002, "utf-8"));
+    }
+    console.log("✓ Verified schema migration 0002 (Videos & Reels Schema).");
   }
-
-  // 2. Open DB and run migrations if DB exists or create
-  const db = new DatabaseSync(dbPath);
-  db.exec("PRAGMA journal_mode = WAL;");
-  db.exec("PRAGMA foreign_keys = ON;");
-
-  const migration0002 = path.join(
-    ROOT,
-    "cloudflare",
-    "portfolio-api",
-    "migrations",
-    "0002_videos_and_reels_schema.sql"
-  );
-  if (fs.existsSync(migration0002)) {
-    db.exec(fs.readFileSync(migration0002, "utf-8"));
-  }
-  console.log("✓ Verified schema migration 0002 (Videos & Reels Schema).");
 
   const portraitCount = canonicalVideos.filter(
     (v) => (v.orientation || "portrait") === "portrait"
@@ -701,7 +783,7 @@ async function runLocalSeed(canonicalVideos) {
   const localVideos = mapLocalRowsToCmsVideos(existingVideoRows, existingTransRows, existingAssetRows);
   const localReconcile = reconcileCanonicalVideos(canonicalVideos, localVideos);
 
-  if (localReconcile.identityConflicts.length > 0 && !isForce) {
+  if (localReconcile.identityConflicts.length > 0 && !isForceActive) {
     console.error(`FATAL: Detected ${localReconcile.identityConflicts.length} identity conflict(s) in local database:`);
     for (const c of localReconcile.identityConflicts) {
       console.error(`  - "${c.canonical.slug}" (ID: ${c.canonical.id}): ${c.reason}`);
@@ -717,12 +799,12 @@ async function runLocalSeed(canonicalVideos) {
     const v = canonicalVideos[idx];
     const existing = existingMap.get(v.id);
 
-    if (existing && !isForce) {
+    if (existing && !isForceActive) {
       skippedCount++;
       continue;
     }
 
-    if (isDryRun) {
+    if (isDryRunActive) {
       if (existing) updatedCount++;
       else insertedCount++;
       continue;
@@ -1078,14 +1160,52 @@ async function runLocalSeed(canonicalVideos) {
     manifest.allFilesPresentOnDisk &&
     videoRows.length === 21;
 
-  // 5. Write Updated Parity JSON Report
-  const outJsonPath = path.join(ROOT, "docs", "reviews", "PORTFOLIO_OS_PHASE3_VIDEO_PARITY.json");
-  fs.mkdirSync(path.dirname(outJsonPath), { recursive: true });
-  fs.writeFileSync(outJsonPath, JSON.stringify(manifest, null, 2), "utf-8");
-  console.log(`✓ Wrote comprehensive parity report to ${outJsonPath}`);
+  // 5. Write Updated Parity JSON Report (only when running against host default path, never pollute from test DB)
+  if (!customDbPath && !process.env.LOCAL_D1_DB_PATH && !options.dbPath) {
+    const outJsonPath = path.join(ROOT, "docs", "reviews", "PORTFOLIO_OS_PHASE3_VIDEO_PARITY.json");
+    fs.mkdirSync(path.dirname(outJsonPath), { recursive: true });
+    fs.writeFileSync(outJsonPath, JSON.stringify(manifest, null, 2), "utf-8");
+    console.log(`✓ Wrote comprehensive parity report to ${outJsonPath}`);
+  }
+
+  // 6. Strict Admission Preflight Enforcement
+  if (isStrictActive) {
+    console.log("\nEvaluating Strict Preflight Admission Invariants (Local):");
+    console.log(`  Expected Canonical Count: 21`);
+    console.log(`  Canonical Parity:         ${localReconcile.canonicalParity.length}`);
+    console.log(`  Owner-Modified Preserved: ${localReconcile.ownerModified.length}`);
+    console.log(`  Missing Canonical Videos: ${localReconcile.missing.length}`);
+    console.log(`  Identity Conflicts:       ${localReconcile.identityConflicts.length}`);
+
+    if (localReconcile.identityConflicts.length > 0) {
+      console.error(`\nFATAL: Strict admission rejected: ${localReconcile.identityConflicts.length} identity conflict(s) in local database.`);
+      throw new Error("STRICT_ADMISSION_FAILED: Identity conflicts detected.");
+    }
+
+    if (localReconcile.missing.length > 0) {
+      console.error(`\nFATAL: Strict admission rejected: ${localReconcile.missing.length} canonical video(s) missing from local database.`);
+      for (const m of localReconcile.missing) {
+        console.error(`  - Missing: "${m.slug}" (ID: ${m.id})`);
+      }
+      throw new Error(`STRICT_ADMISSION_FAILED: ${localReconcile.missing.length} canonical videos missing.`);
+    }
+
+    const totalMatched = localReconcile.canonicalParity.length + localReconcile.ownerModified.length;
+    if (totalMatched !== 21) {
+      console.error(`\nFATAL: Strict admission rejected: Total accounted canonical videos is ${totalMatched}, expected exactly 21.`);
+      throw new Error(`STRICT_ADMISSION_FAILED: Matched count mismatch: ${totalMatched} != 21.`);
+    }
+
+    console.log("\n============================================================");
+    console.log("VERDICT: STRICT CANONICAL PARITY ADMISSION PASSED (21/21 PRESENT)");
+    console.log("============================================================\n");
+  }
 
   if (!manifest.parityPassed) {
     console.error("PARITY FAILED:", manifest.mismatches);
+    if (options.dbPath) {
+      throw new Error("PARITY_FAILED: Local database parity check failed.");
+    }
     process.exit(1);
   }
 
@@ -1095,6 +1215,8 @@ async function runLocalSeed(canonicalVideos) {
   console.log("✓ All 21 MP4 Files and 21 Posters Verified on Disk with SHA-256");
   console.log("✓ Zero Field Mismatches Across All Bilingual Attributes");
   console.log("========================================================");
+
+  return { dryRun: isDryRunActive, manifest, reconciliation: localReconcile };
 }
 
 async function main() {
@@ -1116,14 +1238,31 @@ export async function runStagingImporterTestHarness({
   fetchImpl,
   workerUrl,
   token,
-  isDryRun = true
+  isDryRun = true,
+  isStrictAdmission = false
 }) {
   return runRemoteStagingSeed(canonicalVideos, {
     testSandboxGuard: "EXPLICIT_TEST_SANDBOX_DI_GUARD_TOKEN",
     fetchImpl,
     workerUrl,
     token,
-    isDryRun
+    isDryRun,
+    isStrictAdmission
+  });
+}
+
+export async function runLocalImporterTestHarness({
+  canonicalVideos,
+  dbPath,
+  isDryRun = true,
+  isForce = false,
+  isStrictAdmission = false
+}) {
+  return runLocalSeed(canonicalVideos, {
+    dbPath,
+    isDryRun,
+    isForce,
+    isStrictAdmission
   });
 }
 

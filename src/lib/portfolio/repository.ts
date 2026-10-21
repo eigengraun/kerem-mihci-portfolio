@@ -1644,12 +1644,19 @@ export async function uploadGalleryAsset(params: {
     if (params.height) formData.append("height", String(params.height));
 
     const workerUrl = `${process.env.CLOUDFLARE_CMS_API_URL!.replace(/\/+$/, "")}/api/v1/admin/gallery/upload`;
+    const serviceToken = (process.env.CLOUDFLARE_API_SERVICE_TOKEN || "").trim();
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${serviceToken}`,
+      "X-Actor-Email": params.actorEmail
+    };
+    if (process.env.CLOUDFLARE_API_SERVICE_SECRET) {
+      headers["CF-Access-Client-Id"] = process.env.CLOUDFLARE_API_SERVICE_TOKEN || "";
+      headers["CF-Access-Client-Secret"] = process.env.CLOUDFLARE_API_SERVICE_SECRET;
+    }
+
     const response = await fetch(workerUrl, {
       method: "POST",
-      headers: {
-        "CF-Access-Client-Id": process.env.CLOUDFLARE_API_SERVICE_TOKEN || "",
-        "CF-Access-Client-Secret": process.env.CLOUDFLARE_API_SERVICE_SECRET || ""
-      },
+      headers,
       body: formData
     });
     if (!response.ok) {

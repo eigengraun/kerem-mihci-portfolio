@@ -1,0 +1,379 @@
+{
+  "suite": "Portfolio OS Phase 4 Authorized Cloudflare Staging E2E Suite",
+  "runId": "1792613306796-639436",
+  "timestamp": "2026-10-21T20:08:26.796Z",
+  "commit": "a37757daf6a4fad99d46219bbcf04b7cfe77f132",
+  "total": 65,
+  "passed": 65,
+  "failed": 0,
+  "groups": {
+    "1: Target Staging Configuration & Environment Guardrails": {
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Wrangler staging worker name matches approved target",
+          "status": "PASS",
+          "detail": "kerem-mihci-portfolio-api-staging"
+        },
+        {
+          "name": "Wrangler staging D1 database ID matches approved target",
+          "status": "PASS",
+          "detail": "0efef7a7-cc93-4dc2-8cb7-db28379fe01f"
+        },
+        {
+          "name": "Wrangler staging R2 bucket name matches approved target",
+          "status": "PASS",
+          "detail": "kerem-portfolio-media-staging"
+        },
+        {
+          "name": "Staging Worker /api/v1/public/health returns HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Worker health confirms active D1 and R2 bindings",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Remote D1 migration engine reports zero unapplied migrations",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "2: Authentication & Security Negative Assertions": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Unauthenticated admin gallery request rejected with HTTP 401",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Invalid bearer token rejected with HTTP 401",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Upload of non-image MIME type rejected with HTTP 400",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Upload containing EXIF GPS metadata rejected with HTTP 400",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Upload exceeding 10MB limit rejected with HTTP 413",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "3: Complete Test-Owned Mutating Gallery Lifecycle": {
+      "total": 31,
+      "passed": 31,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Direct multipart upload of P1 Portrait succeeds",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Upload response contains valid asset and storageKey",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Extracted dimensions match 600x900",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Save Draft P1 returns HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Duplicate item creation fails closed with HTTP 409 Conflict",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Anonymous request to draft media returns HTTP 404",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Draft 404 includes Cache-Control: no-store",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Authenticated admin request to draft media returns HTTP 200 OK",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Publish P1 returns HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Published P1 media is now anonymously accessible (HTTP 200 OK)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Ingested P2 Landscape image asset",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Published P2 Landscape photograph",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Ingested P3 Square image asset",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Published P3 Square photograph",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Public gallery catalog includes all 3 test photographs",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Reorder API returns HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Public catalog serves exact sequence: P3 -> P1 -> P2",
+          "status": "PASS",
+          "detail": "Actual: photo-staging-e2e-1792613306796-639436-p3 -> photo-staging-e2e-1792613306796-639436-p1 -> photo-staging-e2e-1792613306796-639436-p2"
+        },
+        {
+          "name": "Replacement Image B has distinct binary SHA-256",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Uploaded replacement image B for published item P1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Provisional replacement image returns HTTP 404 to anonymous visitors",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Original active image remains HTTP 200 OK for public visitors",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Promoted provisional asset to active via publish",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Replacement image B is now live publicly (HTTP 200 OK)",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Revision history exists for item P1",
+          "status": "PASS",
+          "detail": "Revisions: 3"
+        },
+        {
+          "name": "Rollback to revision 2 returns HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Active asset storage key restored to original Photograph A",
+          "status": "PASS",
+          "detail": "gallery/photo-staging-e2e-1792613306796-639436-p1/1792613311949-staging-p1-portrait.jpg.jpg"
+        },
+        {
+          "name": "Rolled back item maintains published status",
+          "status": "PASS",
+          "detail": "published"
+        },
+        {
+          "name": "Archive P2 returns HTTP 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Archived item P2 excluded from public gallery feed",
+          "status": "PASS",
+          "detail": "Visible items: photo-staging-e2e-1792613306796-639436-p3, photo-staging-e2e-1792613306796-639436-p1"
+        },
+        {
+          "name": "Archived media key returns HTTP 404 to anonymous public visitors",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Restored P2 to published for full 3-item browser E2E verification",
+          "status": "PASS",
+          "detail": ""
+        }
+      ]
+    },
+    "4: Real Chromium Browser E2E (Local Preview Connected to Staging)": {
+      "total": 18,
+      "passed": 18,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Next.js preview server operational connected to Cloudflare staging Worker",
+          "status": "PASS",
+          "detail": "http://127.0.0.1:49841"
+        },
+        {
+          "name": "Entered Portfolio OS desktop workspace",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Clicked Gallery icon in Desktop Dock",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "GalleryApp window visibly open with 'Galeri' header",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "GalleryApp renders photographs from staging Worker",
+          "status": "PASS",
+          "detail": "Count: 3"
+        },
+        {
+          "name": "Position 1 image is P3 Square (800x800) decoded cleanly",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Position 2 image is P1 Portrait (600x900) decoded cleanly without cropping",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Position 3 image is P2 Landscape (1200x800) decoded cleanly without cropping",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Captured verified Public Gallery Desktop screenshot",
+          "status": "PASS",
+          "detail": "/Volumes/EMIX_WORK/02_DEV/GEMINI/CreativePortfolio/docs/reviews/screenshots/phase4_staging/public_gallery_desktop_1440x900.png"
+        },
+        {
+          "name": "Navigated to Admin Personal Photography Stream workspace",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Admin gallery catalog displays items from staging",
+          "status": "PASS",
+          "detail": "Count: 3"
+        },
+        {
+          "name": "Captured verified Admin Gallery Desktop screenshot",
+          "status": "PASS",
+          "detail": "/Volumes/EMIX_WORK/02_DEV/GEMINI/CreativePortfolio/docs/reviews/screenshots/phase4_staging/admin_gallery_desktop_1440x900.png"
+        },
+        {
+          "name": "Captured verified Admin Gallery Editor Desktop screenshot",
+          "status": "PASS",
+          "detail": "/Volumes/EMIX_WORK/02_DEV/GEMINI/CreativePortfolio/docs/reviews/screenshots/phase4_staging/admin_gallery_editor_desktop_1440x900.png"
+        },
+        {
+          "name": "GalleryApp window opens on mobile viewport",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Mobile Gallery window renders photographs",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Captured verified Public Gallery Mobile screenshot",
+          "status": "PASS",
+          "detail": "/Volumes/EMIX_WORK/02_DEV/GEMINI/CreativePortfolio/docs/reviews/screenshots/phase4_staging/public_gallery_mobile_390x844.png"
+        },
+        {
+          "name": "Captured verified Admin Gallery Mobile screenshot",
+          "status": "PASS",
+          "detail": "/Volumes/EMIX_WORK/02_DEV/GEMINI/CreativePortfolio/docs/reviews/screenshots/phase4_staging/admin_gallery_mobile_390x844.png"
+        },
+        {
+          "name": "Captured verified Admin Gallery Editor Mobile screenshot",
+          "status": "PASS",
+          "detail": "/Volumes/EMIX_WORK/02_DEV/GEMINI/CreativePortfolio/docs/reviews/screenshots/phase4_staging/admin_gallery_editor_mobile_390x844.png"
+        }
+      ]
+    },
+    "5: Guaranteed Test-Owned Resource Cleanup": {
+      "total": 1,
+      "passed": 1,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Surgical cleanup verified 0 orphan test rows remain in D1",
+          "status": "PASS",
+          "detail": "Total orphans: 0"
+        }
+      ]
+    },
+    "6: Canonical Parity & Baseline Non-Regression": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Baseline projects invariant confirmed: exactly 31 records",
+          "status": "PASS",
+          "detail": "Count: 31"
+        },
+        {
+          "name": "Baseline videos invariant confirmed: exactly 21 canonical videos",
+          "status": "PASS",
+          "detail": "Count: 21"
+        },
+        {
+          "name": "Baseline project media invariant confirmed: exactly 72 records",
+          "status": "PASS",
+          "detail": "Count: 72"
+        },
+        {
+          "name": "Clean baseline gallery invariant confirmed: 0 test/stale items",
+          "status": "PASS",
+          "detail": "Count: 0"
+        }
+      ]
+    }
+  },
+  "failures": []
+}

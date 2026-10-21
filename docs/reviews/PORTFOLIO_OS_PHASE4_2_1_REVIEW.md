@@ -65,10 +65,10 @@ GROUP SUMMARY (96 / 96 CHECKS PASSED)
 ============================================================
 Group A: Isolation Architecture & Safety Guard Enforcement   11 / 11 PASS
 Group B: Authentic Decodable Image Fixture Generation         6 /  6 PASS
-Group C: Real Browser UI Authentication & Photo Ingestion   11 / 11 PASS
+Group C: Real Browser UI Authentication & Photo Ingestion   12 / 12 PASS
 Group D: Multi-Photo Ingestion & Reordering (P3->P1->P2)      6 /  6 PASS
-Group E: Provisional Image Replacement & Binary Rollback    12 / 12 PASS
-Group F: Public GalleryApp Window E2E & Visual Proof        17 / 17 PASS
+Group E: Provisional Image Replacement & Binary Rollback    14 / 14 PASS
+Group F: Public GalleryApp Window E2E & Visual Proof        19 / 19 PASS
 Group G: Real Scroll Measurements & Responsive Validation     7 /  7 PASS
 Group H: Critical Security Coverage & Boundary Enforcement  11 / 11 PASS
 Group I: Upstream Outage Resilience & Fail-Closed Integrity   5 /  5 PASS

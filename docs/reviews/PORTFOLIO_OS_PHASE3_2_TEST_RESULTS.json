@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-10-21T09:02:24.678Z",
-  "commit": "4291a001b22e42647d4e0a80c17c80c7421613b4",
+  "timestamp": "2026-10-21T16:47:00.166Z",
+  "commit": "02780b8582011db11ea3466580cf188c67bb9865",
   "total": 112,
   "passed": 112,
   "failed": 0,
@@ -183,12 +183,12 @@
           "detail": ""
         },
         {
-          "name": "Created video has valid ID: test-release-video-1792573347993",
+          "name": "Created video has valid ID: test-release-video-1792601223432",
           "status": "PASS",
           "detail": ""
         },
         {
-          "name": "GET /api/admin/videos/[id] returns HTTP 200 for test-release-video-1792573347993",
+          "name": "GET /api/admin/videos/[id] returns HTTP 200 for test-release-video-1792601223432",
           "status": "PASS",
           "detail": ""
         },
@@ -240,12 +240,12 @@
       "failed": 0,
       "checks": [
         {
-          "name": "Uploaded Poster A (storageKey: videos/test-release-video-1792573347993/poster-1792573348080-a8589349.webp)",
+          "name": "Uploaded Poster A (storageKey: videos/test-release-video-1792601223432/poster-1792601223490-79558b07.webp)",
           "status": "PASS",
           "detail": ""
         },
         {
-          "name": "Uploaded Poster B replacement (videos/test-release-video-1792573347993/poster-1792573348089-e4bd971a.webp)",
+          "name": "Uploaded Poster B replacement (videos/test-release-video-1792601223432/poster-1792601223501-ef625447.webp)",
           "status": "PASS",
           "detail": ""
         },

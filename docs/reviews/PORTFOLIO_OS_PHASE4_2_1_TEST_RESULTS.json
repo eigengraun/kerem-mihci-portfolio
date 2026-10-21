@@ -1,7 +1,7 @@
 {
   "suite": "Portfolio OS Phase 4.2.1 Real Chromium Browser E2E & Visual Verification",
-  "timestamp": "2026-10-21T15:58:30.283Z",
-  "commit": "923e3941586981c7440ca2cc834d416b8fd27d0a",
+  "timestamp": "2026-10-21T16:47:51.613Z",
+  "commit": "02780b8582011db11ea3466580cf188c67bb9865",
   "total": 96,
   "passed": 96,
   "failed": 0,
@@ -54,12 +54,12 @@
         {
           "name": "Dedicated free loopback port safely allocated",
           "status": "PASS",
-          "detail": "Port: 64499"
+          "detail": "Port: 59318"
         },
         {
           "name": "Isolated Next.js server operational and healthy on loopback binding",
           "status": "PASS",
-          "detail": "http://127.0.0.1:64499"
+          "detail": "http://127.0.0.1:59318"
         },
         {
           "name": "Playwright launched Chromium cleanly using project-local dependency",
@@ -128,7 +128,7 @@
         {
           "name": "Uploaded P1 Portrait image and verified preview",
           "status": "PASS",
-          "detail": "/api/media/gallery/photo-1792598311901-kigiq/1792598311930-a815ad01.jpg"
+          "detail": "/api/media/gallery/photo-1792601273208-6if5j/1792601273243-44450554.jpg"
         },
         {
           "name": "Saved P1 as draft through admin UI",
@@ -195,12 +195,12 @@
         {
           "name": "SQLite sequence verified: [0]=P3, [1]=P1, [2]=P2",
           "status": "PASS",
-          "detail": "Actual order: photo-1792598312592-ci1ku -> photo-1792598311901-kigiq -> photo-1792598312348-gjvwx"
+          "detail": "Actual order: photo-1792601274036-j87r4 -> photo-1792601273208-6if5j -> photo-1792601273762-dn1w1"
         },
         {
           "name": "Public API serves exact sequence: P3 -> P1 -> P2",
           "status": "PASS",
-          "detail": "API IDs: photo-1792598312592-ci1ku -> photo-1792598311901-kigiq -> photo-1792598312348-gjvwx"
+          "detail": "API IDs: photo-1792601274036-j87r4 -> photo-1792601273208-6if5j -> photo-1792601273762-dn1w1"
         },
         {
           "name": "Admin catalog UI stably retains sequence P3 -> P1 -> P2 after browser reload",
@@ -532,7 +532,7 @@
         {
           "name": "Isolated sandbox directory cleanly destroyed",
           "status": "PASS",
-          "detail": "/var/folders/0d/xtlrt9cj0lg4qw5b6zpcsyd40000gn/T/portfolio-isolated-1792598310308-492a2c0d"
+          "detail": "/var/folders/0d/xtlrt9cj0lg4qw5b6zpcsyd40000gn/T/portfolio-isolated-1792601271639-37a7ed85"
         },
         {
           "name": "Host portfolio.sqlite byte-for-byte identical (SHA-256 match)",

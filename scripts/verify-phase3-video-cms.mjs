@@ -23,13 +23,53 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import os from "node:os";
-import { execSync, spawnSync } from "node:child_process";
+import net from "node:net";
+import { execSync, spawnSync, spawn } from "node:child_process";
 import { DatabaseSync } from "node:sqlite";
 import { videosData } from "../src/data/videos.ts";
 
 const rootDir = process.cwd();
 const localDbPath = path.join(rootDir, ".local-d1", "portfolio.sqlite");
-const baseUrl = "http://127.0.0.1:3099";
+let baseUrl = "http://127.0.0.1:3099";
+
+async function isPortFree(port) {
+  return new Promise((resolve) => {
+    const tester = net
+      .createServer()
+      .once("error", () => resolve(false))
+      .once("listening", () => {
+        tester.once("close", () => resolve(true)).close();
+      })
+      .listen(port, "127.0.0.1");
+  });
+}
+
+async function getAvailablePort(preferred = 3099) {
+  if (await isPortFree(preferred)) return preferred;
+  return new Promise((resolve, reject) => {
+    const srv = net.createServer();
+    srv.unref();
+    srv.on("error", reject);
+    srv.listen(0, "127.0.0.1", () => {
+      const port = srv.address().port;
+      srv.close(() => resolve(port));
+    });
+  });
+}
+
+async function waitForServer(url, timeoutMs = 20000) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    try {
+      const res = await fetch(`${url}/api/videos`);
+      if (res.status < 500) return true;
+    } catch {
+      // Retry
+    }
+    await new Promise((r) => setTimeout(r, 200));
+  }
+  throw new Error(`Server failed to start on ${url} within ${timeoutMs}ms.`);
+}
 
 const results = {
   timestamp: new Date().toISOString(),
@@ -80,14 +120,37 @@ async function runSuite() {
   console.log("PORTFOLIO OS PHASE 3.2: FINAL STAGING READINESS VERIFICATION");
   console.log("============================================================\n");
 
-  // ------------------------------------------------------------
-  // GROUP A: Canonical Import Parity, Idempotency & CLI Guardrails
-  // ------------------------------------------------------------
-  setGroup("Group A: Canonical Import Parity & CLI Guardrails");
-  assert(fs.existsSync(localDbPath), "Local D1 database exists (.local-d1/portfolio.sqlite)");
+  if (!fs.existsSync(localDbPath)) {
+    throw new Error(`HOST_DB_MISSING: ${localDbPath} does not exist`);
+  }
+  const hostDbShaBefore = crypto.createHash("sha256").update(fs.readFileSync(localDbPath)).digest("hex");
 
-  const db = new DatabaseSync(localDbPath);
-  const videoRows = db.prepare(`SELECT * FROM portfolio_videos ORDER BY sort_order ASC`).all();
+  // Setup isolated temporary SQLite sandbox database and media directory
+  const sandboxDir = fs.mkdtempSync(path.join(os.tmpdir(), "portfolio-p3-sandbox-"));
+  const sandboxDbPath = path.join(sandboxDir, "portfolio.sqlite");
+  const sandboxMediaDir = path.join(sandboxDir, "media");
+  fs.mkdirSync(sandboxMediaDir, { recursive: true });
+
+  fs.copyFileSync(localDbPath, sandboxDbPath);
+  if (fs.existsSync(`${localDbPath}-wal`)) {
+    fs.copyFileSync(`${localDbPath}-wal`, `${sandboxDbPath}-wal`);
+  }
+  if (fs.existsSync(`${localDbPath}-shm`)) {
+    fs.copyFileSync(`${localDbPath}-shm`, `${sandboxDbPath}-shm`);
+  }
+
+  let db = null;
+  let testServerProcess = null;
+
+  try {
+    // ------------------------------------------------------------
+    // GROUP A: Canonical Import Parity, Idempotency & CLI Guardrails
+    // ------------------------------------------------------------
+    setGroup("Group A: Canonical Import Parity & CLI Guardrails");
+    assert(fs.existsSync(localDbPath), "Local D1 database exists (.local-d1/portfolio.sqlite)");
+
+    db = new DatabaseSync(sandboxDbPath);
+    const videoRows = db.prepare(`SELECT * FROM portfolio_videos ORDER BY sort_order ASC`).all();
   assert(videoRows.length === 21, `Database contains exactly 21 videos (found ${videoRows.length})`);
 
   const portraitRows = videoRows.filter((r) => r.orientation === "portrait");
@@ -250,6 +313,59 @@ async function runSuite() {
 
   // Clean up test DB
   fs.rmSync(tmpDbDir, { recursive: true, force: true });
+
+  // ------------------------------------------------------------
+  // Ensure Isolated Next.js Server is running on baseUrl
+  // ------------------------------------------------------------
+  let serverRunning = false;
+  try {
+    const ping = await fetch(`${baseUrl}/api/videos`, { signal: AbortSignal.timeout(1000) });
+    if (ping.status < 500) serverRunning = true;
+  } catch {}
+
+  if (!serverRunning) {
+    const testPort = await getAvailablePort(3099);
+    baseUrl = `http://127.0.0.1:${testPort}`;
+
+    const nextBin = path.join(rootDir, "node_modules", "next", "dist", "bin", "next");
+    const envStagingPath = path.join(rootDir, ".env.staging.local");
+    const stagingEnv = {};
+    if (fs.existsSync(envStagingPath)) {
+      const content = fs.readFileSync(envStagingPath, "utf-8");
+      for (const line of content.split("\n")) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith("#")) continue;
+        const eqIdx = trimmed.indexOf("=");
+        if (eqIdx > 0) {
+          stagingEnv[trimmed.slice(0, eqIdx).trim()] = trimmed.slice(eqIdx + 1).trim();
+        }
+      }
+    }
+
+    const testEnv = {
+      ...process.env,
+      ...stagingEnv,
+      NODE_ENV: "production",
+      CMS_STORAGE_MODE: "local",
+      CMS_DATA_SOURCE: "local",
+      LOCAL_D1_DB_PATH: sandboxDbPath,
+      LOCAL_D1_FILE_PATH: sandboxDbPath,
+      LOCAL_R2_DIR_PATH: sandboxMediaDir,
+      PORT: String(testPort),
+      HOSTNAME: "127.0.0.1",
+      ADMIN_TRUSTED_ORIGINS: `${baseUrl},http://localhost:${testPort}`
+    };
+    delete testEnv.CLOUDFLARE_CMS_API_URL;
+    delete testEnv.CLOUDFLARE_API_SERVICE_TOKEN;
+
+    testServerProcess = spawn(process.execPath, [nextBin, "start", "-p", String(testPort), "-H", "127.0.0.1"], {
+      cwd: rootDir,
+      env: testEnv,
+      stdio: "pipe"
+    });
+
+    await waitForServer(baseUrl, 20000);
+  }
 
   // ------------------------------------------------------------
   // Authenticate Admin Session
@@ -478,7 +594,8 @@ async function runSuite() {
   assert(posterBKey !== posterAKey, `Uploaded Poster B replacement (${posterBKey})`);
 
   // Verify Poster A file STILL EXISTS on disk under retention policy!
-  const posterAPathOnDisk = path.join(rootDir, ".local-r2", posterAKey);
+  const activeMediaDir = fs.existsSync(sandboxMediaDir) ? sandboxMediaDir : path.join(rootDir, ".local-r2");
+  const posterAPathOnDisk = path.join(activeMediaDir, posterAKey);
   assert(fs.existsSync(posterAPathOnDisk), "Poster A binary file retained on disk after replacement (NOT deleted)");
 
   // 3. Rollback to Revision with Poster A
@@ -504,6 +621,7 @@ async function runSuite() {
 
   // Clean up temporary poster files
   fs.rmSync(path.join(rootDir, ".local-r2", "videos", testSlug), { recursive: true, force: true });
+  fs.rmSync(path.join(sandboxMediaDir, "videos", testSlug), { recursive: true, force: true });
 
   // ------------------------------------------------------------
   // GROUP F: Publication Lifecycle & Instant Unpublishing
@@ -699,6 +817,7 @@ async function runSuite() {
   db.prepare(`DELETE FROM portfolio_video_assets WHERE video_id = ?`).run(mp4TestId);
   db.prepare(`DELETE FROM portfolio_videos WHERE id = ?`).run(mp4TestId);
   fs.rmSync(path.join(rootDir, ".local-r2", "videos", mp4TestSlug), { recursive: true, force: true });
+  fs.rmSync(path.join(sandboxMediaDir, "videos", mp4TestSlug), { recursive: true, force: true });
 
   // ------------------------------------------------------------
   // GROUP J: Video Snapshot Bounded Lifetime & Invalidation (Section 2)
@@ -1134,6 +1253,27 @@ async function runSuite() {
     } catch {}
   }
 
+    // Verify host database was NEVER mutated during any Phase 3 tests
+    const hostDbShaAfter = crypto.createHash("sha256").update(fs.readFileSync(localDbPath)).digest("hex");
+    if (hostDbShaBefore !== hostDbShaAfter) {
+      throw new Error(`HOST_DB_POLLUTED: .local-d1/portfolio.sqlite SHA-256 changed from ${hostDbShaBefore} to ${hostDbShaAfter}`);
+    }
+  } finally {
+    if (testServerProcess) {
+      try {
+        testServerProcess.kill("SIGTERM");
+      } catch {}
+    }
+    if (db) {
+      try {
+        db.close();
+      } catch {}
+    }
+    try {
+      fs.rmSync(sandboxDir, { recursive: true, force: true });
+    } catch {}
+  }
+
   console.log("\n============================================================");
   console.log(`TOTAL CHECKS: ${results.total} | PASSED: ${results.passed} | FAILED: ${results.failed}`);
   if (results.failed === 0) {
@@ -1149,7 +1289,6 @@ async function runSuite() {
   fs.writeFileSync(reportPath, JSON.stringify(results, null, 2), "utf8");
   console.log(`✓ Test results report saved to ${reportPath}\n`);
 
-  db.close();
   process.exit(results.failed === 0 ? 0 : 1);
 }
 

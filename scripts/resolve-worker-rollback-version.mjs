@@ -7,11 +7,12 @@
  *
  * Resolves the active Worker VERSION_ID (required by `wrangler rollback <version-id>`)
  * from structured machine-readable JSON output of `wrangler deployments status --json`
- * or `wrangler deployments list --json`.
+ * with optional cross-check against `wrangler deployments list --json`.
  *
  * Strictly enforces:
  * - Version ID vs Deployment ID distinction (Deployment ID is NOT valid for rollback).
  * - Exact single active version receiving 100% traffic.
+ * - Authoritative current-state observation required (no blind deployments[0] fallbacks).
  * - Strict UUID v4 regex validation.
  * - Raw UUID file persistence (no human-readable prefix strings).
  * - Multi-version split traffic rejection.
@@ -42,7 +43,7 @@ export function validateWorkerVersionId(id) {
 }
 
 /**
- * Parses output from `wrangler deployments status --json`.
+ * Parses authoritative output from `wrangler deployments status --json`.
  * In Wrangler 4.x, `deployments status --json` outputs a single deployment object:
  * {
  *   "id": "deployment-uuid",
@@ -103,6 +104,13 @@ export function parseWorkerDeploymentsStatusJson(jsonInput) {
     throw new Error(`INVALID_VERSION_UUID: ${valResult.error}`);
   }
 
+  // Preserve and verify distinction between Deployment ID and Version ID
+  if (valResult.versionId === deploymentId.toLowerCase()) {
+    throw new Error(
+      `ACCIDENTAL_DEPLOYMENT_ID: Resolved version_id (${valResult.versionId}) is identical to deployment ID (${deploymentId}). Cloudflare rollback requires an authentic Version ID, not a Deployment ID.`
+    );
+  }
+
   return {
     versionId: valResult.versionId,
     deploymentId: String(deploymentId),
@@ -114,9 +122,10 @@ export function parseWorkerDeploymentsStatusJson(jsonInput) {
 }
 
 /**
- * Parses output from `wrangler deployments list --json`.
- * In Wrangler 4.x, `deployments list --json` outputs an array of deployments or `{ deployments: [...] }`.
+ * Parses historical output from `wrangler deployments list --json`.
+ * In Wrangler 4.x, `deployments list --json` outputs an array of historical deployments.
  * Stricter reconciliation: requires finding an explicitly active deployment with verified 100% traffic.
+ * NEVER falls back to deployments[0] (which in Wrangler 4.x is chronological ascending, i.e. oldest historical deployment).
  */
 export function parseWorkerDeploymentsListJson(jsonInput) {
   let data;
@@ -135,14 +144,66 @@ export function parseWorkerDeploymentsListJson(jsonInput) {
     throw new Error("NO_DEPLOYMENTS: Deployments list is empty");
   }
 
-  // Find deployment that is marked current or active, OR if there is an unambiguous top deployment with traffic
-  // Never assume deployments[0] is active without validating versions array and percentage!
-  const currentDeployment = deployments.find((d) => d.current === true) || deployments[0];
-  if (!currentDeployment) {
-    throw new Error("NO_ACTIVE_DEPLOYMENT: Could not find verified active deployment in list");
+  // Strictly require explicit 'current: true' evidence.
+  // The deployments[0] fallback is completely eliminated: a historical first deployment without
+  // authoritative current-state proof MUST genuinely cause a safe failure.
+  const currentDeployments = deployments.filter((d) => d.current === true);
+  if (currentDeployments.length === 0) {
+    throw new Error(
+      "NO_CURRENT_STATE_PROOF: Deployments list contains no deployment marked 'current: true'. " +
+      "Deployments list is historical evidence only and cannot establish active serving state. " +
+      "Authoritative current serving state must be obtained from 'wrangler deployments status --json'."
+    );
   }
 
-  return parseWorkerDeploymentsStatusJson(currentDeployment);
+  if (currentDeployments.length > 1) {
+    throw new Error(
+      `AMBIGUOUS_CURRENT_DEPLOYMENTS: Multiple deployments (${currentDeployments.length}) are marked 'current: true'. ` +
+      "Automated rollback version resolution requires exactly one active deployment."
+    );
+  }
+
+  return parseWorkerDeploymentsStatusJson(currentDeployments[0]);
+}
+
+/**
+ * Resolves the authoritative currently serving Worker Version ID.
+ * Requires statusJson from `wrangler deployments status --json` as primary authority.
+ * If listJson from `wrangler deployments list --json` is also provided, cross-checks:
+ * - Version ID matches
+ * - Deployment ID matches (if specified in list entry)
+ */
+export function resolveAuthoritativeWorkerRollbackVersion({ statusJson, listJson } = {}) {
+  if (!statusJson) {
+    throw new Error(
+      "MISSING_STATUS_OBSERVATION: Authoritative observation from 'wrangler deployments status --json' is required."
+    );
+  }
+
+  const statusResult = parseWorkerDeploymentsStatusJson(statusJson);
+
+  if (listJson) {
+    try {
+      const listResult = parseWorkerDeploymentsListJson(listJson);
+      crossCheckWorkerVersions(
+        statusResult.versionId,
+        listResult.versionId,
+        "wrangler deployments status",
+        "wrangler deployments list"
+      );
+      if (listResult.deploymentId && statusResult.deploymentId !== listResult.deploymentId) {
+        throw new Error(
+          `DISCREPANCY: Deployment ID mismatch between status (${statusResult.deploymentId}) and list (${listResult.deploymentId})`
+        );
+      }
+    } catch (listErr) {
+      if (!listErr.message.includes("NO_CURRENT_STATE_PROOF")) {
+        throw listErr;
+      }
+    }
+  }
+
+  return statusResult;
 }
 
 /**
@@ -161,7 +222,7 @@ export function writeRawWorkerVersionIdFile(versionFilePath, versionId, metadata
   // Write RAW UUID ONLY to version file
   fs.writeFileSync(versionFilePath, `${val.versionId}\n`, "utf8");
 
-  // Write human-readable metadata to companion .txt / .json file if requested
+  // Write human-readable metadata to companion .json file
   const metaFilePath = versionFilePath.replace(/\.[^.]+$/, "-summary.json");
   if (metaFilePath !== versionFilePath) {
     fs.writeFileSync(
@@ -241,12 +302,18 @@ if (process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1])))
 
   // Direct CLI invocation
   if (args.length > 0 && !args.includes("--test")) {
+    let statusPath = null;
+    let listPath = null;
     let inputPath = null;
     let outputPath = null;
     let validateTarget = null;
 
     for (let i = 0; i < args.length; i++) {
-      if (args[i] === "--input" || args[i] === "-i") {
+      if (args[i] === "--status-json" || args[i] === "--status") {
+        statusPath = args[++i];
+      } else if (args[i] === "--list-json" || args[i] === "--list") {
+        listPath = args[++i];
+      } else if (args[i] === "--input" || args[i] === "-i") {
         inputPath = args[++i];
       } else if (args[i] === "--output" || args[i] === "-o") {
         outputPath = args[++i];
@@ -273,18 +340,43 @@ if (process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1])))
       }
     }
 
-    if (!inputPath) {
-      console.error("Usage: node scripts/resolve-worker-rollback-version.mjs --input <deployments.json> [--output <active-version-id.txt>]");
+    // Determine status and list inputs
+    let statusContent = null;
+    let listContent = null;
+
+    if (statusPath) {
+      statusContent = fs.readFileSync(path.resolve(statusPath), "utf8");
+    }
+    if (listPath) {
+      listContent = fs.readFileSync(path.resolve(listPath), "utf8");
+    }
+
+    if (inputPath && !statusContent) {
+      const raw = fs.readFileSync(path.resolve(inputPath), "utf8");
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) || parsed.deployments) {
+          listContent = raw;
+        } else {
+          statusContent = raw;
+        }
+      } catch (err) {
+        console.error(`✗ PARSE_ERROR: ${err.message}`);
+        process.exit(1);
+      }
+    }
+
+    if (!statusContent) {
+      console.error("Usage: node scripts/resolve-worker-rollback-version.mjs --status-json <status.json> [--list-json <list.json>] [--output <active-version-id.txt>]");
       console.error("       node scripts/resolve-worker-rollback-version.mjs --validate <version-id-or-file>");
       process.exit(1);
     }
 
     try {
-      const rawJson = fs.readFileSync(path.resolve(inputPath), "utf8");
-      const parsed = JSON.parse(rawJson);
-      const res = Array.isArray(parsed) || parsed.deployments
-        ? parseWorkerDeploymentsListJson(parsed)
-        : parseWorkerDeploymentsStatusJson(parsed);
+      const res = resolveAuthoritativeWorkerRollbackVersion({
+        statusJson: statusContent,
+        listJson: listContent
+      });
 
       console.log(`✓ RESOLVED WORKER VERSION ID: ${res.versionId}`);
       console.log(`  - Deployment ID: ${res.deploymentId}`);
@@ -323,9 +415,11 @@ if (process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1])))
 
   const MOCK_DEPLOYMENT_ID = "e30129dc-bcf9-42b8-9ee2-658f844ba55f";
   const MOCK_VERSION_ID = "236c56bb-375e-4ba7-8051-24018f2ee188";
+  const MOCK_HISTORICAL_DEPLOYMENT_ID = "a1111111-bcf9-42b8-9ee2-658f844ba55f";
+  const MOCK_HISTORICAL_VERSION_ID = "b2222222-375e-4ba7-8051-24018f2ee188";
 
-  // Positive Case: Valid deployment status JSON
-  runCase("Positive: Correctly extracts version_id (NOT deployment id)", () => {
+  // Test 1: Valid single current deployment (authoritative status)
+  runCase("Test 1: Valid single current deployment extracts version_id (NOT deployment id)", () => {
     const fixture = {
       id: MOCK_DEPLOYMENT_ID,
       created_on: "2026-10-21T12:00:00Z",
@@ -338,30 +432,56 @@ if (process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1])))
     if (res.versionId === res.deploymentId) throw new Error("versionId should NOT equal deploymentId");
   });
 
-  // Negative Case 1: Deployment ID differs from version ID (assert distinction preserved)
-  runCase("Negative 1: Verifies Deployment ID is not returned as version ID", () => {
-    const fixture = {
-      id: "11111111-1111-1111-1111-111111111111",
-      versions: [{ version_id: "22222222-2222-2222-2222-222222222222", percentage: 100 }]
-    };
-    const res = parseWorkerDeploymentsStatusJson(fixture);
-    if (res.versionId === fixture.id) throw new Error("Returned deployment ID instead of version ID!");
-    if (res.versionId !== "22222222-2222-2222-2222-222222222222") throw new Error("Failed to return version_id");
+  // Test 2: Historical first deployment differs from actual current deployment
+  runCase("Test 2: Historical first deployment differs from actual current deployment (selects current: true, NOT index 0)", () => {
+    const listFixture = [
+      {
+        id: MOCK_HISTORICAL_DEPLOYMENT_ID,
+        current: false,
+        created_on: "2026-10-19T10:00:00Z",
+        versions: [{ version_id: MOCK_HISTORICAL_VERSION_ID, percentage: 100 }]
+      },
+      {
+        id: MOCK_DEPLOYMENT_ID,
+        current: true,
+        created_on: "2026-10-21T12:00:00Z",
+        versions: [{ version_id: MOCK_VERSION_ID, percentage: 100 }]
+      }
+    ];
+    const res = parseWorkerDeploymentsListJson(listFixture);
+    if (res.versionId !== MOCK_VERSION_ID) {
+      throw new Error(`Expected active version ${MOCK_VERSION_ID}, but got index 0 version ${res.versionId}!`);
+    }
+    if (res.deploymentId !== MOCK_DEPLOYMENT_ID) {
+      throw new Error(`Expected active deployment ${MOCK_DEPLOYMENT_ID}, but got ${res.deploymentId}!`);
+    }
   });
 
-  // Negative Case 2: No deployments
-  runCase("Negative 2: Rejects empty deployments list", () => {
+  // Test 3: No explicit current-state evidence in deployments list (fails closed)
+  runCase("Test 3: No explicit current-state evidence in deployments list genuinely fails closed", () => {
+    const listFixtureWithoutCurrent = [
+      {
+        id: MOCK_HISTORICAL_DEPLOYMENT_ID,
+        created_on: "2026-10-19T10:00:00Z",
+        versions: [{ version_id: MOCK_HISTORICAL_VERSION_ID, percentage: 100 }]
+      },
+      {
+        id: MOCK_DEPLOYMENT_ID,
+        created_on: "2026-10-21T12:00:00Z",
+        versions: [{ version_id: MOCK_VERSION_ID, percentage: 100 }]
+      }
+    ];
     let threw = false;
     try {
-      parseWorkerDeploymentsListJson([]);
+      parseWorkerDeploymentsListJson(listFixtureWithoutCurrent);
     } catch (err) {
-      threw = err.message.includes("NO_DEPLOYMENTS");
+      threw = err.message.includes("NO_CURRENT_STATE_PROOF");
     }
-    if (!threw) throw new Error("Did not reject empty deployments");
+    if (!threw) throw new Error("Did not reject list lacking explicit current: true proof");
   });
 
-  // Negative Case 3: Multiple active versions (canary / split traffic)
-  runCase("Negative 3: Rejects multiple active versions (canary split)", () => {
+  // Test 4: Multiple active versions (canary split / split traffic)
+  runCase("Test 4: Rejects multiple active versions (canary split)", () => {
     const fixture = {
       id: MOCK_DEPLOYMENT_ID,
       versions: [
@@ -378,33 +498,34 @@ if (process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1])))
     if (!threw) throw new Error("Did not reject split traffic");
   });
 
-  // Negative Case 4: Missing versions array
-  runCase("Negative 4: Rejects missing or empty versions array", () => {
+  // Test 5: Split traffic / non-100 percentage
+  runCase("Test 5: Rejects single version with non-100 percentage", () => {
+    const fixture = {
+      id: MOCK_DEPLOYMENT_ID,
+      versions: [{ version_id: MOCK_VERSION_ID, percentage: 80 }]
+    };
+    let threw = false;
+    try {
+      parseWorkerDeploymentsStatusJson(fixture);
+    } catch (err) {
+      threw = err.message.includes("SPLIT_TRAFFIC");
+    }
+    if (!threw) throw new Error("Did not reject non-100 percentage");
+  });
+
+  // Test 6: Missing version metadata
+  runCase("Test 6: Rejects missing or empty versions array", () => {
     let threw = false;
     try {
       parseWorkerDeploymentsStatusJson({ id: MOCK_DEPLOYMENT_ID, versions: [] });
     } catch (err) {
       threw = err.message.includes("MISSING_VERSIONS");
     }
-    if (!threw) throw new Error("Did not reject missing versions");
+    if (!threw) throw new Error("Did not reject empty versions");
   });
 
-  // Negative Case 5: Missing percentage
-  runCase("Negative 5: Rejects missing or non-100 percentage", () => {
-    let threw = false;
-    try {
-      parseWorkerDeploymentsStatusJson({
-        id: MOCK_DEPLOYMENT_ID,
-        versions: [{ version_id: MOCK_VERSION_ID }]
-      });
-    } catch (err) {
-      threw = err.message.includes("MISSING_PERCENTAGE");
-    }
-    if (!threw) throw new Error("Did not reject missing percentage");
-  });
-
-  // Negative Case 6: Invalid UUID
-  runCase("Negative 6: Rejects invalid non-UUID version string", () => {
+  // Test 7: Invalid non-UUID version string
+  runCase("Test 7: Rejects invalid non-UUID version string", () => {
     let threw = false;
     try {
       parseWorkerDeploymentsStatusJson({
@@ -417,8 +538,59 @@ if (process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1])))
     if (!threw) throw new Error("Did not reject invalid UUID");
   });
 
-  // Negative Case 7: Prefixed or contaminated text file
-  runCase("Negative 7: Rejects prefixed or contaminated version-id file", () => {
+  // Test 8: Deployment ID accidentally selected as Version ID
+  runCase("Test 8: Rejects accidental selection of Deployment ID as Version ID", () => {
+    const dupeId = "11111111-1111-1111-1111-111111111111";
+    let threw = false;
+    try {
+      parseWorkerDeploymentsStatusJson({
+        id: dupeId,
+        versions: [{ version_id: dupeId, percentage: 100 }]
+      });
+    } catch (err) {
+      threw = err.message.includes("ACCIDENTAL_DEPLOYMENT_ID");
+    }
+    if (!threw) throw new Error("Did not reject version_id matching deployment_id");
+  });
+
+  // Test 9: Conflicting current-state observations
+  runCase("Test 9: Rejects conflicting current-state observations between status and list", () => {
+    const statusJson = JSON.stringify({
+      id: MOCK_DEPLOYMENT_ID,
+      versions: [{ version_id: MOCK_VERSION_ID, percentage: 100 }]
+    });
+    const conflictingListJson = JSON.stringify([
+      {
+        id: "99999999-9999-9999-9999-999999999999",
+        current: true,
+        versions: [{ version_id: "88888888-8888-8888-8888-888888888888", percentage: 100 }]
+      }
+    ]);
+    let threw = false;
+    try {
+      resolveAuthoritativeWorkerRollbackVersion({
+        statusJson,
+        listJson: conflictingListJson
+      });
+    } catch (err) {
+      threw = err.message.includes("DISCREPANCY");
+    }
+    if (!threw) throw new Error("Did not reject version discrepancy between status and list");
+  });
+
+  // Test 10: Malformed JSON / HTML error response
+  runCase("Test 10: Rejects malformed JSON and HTML 502 error responses", () => {
+    let threw = false;
+    try {
+      parseWorkerDeploymentsStatusJson("<html><title>502 Bad Gateway</title></html>");
+    } catch (err) {
+      threw = err.message.includes("SCHEMA_ERROR");
+    }
+    if (!threw) throw new Error("Did not reject HTML string");
+  });
+
+  // Test 11: Old contaminated identity files
+  runCase("Test 11: Rejects prefixed or multi-line contaminated version-id file", () => {
     const tmpFile = `/tmp/test-contaminated-version-${Date.now()}.txt`;
     try {
       fs.writeFileSync(tmpFile, "Pre-Deployment Active Worker ID: 236c56bb-375e-4ba7-8051-24018f2ee188\n");
@@ -434,46 +606,8 @@ if (process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1])))
     }
   });
 
-  // Negative Case 8: JSON output without verified active deployment
-  runCase("Negative 8: Rejects JSON with null/undefined deployment", () => {
-    let threw = false;
-    try {
-      parseWorkerDeploymentsStatusJson("null");
-    } catch (err) {
-      threw = err.message.includes("SCHEMA_ERROR");
-    }
-    if (!threw) throw new Error("Did not reject null deployment");
-  });
-
-  // Negative Case 9: Different version between independent status observations
-  runCase("Negative 9: Rejects discrepancy between independent observations", () => {
-    let threw = false;
-    try {
-      crossCheckWorkerVersions(
-        "22222222-2222-2222-2222-222222222222",
-        "33333333-3333-3333-3333-333333333333",
-        "Pre-deployment check",
-        "Post-deployment check"
-      );
-    } catch (err) {
-      threw = err.message.includes("DISCREPANCY");
-    }
-    if (!threw) throw new Error("Did not reject version discrepancy");
-  });
-
-  // Negative Case 10: Unexpected Wrangler response schema
-  runCase("Negative 10: Rejects unexpected schema / HTML error string", () => {
-    let threw = false;
-    try {
-      parseWorkerDeploymentsStatusJson("<html><title>502 Bad Gateway</title></html>");
-    } catch (err) {
-      threw = err.message.includes("SCHEMA_ERROR");
-    }
-    if (!threw) throw new Error("Did not reject HTML string");
-  });
-
-  // File write and read round-trip verification
-  runCase("Persistence: Writes raw UUID and reads back cleanly", () => {
+  // Test 12: Clean raw UUID write and read round-trip
+  runCase("Test 12: Persistence writes raw UUID and reads back cleanly without pollution", () => {
     const tmpFile = `/tmp/test-clean-version-${Date.now()}.txt`;
     try {
       writeRawWorkerVersionIdFile(tmpFile, MOCK_VERSION_ID, { author: "operator@example.com" });

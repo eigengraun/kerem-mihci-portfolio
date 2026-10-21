@@ -49,6 +49,8 @@ Upon receiving explicit operator authorization (**Verdict A**), execute the foll
 Capture an immutable cryptographic backup of the staging D1 database to durable private storage (outside Git) and record the exact active Worker rollback target:
 
 ```bash
+set -euo pipefail
+
 # 1. Enforce restrictive file creation mask for operator session
 umask 077
 
@@ -57,16 +59,22 @@ BACKUP_DIR="$HOME/.portfolio-staging-backups/phase4-preflight-$(date +%Y%m%d-%H%
 mkdir -p "$BACKUP_DIR"
 chmod 700 "$BACKUP_DIR"
 
-# 3. Capture structured machine-readable snapshot of existing deployments
+# 3. Capture authoritative machine-readable snapshots of serving deployment and history
+npx wrangler deployments status \
+  --config cloudflare/portfolio-api/wrangler.jsonc \
+  --env staging \
+  --json > "$BACKUP_DIR/pre-deployments-status.json"
+
 npx wrangler deployments list \
   --config cloudflare/portfolio-api/wrangler.jsonc \
   --env staging \
-  --json > "$BACKUP_DIR/pre-deployments.json"
+  --json > "$BACKUP_DIR/pre-deployments-list.json"
 
 # Resolve active Worker VERSION ID (required by wrangler rollback, which rejects Deployment IDs)
-# Enforces: UUID validation, 100% single-version traffic, and saves raw UUID
+# Enforces: authoritative status validation, cross-check, UUID v4 format, 100% single-version traffic, and saves raw UUID
 node scripts/resolve-worker-rollback-version.mjs \
-  --input "$BACKUP_DIR/pre-deployments.json" \
+  --status-json "$BACKUP_DIR/pre-deployments-status.json" \
+  --list-json "$BACKUP_DIR/pre-deployments-list.json" \
   --output "$BACKUP_DIR/active-worker-version-id.txt"
 
 PRE_DEPLOY_VERSION_ID=$(cat "$BACKUP_DIR/active-worker-version-id.txt")
@@ -87,8 +95,8 @@ test -s "$BACKUP_SQL" || { echo "FATAL: Backup file is empty"; exit 1; }
 shasum -a 256 "$BACKUP_SQL" > "${BACKUP_SQL}.sha256"
 
 # 6. Fail-closed backup integrity verification into isolated SQLite database
-# Enforces: -bail execution, PRAGMA quick_check + integrity_check, d1_migrations >= 2,
-# and exact baseline invariants: 31 projects, 72 media items, 21 canonical videos
+# Enforces: -bail execution, PRAGMA quick_check + integrity_check, d1_migrations exact ledger (0001, 0002 applied, 0003 pending),
+# reviewed migration SHA-256 hashes, and exact baseline invariants: 31 projects (30 canonical slugs), 72 media items, 21 canonical videos
 node scripts/verify-backup-integrity.mjs "$BACKUP_SQL"
 ```
 
@@ -191,7 +199,7 @@ Should any anomaly occur during rollout or verification:
 1. **Stop Further Writes Immediately**: Halt all deployment, migration, or seeding commands.
 2. **Preserve Deployed Schema and Data**: Do NOT execute destructive DDL (`DROP TABLE`) or bulk database deletions.
 3. **Capture Diagnostics**: Record full HTTP responses, Worker error logs (`wrangler tail`), and database quick-check output.
-4. **Identify Verified Pre-Deployment Worker**: Use the verified pre-deployment ID recorded in `$BACKUP_DIR/active-worker-id.txt`.
+4. **Identify Verified Pre-Deployment Worker**: Use the verified pre-deployment ID recorded in `$BACKUP_DIR/active-worker-version-id.txt`.
 5. **Require Explicit Operator Authorization**: Never roll back automatically without operator confirmation.
 6. **Verify Forward-Compatibility Before Rollback**: Never assume an older Worker version can safely handle requests against a newer schema without confirming compatibility.
 7. **Database Recovery as Separate Approved Procedure**: Database state corrections must be designed as targeted forward-fixes or isolated recovery operations, never automated full-database restores.
@@ -203,6 +211,8 @@ If the Worker deployment fails and the operator explicitly approves rolling back
 > `wrangler rollback <version-id>` strictly requires a **Version ID UUID** (returned in `wrangler deployments status` or `deployments list` versions array). It **fails closed** if given a Deployment ID.
 
 ```bash
+set -euo pipefail
+
 # 1. Read and validate pre-deployment Worker Version ID from verified preflight record
 PREV_VERSION_ID=$(cat "$BACKUP_DIR/active-worker-version-id.txt")
 

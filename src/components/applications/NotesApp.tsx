@@ -25,6 +25,7 @@ export const NotesApp: React.FC = () => {
 
   return (
     <div
+      data-testid="notes-app-window"
       className={`flex flex-col h-full rounded-md shadow-inner transition-colors duration-200 overflow-hidden ${
         isLight
           ? "bg-[#FFFDF5] text-neutral-800 border border-amber-200"

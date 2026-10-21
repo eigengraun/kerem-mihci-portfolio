@@ -23,7 +23,7 @@ All corrective actions have been implemented, tested, and verified with 100% pas
   - Initial Phase 5 documentation contained fabricated biographical claims not grounded in authentic source records (`src/data/profile.ts`):
     - Claimed "16+ years experience" (unverified).
     - Claimed "2008–2026 chronology" (unverified).
-    - Claimed degree from "Marmara University Faculty of Fine Arts" (unverified; authentic record is Marmara University Department of Physics).
+    - Claimed degree from "Marmara University Faculty of Fine Arts" (unverified; authentic codebase record in src/data/profile.ts is Istanbul University - Cerrahpaşa, Electrical & Electronics Engineering).
 - **Corrective Resolutions:**
   - Authored `docs/reviews/PORTFOLIO_OS_PHASE5_1_CONTENT_VERIFICATION_MATRIX.md`, auditing every personal profile, experience, education, skills, and CV fact against source data.
   - Formally retracted fabricated claims in `docs/reviews/PORTFOLIO_OS_PHASE5_CONTENT_REVIEW.md`.

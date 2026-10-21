@@ -248,6 +248,7 @@ export const DockIcon: React.FC<DockIconProps> = ({
         type="button"
         onClick={handleClick}
         aria-label={label}
+        data-testid={`dock-icon-${item.appId || item.id}`}
         aria-haspopup={isSocials ? "menu" : undefined}
         aria-expanded={isSocials ? socialsOpen : undefined}
         style={{

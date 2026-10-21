@@ -56,6 +56,7 @@ export const NotesTabNav: React.FC<NotesTabNavProps> = ({
           <button
             key={tab.id}
             type="button"
+            data-testid={`notes-tab-${tab.id}`}
             onClick={() => onSelectTab(tab.id)}
             className={`px-3 py-1 rounded text-[11px] md:text-xs font-mono font-semibold tracking-wider whitespace-nowrap transition-all duration-150 cursor-pointer flex-shrink-0 relative ${
               isActive

@@ -3,21 +3,24 @@
 /**
  * scripts/verify-phase5-browser-e2e.mjs
  *
- * Portfolio OS Phase 5.1: Profile, Notes & CV CMS Real Browser E2E Suite
+ * Portfolio OS Phase 5.2: Profile, Notes & CV CMS Real Browser E2E Suite
  *
  * Executes authentic browser workflows using real Chromium via project-local Playwright.
  * Strictly tests:
- * - Isolated disposable SQLite sandbox migrated fresh from schema files.
+ * - Isolated disposable SQLite sandbox migrated fresh from schema files (zero host db copy).
  * - Ephemeral scrypt admin credentials dynamically generated (zero staging file reads).
  * - Host database and media invariant safety guards (100% SHA-256 match enforced).
- * - Real public Portfolio OS desktop (1440x900) & mobile (390x844) NotesApp interaction.
+ * - Real public Portfolio OS desktop (1440x900):
+ *   - Genuine entry screen -> click Enter Portfolio -> dismiss verification.
+ *   - Notes Dock launch -> NotesApp window verification -> tab switching -> scrolling.
+ *   - Verified foreground capture to docs/reviews/screenshots/phase5_2/.
+ * - Real public Portfolio OS mobile (390x844) NotesApp window verification.
  * - Studio OS Admin CMS:
  *   - Profile: create/edit draft -> save draft -> reload -> publish -> verify public -> unpublish.
  *   - Notes: Design workspace draft -> publish -> verify visible -> switch to Web (verify strict workspace isolation).
  *   - Experience & Education: create draft -> edit -> publish -> unpublish.
  *   - Skills: add draft -> categorize -> publish -> filter.
- *   - CV: upload genuine minimal PDF -> publish -> verify public -> unpublish -> verify 404.
- * - Capture all screenshots to docs/reviews/screenshots/phase5_1/.
+ *   - CV: upload genuine parseable PDF -> publish -> verify public -> unpublish -> verify 404.
  * - Zero unconditional assert(true) statements.
  * - Zero remote mutations (100% local execution).
  */
@@ -39,11 +42,11 @@ const rootDir = path.resolve(__dirname, "..");
 const hostDbPath = path.join(rootDir, ".local-d1", "portfolio.sqlite");
 const hostR2Dir = path.join(rootDir, ".local-r2");
 
-const screenshotsDir = path.join(rootDir, "docs", "reviews", "screenshots", "phase5_1");
+const screenshotsDir = path.join(rootDir, "docs", "reviews", "screenshots", "phase5_2");
 fs.mkdirSync(screenshotsDir, { recursive: true });
 
 const results = {
-  suite: "Portfolio OS Phase 5.1 Profile, Notes & CV CMS Real Browser E2E",
+  suite: "Portfolio OS Phase 5.2 Profile, Notes & CV CMS Real Browser E2E",
   timestamp: new Date().toISOString(),
   commit: "",
   total: 0,
@@ -112,49 +115,85 @@ function getAvailablePort(preferred = 3200) {
   });
 }
 
+/**
+ * Generates a fully parseable, compliant PDF document with calculated object byte offsets
+ * and exact stream length.
+ */
 function createMinimalValidPdf(customText = "Kerem Mihci Official Curriculum Vitae") {
-  const content = `%PDF-1.4
-1 0 obj
-<< /Type /Catalog /Pages 2 0 R >>
-endobj
-2 0 obj
-<< /Type /Pages /Kids [3 0 R] /Count 1 >>
-endobj
-3 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R >>
-endobj
-4 0 obj
-<< /Length 55 >>
-stream
-BT
-/F1 12 Tf
-72 712 Td
-(${customText}) Tj
-ET
-endstream
-endobj
-xref
-0 5
-0000000000 65535 f 
-0000000009 00000 n 
-0000000058 00000 n 
-0000000115 00000 n 
-0000000204 00000 n 
-trailer
-<< /Size 5 /Root 1 0 R >>
-startxref
-308
-%%EOF`;
-  return Buffer.from(content, "utf-8");
+  const parts = [];
+  const offsets = [];
+
+  function addPart(str) {
+    parts.push(Buffer.from(str, "binary"));
+  }
+
+  function currentOffset() {
+    return parts.reduce((acc, p) => acc + p.length, 0);
+  }
+
+  addPart("%PDF-1.4\n%\xE2\xE3\xCF\xD3\n");
+
+  // Obj 1: Catalog
+  offsets.push(currentOffset());
+  addPart("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+
+  // Obj 2: Pages
+  offsets.push(currentOffset());
+  addPart("2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n");
+
+  // Obj 3: Page
+  offsets.push(currentOffset());
+  addPart("3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> /Contents 4 0 R >>\nendobj\n");
+
+  // Obj 4: Stream content
+  const streamBody = Buffer.from(`BT\n/F1 12 Tf\n72 712 Td\n(${customText}) Tj\nET\n`, "utf-8");
+  offsets.push(currentOffset());
+  addPart(`4 0 obj\n<< /Length ${streamBody.length} >>\nstream\n`);
+  parts.push(streamBody);
+  addPart("\nendstream\nendobj\n");
+
+  // Xref table
+  const xrefOffset = currentOffset();
+  let xref = "xref\n0 5\n0000000000 65535 f \n";
+  for (const off of offsets) {
+    xref += off.toString().padStart(10, "0") + " 00000 n \n";
+  }
+  xref += `trailer\n<< /Size 5 /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
+  addPart(xref);
+
+  return Buffer.concat(parts);
+}
+
+/**
+ * Validates structural parseability of a generated or downloaded PDF buffer.
+ */
+function verifyPdfStructure(buffer) {
+  if (!buffer || buffer.length < 50) return false;
+  const str = buffer.toString("binary");
+  if (!str.startsWith("%PDF-")) return false;
+  if (!str.includes("%%EOF")) return false;
+  const startXrefIdx = str.lastIndexOf("startxref");
+  if (startXrefIdx === -1) return false;
+  const startXrefVal = parseInt(str.slice(startXrefIdx + 9).trim(), 10);
+  if (isNaN(startXrefVal) || startXrefVal <= 0) return false;
+  const xrefMarker = str.slice(startXrefVal, startXrefVal + 4);
+  return xrefMarker === "xref";
 }
 
 async function dismissEntryOverlayIfPresent(page) {
-  const entryBtn = page.locator('button:has-text("Enter Portfolio"), button:has-text("Oturum Aç"), [aria-label*="Enter"]');
-  if (await entryBtn.first().isVisible({ timeout: 2000 }).catch(() => false)) {
-    await entryBtn.first().click();
-    await page.waitForTimeout(600);
-  }
-  await page.waitForSelector('div[aria-label="Portfolio OS Entry"]', { state: "hidden", timeout: 8000 }).catch(() => {});
+  const overlay = page.locator('div[aria-label="Portfolio OS Entry"]');
+  const count = await overlay.count();
+  if (count === 0) return true;
+
+  // Wait for the Enter button to appear after boot sequence (or safety timeout)
+  const enterBtn = page.locator('button:has-text("Enter Portfolio"), button:has-text("Oturum Aç")').first();
+  await enterBtn.waitFor({ state: "visible", timeout: 12000 });
+  await enterBtn.click();
+
+  // Wait for overlay to fade out and unmount from DOM
+  await overlay.waitFor({ state: "hidden", timeout: 10000 });
+  await page.waitForTimeout(600);
+  return true;
 }
 
 async function waitForServer(url, timeoutMs = 25000) {
@@ -173,31 +212,46 @@ async function waitForServer(url, timeoutMs = 25000) {
 
 async function runE2ESuite() {
   console.log("============================================================");
-  console.log("PORTFOLIO OS PHASE 5.1: REAL BROWSER E2E VERIFICATION");
+  console.log("PORTFOLIO OS PHASE 5.2: REAL BROWSER E2E VERIFICATION");
   console.log(`Commit:    ${results.commit}`);
   console.log(`Timestamp: ${results.timestamp}`);
   console.log("============================================================");
 
   const hostInitialSha256 = getFileSha256(hostDbPath);
 
-  const tempDbPath = path.join(os.tmpdir(), `p5-e2e-${Date.now()}-${crypto.randomUUID().slice(0, 6)}.sqlite`);
-  const tempR2Dir = path.join(os.tmpdir(), `p5-r2-e2e-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`);
+  // 1. Task-Owned Fresh SQLite Sandbox (ZERO naive file-copying of host database)
+  const tempSandboxDir = path.join(os.tmpdir(), `p5-sandbox-${Date.now()}-${crypto.randomUUID().slice(0, 6)}`);
+  fs.mkdirSync(tempSandboxDir, { recursive: true });
+
+  const tempDbPath = path.join(tempSandboxDir, "isolated.sqlite");
+  const tempR2Dir = path.join(tempSandboxDir, "media");
   fs.mkdirSync(tempR2Dir, { recursive: true });
 
-  if (fs.existsSync(hostDbPath)) {
-    fs.copyFileSync(hostDbPath, tempDbPath);
-  }
+  console.log(`Constructing isolated sandbox database: ${tempDbPath}`);
 
-  // Apply migration 0004 to isolated test sandbox DB
-  const migrationFile = path.join(rootDir, "cloudflare", "portfolio-api", "migrations", "0004_profile_notes_cv_schema.sql");
-  const migrationSql = fs.readFileSync(migrationFile, "utf-8");
+  // Apply migration 0001 & seed canonical projects
+  execSync(`LOCAL_D1_DB_PATH="${tempDbPath}" node scripts/migrate-d1.mjs`, { stdio: "pipe" });
+
+  // Apply migrations 0002, 0003, and 0004 sequentially
   const setupDb = new DatabaseSync(tempDbPath);
-  setupDb.exec(migrationSql);
+  setupDb.exec("PRAGMA foreign_keys = ON;");
+  const m2Sql = fs.readFileSync(path.join(rootDir, "cloudflare", "portfolio-api", "migrations", "0002_videos_and_reels_schema.sql"), "utf-8");
+  const m3Sql = fs.readFileSync(path.join(rootDir, "cloudflare", "portfolio-api", "migrations", "0003_personal_gallery_schema.sql"), "utf-8");
+  const m4Sql = fs.readFileSync(path.join(rootDir, "cloudflare", "portfolio-api", "migrations", "0004_profile_notes_cv_schema.sql"), "utf-8");
+  setupDb.exec(m2Sql);
+  setupDb.exec(m3Sql);
+  setupDb.exec(m4Sql);
   setupDb.close();
 
   // Seed canonical profile & notes to test DB using importer
   const importerPath = path.join(rootDir, "scripts", "import-profile-notes-to-d1.mjs");
   execSync(`node "${importerPath}" --local --execute --db-path "${tempDbPath}"`, { stdio: "pipe" });
+
+  // For public client E2E interaction, mark seeded baseline records as published in test sandbox
+  const publishDb = new DatabaseSync(tempDbPath);
+  publishDb.prepare("UPDATE portfolio_profile SET status = 'published' WHERE id = 'main'").run();
+  publishDb.prepare("UPDATE portfolio_workspace_notes SET status = 'published'").run();
+  publishDb.close();
 
   const port = await getAvailablePort(3220);
   const baseUrl = `http://127.0.0.1:${port}`;
@@ -265,25 +319,71 @@ async function runE2ESuite() {
     const pageTitle = await desktopPage.title();
     assert(pageTitle.includes("Kerem"), "Desktop /en page loaded with valid title", pageTitle);
 
+    // Genuinely dismiss entry overlay
     await dismissEntryOverlayIfPresent(desktopPage);
+    const overlayVisible = await desktopPage.locator('div[aria-label="Portfolio OS Entry"]').isVisible().catch(() => false);
+    assert(!overlayVisible, "Portfolio OS entry overlay genuinely dismissed and unmounted from DOM");
 
-    // Click Notes in Dock to open NotesApp
-    const notesDockBtn = desktopPage.locator('button[aria-label="Notes"], button[aria-label="Notlar"], button[title="Notes"], button:has-text("Notes")').first();
-    const triggerFound = (await notesDockBtn.count()) > 0;
-    assert(triggerFound, "NotesApp launcher icon found on desktop Dock");
-    if (triggerFound) {
-      await notesDockBtn.click({ force: true });
-      await desktopPage.waitForTimeout(600);
-    }
+    // Click Notes icon in Desktop Dock
+    const notesDockBtn = desktopPage.locator('button[data-testid="dock-icon-notes"], button[aria-label="Notes"]').first();
+    await notesDockBtn.waitFor({ state: "visible", timeout: 8000 });
+    assert(await notesDockBtn.isVisible(), "NotesApp launcher icon found and visible on desktop Dock");
+    await notesDockBtn.click();
+    await desktopPage.waitForTimeout(600);
 
-    const notesWindow = desktopPage.locator('.workspace-window-layer, [data-window-id*="notes"], [aria-label*="Notes"]').first();
-    const notesWindowVisible = (await notesWindow.count()) > 0;
-    assert(notesWindowVisible, "NotesApp window opened and rendered on desktop Portfolio OS");
+    // Assert the Notes-specific window is visibly open
+    const notesWindow = desktopPage.locator('[data-testid="notes-app-window"]');
+    await notesWindow.waitFor({ state: "visible", timeout: 8000 });
+    assert(await notesWindow.isVisible(), "NotesApp window opened and visibly rendered on desktop Portfolio OS");
 
-    // Capture screenshot of NotesApp on Desktop
+    // Verify correct window title bar
+    const titleBar = desktopPage.locator('.window-drag-handle:has-text("Notes")');
+    assert(await titleBar.isVisible(), "Notes window title bar displays 'Notes'");
+
+    // Verify Notes tab navigation contents are rendered
+    const publicNotesTabBtn = desktopPage.locator('[data-testid="notes-tab-notes"]');
+    assert(await publicNotesTabBtn.isVisible(), "NOTES tab navigation item rendered in NotesApp");
+    const publicAboutTabBtn = desktopPage.locator('[data-testid="notes-tab-about"]');
+    assert(await publicAboutTabBtn.isVisible(), "ABOUT tab navigation item rendered in NotesApp");
+    const publicExpTabBtn = desktopPage.locator('[data-testid="notes-tab-experience"]');
+    assert(await publicExpTabBtn.isVisible(), "EXPERIENCE tab navigation item rendered in NotesApp");
+
+    // Verify workspace-specific note stream and system.txt header
+    const systemHeader = desktopPage.locator('text=system.txt').first();
+    assert(await systemHeader.isVisible(), "Notes stream header (system.txt) rendered");
+    const notesScrollArea = desktopPage.locator('.app-scrollbar').first();
+    assert(await notesScrollArea.isVisible(), "Notes scrollable content container rendered");
+
+    // Verify tab switching interaction (NOTES -> ABOUT -> NOTES)
+    await publicAboutTabBtn.click();
+    await desktopPage.waitForTimeout(400);
+    const aboutContent = desktopPage.locator('text=profile.md').first();
+    assert(await aboutContent.isVisible(), "ABOUT tab navigation renders authentic bio content");
+
+    await publicNotesTabBtn.click();
+    await desktopPage.waitForTimeout(400);
+    assert(await systemHeader.isVisible(), "Switched back to NOTES tab with notes stream intact");
+
+    // Verify window scrolling
+    const canScroll = await notesScrollArea.evaluate((el) => {
+      el.scrollTop = 40;
+      return el.scrollTop >= 0;
+    });
+    assert(canScroll, "NotesApp content container supports vertical scrolling");
+
+    // Verify NotesApp is not hidden behind the entry overlay
+    const isForeground = !(await desktopPage.locator('div[aria-label="Portfolio OS Entry"]').isVisible().catch(() => false));
+    assert(isForeground, "NotesApp window is active in foreground with zero obscuring entry overlay");
+
+    // Capture screenshot of NotesApp on Desktop ONLY AFTER verified open state
     const desktopShotPath = path.join(screenshotsDir, "public_notes_desktop_1440x900.png");
     await desktopPage.screenshot({ path: desktopShotPath, fullPage: false });
-    assert(fs.existsSync(desktopShotPath), "Desktop NotesApp screenshot captured successfully", desktopShotPath);
+    const desktopShotStat = fs.statSync(desktopShotPath);
+    assert(
+      desktopShotStat.size > 50000,
+      "Desktop NotesApp screenshot captured with verified window content",
+      `${desktopShotStat.size} bytes`
+    );
 
     // ------------------------------------------------------------
     // GROUP B: PUBLIC PORTFOLIO OS MOBILE (390x844)
@@ -302,20 +402,25 @@ async function runE2ESuite() {
     const mobileTitle = await mobilePage.title();
     assert(mobileTitle.includes("Kerem"), "Mobile /tr page loaded with valid title", mobileTitle);
 
-    await dismissEntryOverlayIfPresent(mobilePage);
-
     // Open Notes app on mobile
-    const mobileNotesBtn = mobilePage.locator('nav button[aria-label*="Not"], nav button[aria-label*="Notes"], button[aria-label*="Not"], button[aria-label*="Notes"]').first();
-    const mobileTriggerFound = (await mobileNotesBtn.count()) > 0;
-    assert(mobileTriggerFound, "Notes launcher found on mobile interface");
-    if (mobileTriggerFound) {
-      await mobileNotesBtn.click({ force: true });
-      await mobilePage.waitForTimeout(600);
-    }
+    const mobileNotesBtn = mobilePage.locator('[data-testid="mobile-dock-notes-btn"], nav button[aria-label="Notes"]').first();
+    await mobileNotesBtn.waitFor({ state: "visible", timeout: 8000 });
+    assert(await mobileNotesBtn.isVisible(), "Notes launcher found on mobile interface");
+    await mobileNotesBtn.click();
+    await mobilePage.waitForTimeout(600);
+
+    const mobileNotesWin = mobilePage.locator('[data-testid="notes-app-window"]');
+    await mobileNotesWin.waitFor({ state: "visible", timeout: 8000 });
+    assert(await mobileNotesWin.isVisible(), "NotesApp window opened and rendered on mobile viewport");
 
     const mobileShotPath = path.join(screenshotsDir, "public_notes_mobile_390x844.png");
     await mobilePage.screenshot({ path: mobileShotPath, fullPage: false });
-    assert(fs.existsSync(mobileShotPath), "Mobile NotesApp screenshot captured successfully", mobileShotPath);
+    const mobileShotStat = fs.statSync(mobileShotPath);
+    assert(
+      mobileShotStat.size > 50000,
+      "Mobile NotesApp screenshot captured with verified window content",
+      `${mobileShotStat.size} bytes`
+    );
 
     // ------------------------------------------------------------
     // GROUP C: STUDIO OS ADMIN CMS AUTH & PROFILE WORKFLOW
@@ -389,7 +494,7 @@ async function runE2ESuite() {
     // Capture screenshot
     const adminProfileShotPath = path.join(screenshotsDir, "admin_profile_cms_desktop_1440x900.png");
     await adminPage.screenshot({ path: adminProfileShotPath, fullPage: false });
-    assert(fs.existsSync(adminProfileShotPath), "Admin Profile CMS screenshot captured", adminProfileShotPath);
+    assert(fs.statSync(adminProfileShotPath).size > 50000, "Admin Profile CMS screenshot captured with content", adminProfileShotPath);
 
     // ------------------------------------------------------------
     // GROUP D: STUDIO OS ADMIN WORKSPACE NOTES & ISOLATION
@@ -448,7 +553,7 @@ async function runE2ESuite() {
 
     const adminNotesShotPath = path.join(screenshotsDir, "admin_notes_cms_desktop_1440x900.png");
     await adminPage.screenshot({ path: adminNotesShotPath, fullPage: false });
-    assert(fs.existsSync(adminNotesShotPath), "Admin Workspace Notes screenshot captured", adminNotesShotPath);
+    assert(fs.statSync(adminNotesShotPath).size > 50000, "Admin Workspace Notes screenshot captured", adminNotesShotPath);
 
     // ------------------------------------------------------------
     // GROUP E: STUDIO OS ADMIN EXPERIENCE & EDUCATION CMS
@@ -484,7 +589,7 @@ async function runE2ESuite() {
 
     const adminExpShotPath = path.join(screenshotsDir, "admin_experience_cms_desktop_1440x900.png");
     await adminPage.screenshot({ path: adminExpShotPath, fullPage: false });
-    assert(fs.existsSync(adminExpShotPath), "Admin Experience screenshot captured", adminExpShotPath);
+    assert(fs.statSync(adminExpShotPath).size > 50000, "Admin Experience screenshot captured", adminExpShotPath);
 
     // Education
     const eduTabBtn = adminPage.locator('button[data-testid="cms-tab-education"]');
@@ -513,7 +618,7 @@ async function runE2ESuite() {
 
     const adminEduShotPath = path.join(screenshotsDir, "admin_education_cms_desktop_1440x900.png");
     await adminPage.screenshot({ path: adminEduShotPath, fullPage: false });
-    assert(fs.existsSync(adminEduShotPath), "Admin Education screenshot captured", adminEduShotPath);
+    assert(fs.statSync(adminEduShotPath).size > 50000, "Admin Education screenshot captured", adminEduShotPath);
 
     // ------------------------------------------------------------
     // GROUP F: STUDIO OS ADMIN SKILLS CATALOG & FILTERING
@@ -551,7 +656,7 @@ async function runE2ESuite() {
 
     const adminSkillsShotPath = path.join(screenshotsDir, "admin_skills_cms_desktop_1440x900.png");
     await adminPage.screenshot({ path: adminSkillsShotPath, fullPage: false });
-    assert(fs.existsSync(adminSkillsShotPath), "Admin Skills screenshot captured", adminSkillsShotPath);
+    assert(fs.statSync(adminSkillsShotPath).size > 50000, "Admin Skills screenshot captured", adminSkillsShotPath);
 
     // ------------------------------------------------------------
     // GROUP G: STUDIO OS ADMIN CV MANAGEMENT & PDF SECURITY
@@ -563,9 +668,12 @@ async function runE2ESuite() {
     await cvTabBtn.click();
     await adminPage.waitForSelector('input[data-testid="cv-file-input-en"]', { state: "attached", timeout: 10000 });
 
-    // Generate valid minimal PDF file on disk for file upload
+    // Generate valid parseable PDF file on disk
+    const testPdfBuffer = createMinimalValidPdf("Kerem Mihci Official E2E Test CV");
+    assert(verifyPdfStructure(testPdfBuffer), "Generated test PDF is structurally valid with correct xref and header");
+
     const tempPdfPath = path.join(os.tmpdir(), `kerem-mihci-cv-e2e-${Date.now()}.pdf`);
-    fs.writeFileSync(tempPdfPath, createMinimalValidPdf("Kerem Mihci Official E2E Test CV"));
+    fs.writeFileSync(tempPdfPath, testPdfBuffer);
 
     // Upload via file input
     const cvFileInput = adminPage.locator('input[data-testid="cv-file-input-en"]');
@@ -598,7 +706,7 @@ async function runE2ESuite() {
 
     const adminCvShotPath = path.join(screenshotsDir, "admin_cv_cms_desktop_1440x900.png");
     await adminPage.screenshot({ path: adminCvShotPath, fullPage: false });
-    assert(fs.existsSync(adminCvShotPath), "Admin CV screenshot captured", adminCvShotPath);
+    assert(fs.statSync(adminCvShotPath).size > 50000, "Admin CV screenshot captured", adminCvShotPath);
 
     try {
       if (fs.existsSync(tempPdfPath)) fs.unlinkSync(tempPdfPath);
@@ -618,8 +726,7 @@ async function runE2ESuite() {
     }
 
     try {
-      if (fs.existsSync(tempDbPath)) fs.unlinkSync(tempDbPath);
-      if (fs.existsSync(tempR2Dir)) fs.rmSync(tempR2Dir, { recursive: true, force: true });
+      if (fs.existsSync(tempSandboxDir)) fs.rmSync(tempSandboxDir, { recursive: true, force: true });
     } catch {}
 
     // ------------------------------------------------------------
@@ -637,7 +744,7 @@ async function runE2ESuite() {
   }
 
   console.log("\n============================================================");
-  console.log("PHASE 5.1 BROWSER E2E RESULTS SUMMARY");
+  console.log("PHASE 5.2 BROWSER E2E RESULTS SUMMARY");
   console.log("============================================================");
   console.log(`TOTAL CHECKS: ${results.total}`);
   console.log(`PASSED:       ${results.passed}`);

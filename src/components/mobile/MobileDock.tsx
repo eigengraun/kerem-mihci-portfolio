@@ -129,6 +129,7 @@ export const MobileDock: React.FC = () => {
           {/* Slot 2: NOTES */}
           <button
             type="button"
+            data-testid="mobile-dock-notes-btn"
             onClick={() => handleToggleApp("notes", "Notlar", "Notes")}
             aria-label="Notes"
             className="flex flex-col items-center justify-center cursor-pointer active:scale-90 transition-transform p-0.5 min-w-[44px] min-h-[44px]"

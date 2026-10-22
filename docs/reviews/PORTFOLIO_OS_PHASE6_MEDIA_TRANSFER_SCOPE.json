@@ -1,0 +1,70 @@
+{
+  "timestamp": "2026-10-22T14:35:28.583Z",
+  "status": "GATEB_MEDIA_SCOPE_SEGREGATED",
+  "contract": "PORTFOLIO_OS_GATE_B_MEDIA_TRANSFER_SCOPE_POLICY",
+  "summary": {
+    "totalUniqueFiles": 174,
+    "totalPayloadBytes": 344199189,
+    "totalPayloadDecimalMB": 344.2,
+    "totalPayloadBinaryMiB": 328.25,
+    "canonicalCandidateFiles": 172,
+    "canonicalCandidateBytes": 344116733,
+    "canonicalCandidateDecimalMB": 344.12,
+    "canonicalCandidateBinaryMiB": 328.18,
+    "excludedOwnerApprovalFiles": 2,
+    "excludedOwnerApprovalBytes": 82456,
+    "excludedOwnerApprovalDecimalMB": 0.08,
+    "excludedOwnerApprovalBinaryMiB": 0.08,
+    "otherPrivateFiles": 0
+  },
+  "scopes": {
+    "CANONICAL_PROJECT_MEDIA": {
+      "count": 130,
+      "bytes": 11592496,
+      "decimalMB": 11.59,
+      "binaryMiB": 11.06,
+      "defaultTransferAllowed": true,
+      "r2NamespacePrefix": "images/projects/"
+    },
+    "CANONICAL_VIDEO_MEDIA": {
+      "count": 42,
+      "bytes": 332524237,
+      "decimalMB": 332.52,
+      "binaryMiB": 317.12,
+      "defaultTransferAllowed": true,
+      "r2NamespacePrefix": "videos/"
+    },
+    "OWNER_APPROVAL_REQUIRED_PROFILE_MEDIA": {
+      "count": 2,
+      "bytes": 82456,
+      "decimalMB": 0.08,
+      "binaryMiB": 0.08,
+      "defaultTransferAllowed": false,
+      "transferGate": "OWNER_EXPLICIT_APPROVAL_REQUIRED",
+      "files": [
+        "profile/kerem-mihci-avatar.webp",
+        "profile/kerem-mihci-profile.webp"
+      ]
+    },
+    "OTHER_PRIVATE_MEDIA_IF_PRESENT": {
+      "count": 0,
+      "bytes": 0,
+      "decimalMB": 0,
+      "binaryMiB": 0,
+      "defaultTransferAllowed": false,
+      "files": []
+    }
+  },
+  "transferPolicy": {
+    "defaultGateBTransferScope": [
+      "CANONICAL_PROJECT_MEDIA",
+      "CANONICAL_VIDEO_MEDIA"
+    ],
+    "strictlyExcludedScopes": [
+      "OWNER_APPROVAL_REQUIRED_PROFILE_MEDIA",
+      "OTHER_PRIVATE_MEDIA_IF_PRESENT"
+    ],
+    "zeroRemoteExecution": true,
+    "failClosedOnScopeViolation": true
+  }
+}

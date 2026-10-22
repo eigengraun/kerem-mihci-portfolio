@@ -208,28 +208,29 @@ curl -s -o /dev/null -w "%{http_code}" "$PROD_WORKER_URL/api/v1/public/projects"
 
 ---
 
-### Gate B: Canonical Content Migration (Zero Public Frontend Cutover)
+### Gate B: Canonical Content Migration & Media Binary Transfer (Zero Public Frontend Cutover)
 
-#### Step B.1 — Production Project Migration (`IMPLEMENTED_LOCAL_READINESS_VERIFIED`)
-The dedicated production-safe project importer has been implemented and locally verified:
+#### Step B.1 — Production Project Migration (`GATEB_LOCAL_HARDENING_PASS`)
+The dedicated production-safe project importer has been implemented, hardened, and locally verified:
 ```bash
-# Dry-run target preflight (Read-Only, zero writes)
+# Dry-run target preflight (Read-Only, zero writes — outputs CONFIG_PREFLIGHT_ONLY)
 node scripts/import-canonical-projects-to-d1.mjs --remote-production --dry-run
 
 # Authorized execution (strictly blocked until Gate B human operator sign-off)
 node scripts/import-canonical-projects-to-d1.mjs --remote-production --execute
 ```
 **Verification Evidence & Implemented Safeguards:**
-1. **Strict Target Validation:** Verifies `wrangler.jsonc` `env.production` against `APPROVED_PRODUCTION_CONFIG` (database name `kerem-portfolio-db`, worker `kerem-mihci-portfolio-api`, detects placeholder UUIDs).
-2. **Editorial Modification Protection:** Non-destructive; detects user revisions in `project_revisions` and skips overwriting modified projects unless `--force` is explicitly provided.
-3. **Record-Level Diffing:** Reports exact field-level diffs across all 30 canonical records.
-4. **Idempotency:** 100% idempotent; verified in disposable SQLite fixtures (Pass 1: 30 inserted; Pass 2: 30 skipped, 0 inserts, 0 updates).
-5. **Fail-Closed Execution:** Rejects remote execution with exit code 1 if invoked prematurely without Gate B release approval.
+1. **Full Relational Parity (7 Schema Tables):** Deep composite comparison spans `projects`, `project_translations` (TR & EN), `project_media`, `categories`, `project_categories`, `project_revisions`, and `publishing_events`.
+2. **Owner-Edit Preservation Contract (Scenarios A–I):** Non-destructive; any difference triggers `PRESERVE_DESTINATION` and `REPORT_CONFLICT` with zero silent overwrites, even for unversioned direct SQL edits without revision history.
+3. **Strict Admission Gate:** Evaluates complete relational invariants and fails closed nonzero on missing records, parity discrepancies (< 30/30), identity collisions, or unresolved conflicts.
+4. **Honest Dry-Run Reporting:** Truthfully reports `CONFIG_PREFLIGHT_ONLY` and `REMOTE_DATA_DRY_RUN: NOT_RUN / TARGET_UNPROVISIONED` for unprovisioned production targets.
+5. **Idempotency:** 100% idempotent; verified in disposable SQLite fixtures (Pass 1: 30 inserted; Pass 2: 30 skipped, 0 inserts, 0 updates).
+6. **Fail-Closed Execution:** Rejects remote execution with exit code 1 if invoked prematurely without Gate B release approval.
 
-#### Step B.2 — Production Video Migration (`IMPLEMENTED_LOCAL_READINESS_VERIFIED`)
-The canonical video importer has been upgraded with production target validation and fail-closed gate enforcement:
+#### Step B.2 — Production Video Migration (`GATEB_LOCAL_HARDENING_PASS`)
+The canonical video importer has been upgraded with production target validation, honest dry-run reporting, and fail-closed gate enforcement:
 ```bash
-# Dry-run target preflight (Read-Only, zero writes)
+# Dry-run target preflight (Read-Only, zero writes — outputs CONFIG_PREFLIGHT_ONLY)
 node scripts/import-canonical-videos-to-d1.mjs --remote-production --dry-run
 
 # Authorized execution (strictly blocked until Gate B human operator sign-off)
@@ -239,20 +240,31 @@ node scripts/import-canonical-videos-to-d1.mjs --remote-production --execute
 1. **Target Validation:** Enforces `APPROVED_PRODUCTION_CONFIG` (`kerem-mihci-portfolio-api`, `kerem-portfolio-db`, `kerem-portfolio-media`).
 2. **Strict Parity Invariant:** Validates all 21 canonical videos (19 portrait, 2 landscape) against `src/data/videos.ts`.
 3. **Asset Verification:** Computes SHA-256 digests and confirms all 21 MP4 video files and 21 poster WebP files exist on disk.
-4. **Editorial Preservation:** Preserves existing user revisions and prevents accidental unpublishing.
+4. **Honest Dry-Run Reporting:** Reports `CONFIG_PREFLIGHT_ONLY` and `TARGET_UNPROVISIONED`.
 5. **Fail-Closed Execution:** Rejects remote execution with exit code 1 if Gate B release approval is missing.
 
-#### Step B.3 — Production Media Synchronization Contract (`MANIFEST_VERIFIED`)
-Authoritative media source manifest generated at `docs/reviews/PORTFOLIO_OS_PHASE6_MEDIA_SOURCE_MANIFEST.json`:
-- **Source Assets:** 174 unique local files on disk (190 project references, 42 video references, 2 profile assets), total payload volume: 328.25 MB.
-- **Disk Presence:** 100% verified locally (0 missing files).
-- **Target Bucket:** Cloudflare R2 bucket `kerem-portfolio-media`.
-- **R2 Sync Simulator Validated:** In-memory simulation tested and passed across 5 state-machine scenarios:
-  1. *Clean bucket:* 174 planned uploads.
-  2. *Synchronized bucket:* 174 skipped identical (zero unexpected writes).
-  3. *Hash mismatch:* Flags conflict, requiring explicit human operator approval.
-  4. *Protected object:* Rejects unapproved overwrites.
-  5. *Invalid MIME type:* Strictly rejects disallowed file types.
+#### Step B.3 — Production Media Synchronization & Scope Segregation (`GATEB_LOCAL_HARDENING_PASS`)
+Authoritative media source manifest and scope policy generated at:
+- `docs/reviews/PORTFOLIO_OS_PHASE6_MEDIA_SOURCE_MANIFEST.json`
+- `docs/reviews/PORTFOLIO_OS_PHASE6_MEDIA_TRANSFER_SCOPE.json`
+- `docs/reviews/PORTFOLIO_OS_PHASE6_GATEB_FINAL_INTEGRITY_REVIEW.md`
+
+**Media Privacy Segregation Scopes:**
+- `CANONICAL_PROJECT_MEDIA`: 130 unique files (11,592,496 bytes / 11.59 MB / 11.06 MiB). Default transfer authorized under prefix `projects/`.
+- `CANONICAL_VIDEO_MEDIA`: 42 unique files (332,524,237 bytes / 332.52 MB / 317.12 MiB). Default transfer authorized under prefix `videos/`.
+- **Approved Gate B Candidate Pool:** Exactly **172 unique files** (344,116,733 bytes / 344.12 MB / 328.18 MiB).
+- `OWNER_APPROVAL_REQUIRED_PROFILE_MEDIA`: 2 files (82,456 bytes / 0.08 MB / 0.08 MiB). **STRICTLY EXCLUDED** from default Gate B transfers.
+- `OTHER_PRIVATE_MEDIA_IF_PRESENT`: 0 files.
+
+**R2 Sync Simulator Validated:** In-memory simulation tested and passed across 8 state-machine scenarios:
+1. *Clean bucket:* 172 planned uploads; 2 profile files segregated.
+2. *Synchronized bucket:* 172 skipped identical (zero unexpected writes).
+3. *Hash mismatch:* Flags conflict, requiring explicit human operator approval.
+4. *Protected object:* Rejects unapproved overwrites.
+5. *Invalid MIME type:* Strictly rejects disallowed file types.
+6. *Entity ID mismatch:* Strictly rejected.
+7. *Namespace boundary violation:* Strictly rejected.
+8. *Destination key collision:* Strictly rejected.
 
 #### Step B.4 — Human Content Governance Gate (`OWNER_VERIFICATION_REQUIRED`)
 > [!IMPORTANT]

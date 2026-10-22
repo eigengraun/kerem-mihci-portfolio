@@ -1,0 +1,171 @@
+{
+  "timestamp": "2026-10-22T14:35:35.441Z",
+  "totalChecks": 27,
+  "passedChecks": 27,
+  "failedChecks": 0,
+  "verdict": "GATEB_LOCAL_HARDENING_PASS",
+  "results": [
+    {
+      "id": "GATEB-01",
+      "name": "Canonical Projects Source Manifest (30 records, full bilingual fields)",
+      "status": "PASS",
+      "details": "Extracted exactly 30 canonical projects from src/data/projects.ts with full bilingual fields."
+    },
+    {
+      "id": "GATEB-02",
+      "name": "Canonical Videos Source Manifest (21 records: 19 portrait, 2 landscape)",
+      "status": "PASS",
+      "details": "21 canonical video records verified with correct orientation distribution."
+    },
+    {
+      "id": "GATEB-03",
+      "name": "Authoritative Media Manifest & Disk Presence (174 files, 344.20 MB decimal / 328.25 MiB binary)",
+      "status": "PASS",
+      "details": "174 unique files verified on disk with cryptographic SHA-256: 344,199,189 bytes (344.20 MB / 328.25 MiB)."
+    },
+    {
+      "id": "GATEB-04",
+      "name": "Media Privacy Segregation (172 Canonical Transfer Candidates vs 2 Excluded Profile Assets)",
+      "status": "PASS",
+      "details": "Explicit scopes verified: 130 project media, 42 video media; 2 profile assets strictly segregated as OWNER_APPROVAL_REQUIRED."
+    },
+    {
+      "id": "GATEB-05",
+      "name": "R2 Sync Simulation — Clean Bucket & Idempotent Sync (172 uploads, 172 skipped, 2 profile excluded)",
+      "status": "PASS",
+      "details": "Simulation confirms 172 canonical candidate files planned for upload on empty bucket; 0 writes on second run; profile assets excluded."
+    },
+    {
+      "id": "GATEB-06",
+      "name": "R2 Sync Simulation — Hash Conflict & Protected Overwrite Rejection",
+      "status": "PASS",
+      "details": "Detected hash mismatch requiring human approval; rejected unapproved overwrite when target marked protected."
+    },
+    {
+      "id": "GATEB-07",
+      "name": "R2 Sync Simulation — Invalid MIME Type Rejection",
+      "status": "PASS",
+      "details": "Disallowed MIME type 'application/x-sh' strictly rejected before upload planning."
+    },
+    {
+      "id": "GATEB-08",
+      "name": "R2 Sync Simulation — Ownership, Namespace & Destination Collision Validation",
+      "status": "PASS",
+      "details": "All 3 ownership violation vectors (entity ID mismatch, forbidden namespace, and foreign destination owner) strictly rejected."
+    },
+    {
+      "id": "GATEB-09",
+      "name": "Disposable Fixture Project Import — Clean Insert (Pass 1: Full 7-Table Relational Schema)",
+      "status": "PASS",
+      "details": "Inserted 30 projects, 60 bilingual translations, 70 gallery media items (all with verified non-zero byte_size), 30 revisions, 30 publishing events, 30 category links."
+    },
+    {
+      "id": "GATEB-10",
+      "name": "Project Importer Idempotency & Relational Parity Audit (Pass 2: 0 inserts, 0 updates, 30 skipped, 30/30 parity)",
+      "status": "PASS",
+      "details": "Second pass produced zero unexpected writes; all 30 records skipped as identical with 30/30 verified deep relational parity."
+    },
+    {
+      "id": "GATEB-11",
+      "name": "Owner-Edit Preservation Scenario A (Parent Field: client_name preserved)",
+      "status": "PASS",
+      "details": "PRESERVE_DESTINATION upheld: parent field modification preserved, zero silent overwrite, reported conflict."
+    },
+    {
+      "id": "GATEB-12",
+      "name": "Owner-Edit Preservation Scenario B (TR Translation: titleTR preserved)",
+      "status": "PASS",
+      "details": "PRESERVE_DESTINATION upheld: Turkish translation modification preserved, zero silent overwrite, reported conflict."
+    },
+    {
+      "id": "GATEB-13",
+      "name": "Owner-Edit Preservation Scenario C (EN Translation: descriptionEN preserved)",
+      "status": "PASS",
+      "details": "PRESERVE_DESTINATION upheld: English translation modification preserved, zero silent overwrite, reported conflict."
+    },
+    {
+      "id": "GATEB-14",
+      "name": "Owner-Edit Preservation Scenario D (Gallery Key: file_path preserved)",
+      "status": "PASS",
+      "details": "PRESERVE_DESTINATION upheld: Gallery image file_path modification preserved, zero silent overwrite, reported conflict."
+    },
+    {
+      "id": "GATEB-15",
+      "name": "Owner-Edit Preservation Scenario E (Gallery Order: sort_order modification preserved)",
+      "status": "PASS",
+      "details": "PRESERVE_DESTINATION upheld: Gallery sort_order reordering detected as editorial conflict and preserved."
+    },
+    {
+      "id": "GATEB-16",
+      "name": "Owner-Edit Preservation Scenario F (Category Assignment: category_id preserved)",
+      "status": "PASS",
+      "details": "PRESERVE_DESTINATION upheld: Category link modification preserved, zero silent overwrite, reported conflict."
+    },
+    {
+      "id": "GATEB-17",
+      "name": "Owner-Edit Preservation Scenario G (Unversioned Edit: 0 revision rows preserved)",
+      "status": "PASS",
+      "details": "PRESERVE_DESTINATION upheld even without revision history: unversioned destination modification preserved."
+    },
+    {
+      "id": "GATEB-18",
+      "name": "Owner-Edit Preservation Scenario H (Identity Collision: detected and prevented)",
+      "status": "PASS",
+      "details": "Detected slug/id identity collision; refused destructive update or ambiguous mutation."
+    },
+    {
+      "id": "GATEB-19",
+      "name": "Owner-Edit Preservation Scenario I (Non-Canonical Destination Record: flagged and preserved)",
+      "status": "PASS",
+      "details": "Unexpected non-canonical destination record detected in audit; not silently dropped or modified."
+    },
+    {
+      "id": "GATEB-20",
+      "name": "Strict Admission Negative Verification (Fails closed nonzero on conflict)",
+      "status": "PASS",
+      "details": "Strict admission gate strictly rejected modified database with fatal STRICT_ADMISSION_FAILED exception."
+    },
+    {
+      "id": "GATEB-21",
+      "name": "Disposable Fixture Video Import (Pass 1: 21 videos, 42 translations, 42 assets, 21 revisions)",
+      "status": "PASS",
+      "details": "Inserted 21 videos, 42 bilingual translations, 42 video/poster assets, 21 revisions into disposable database."
+    },
+    {
+      "id": "GATEB-22",
+      "name": "Video Importer Idempotency & Strict Parity Audit (Pass 2: 0 inserts, 21 skipped, strict parity verified)",
+      "status": "PASS",
+      "details": "Second video pass produced zero unexpected writes; all 21 records skipped as identical with strict parity pass."
+    },
+    {
+      "id": "GATEB-23",
+      "name": "Honest Dry-Run Reporting (Projects & Videos report CONFIG_PREFLIGHT_ONLY & TARGET_UNPROVISIONED)",
+      "status": "PASS",
+      "details": "Both project and video importers truthfully report CONFIG_PREFLIGHT_ONLY and REMOTE_DATA_DRY_RUN: NOT_RUN / TARGET_UNPROVISIONED."
+    },
+    {
+      "id": "GATEB-24",
+      "name": "Remote Production Execution Fail-Closed Enforcement (--execute rejected with code 1)",
+      "status": "PASS",
+      "details": "Both project and video importers strictly reject premature production --execute with exit code 1."
+    },
+    {
+      "id": "GATEB-25",
+      "name": "Cloudflare Routing Constraints Documented Accurately",
+      "status": "PASS",
+      "details": "Release plan accurately details Cloudflare zone requirements, CNAME limitations, and workers.dev public routability."
+    },
+    {
+      "id": "GATEB-26",
+      "name": "Personal Content Governance Strict Boundary (OWNER_VERIFICATION_REQUIRED preserved)",
+      "status": "PASS",
+      "details": "Personal biography, education, experience, notes, and CV remain strictly OWNER_VERIFICATION_REQUIRED. Zero auto-import."
+    },
+    {
+      "id": "GATEB-27",
+      "name": "Host Database Checksum Invariance (.local-d1/portfolio.sqlite SHA-256 invariant)",
+      "status": "PASS",
+      "details": "Checksum strictly invariant: 470d8f14ce1237cc557367f0b125be489f086fb99534ffa7fb046ad607182743. Zero development database mutations across all tests."
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-22T13:44:08.406Z",
+  "timestamp": "2026-10-22T14:35:28.574Z",
   "summary": {
     "totalReferences": 234,
     "totalUniqueFiles": 174,
@@ -8,7 +8,39 @@
     "externalCount": 0,
     "privateCount": 2,
     "totalPayloadBytes": 344199189,
-    "totalPayloadMB": 328.25
+    "totalPayloadDecimalMB": 344.2,
+    "totalPayloadBinaryMiB": 328.25,
+    "canonicalCandidateCount": 172,
+    "canonicalCandidateBytes": 344116733,
+    "canonicalCandidateDecimalMB": 344.12,
+    "canonicalCandidateBinaryMiB": 328.18,
+    "excludedOwnerApprovalCount": 2,
+    "scopes": {
+      "CANONICAL_PROJECT_MEDIA": {
+        "count": 130,
+        "bytes": 11592496,
+        "decimalMB": 11.59,
+        "binaryMiB": 11.06
+      },
+      "CANONICAL_VIDEO_MEDIA": {
+        "count": 42,
+        "bytes": 332524237,
+        "decimalMB": 332.52,
+        "binaryMiB": 317.12
+      },
+      "OWNER_APPROVAL_REQUIRED_PROFILE_MEDIA": {
+        "count": 2,
+        "bytes": 82456,
+        "decimalMB": 0.08,
+        "binaryMiB": 0.08
+      },
+      "OTHER_PRIVATE_MEDIA_IF_PRESENT": {
+        "count": 0,
+        "bytes": 0,
+        "decimalMB": 0,
+        "binaryMiB": 0
+      }
+    }
   },
   "uniqueFiles": [
     {
@@ -26,7 +58,8 @@
           "entityId": "yanarsan-yangin-website-tasarimi",
           "assetRole": "cover"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/yanarsan-yangin-website-tasarimi/thumbnail.webp",
@@ -53,7 +86,8 @@
           "entityId": "yanarsan-yangin-website-tasarimi",
           "assetRole": "desktopThumbnail"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/yanarsan-yangin-website-tasarimi/media/02-homepage-browser.webp",
@@ -70,7 +104,8 @@
           "entityId": "yanarsan-yangin-website-tasarimi",
           "assetRole": "media_gallery_1"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/yanarsan-yangin-website-tasarimi/media/01-laptop-presentation.webp",
@@ -87,7 +122,8 @@
           "entityId": "yanarsan-yangin-website-tasarimi",
           "assetRole": "media_gallery_2"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/yanarsan-yangin-website-tasarimi/media/03-hero-detail.webp",
@@ -104,7 +140,8 @@
           "entityId": "yanarsan-yangin-website-tasarimi",
           "assetRole": "media_gallery_3"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/yanarsan-yangin-website-tasarimi/media/04-fire-safety-presentation.webp",
@@ -121,7 +158,8 @@
           "entityId": "yanarsan-yangin-website-tasarimi",
           "assetRole": "media_gallery_4"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/yanarsan-yangin-website-tasarimi/media/05-service-product-structure.webp",
@@ -138,7 +176,8 @@
           "entityId": "yanarsan-yangin-website-tasarimi",
           "assetRole": "media_gallery_5"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/eigestore-website-tasarimi/cover.webp",
@@ -155,7 +194,8 @@
           "entityId": "eigestore-website-tasarimi",
           "assetRole": "cover"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/eigestore-website-tasarimi/thumbnail.webp",
@@ -182,7 +222,8 @@
           "entityId": "eigestore-website-tasarimi",
           "assetRole": "desktopThumbnail"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/eigestore-website-tasarimi/media/01-homepage-storefront.webp",
@@ -199,7 +240,8 @@
           "entityId": "eigestore-website-tasarimi",
           "assetRole": "media_gallery_1"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/eigestore-website-tasarimi/media/01-laptop-presentation.webp",
@@ -216,7 +258,8 @@
           "entityId": "eigestore-website-tasarimi",
           "assetRole": "media_gallery_2"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/eigestore-website-tasarimi/media/02-hero-detail.webp",
@@ -233,7 +276,8 @@
           "entityId": "eigestore-website-tasarimi",
           "assetRole": "media_gallery_3"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/eigestore-website-tasarimi/media/03-ecommerce-presentation.webp",
@@ -250,7 +294,8 @@
           "entityId": "eigestore-website-tasarimi",
           "assetRole": "media_gallery_4"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/eigestore-website-tasarimi/media/04-shopping-experience.webp",
@@ -267,7 +312,8 @@
           "entityId": "eigestore-website-tasarimi",
           "assetRole": "media_gallery_5"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/kagestudio-website-tasarimi/cover.webp",
@@ -284,7 +330,8 @@
           "entityId": "kagestudio-website-tasarimi",
           "assetRole": "cover"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/kagestudio-website-tasarimi/thumbnail.webp",
@@ -311,7 +358,8 @@
           "entityId": "kagestudio-website-tasarimi",
           "assetRole": "desktopThumbnail"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/kagestudio-website-tasarimi/media/02-homepage-browser.webp",
@@ -328,7 +376,8 @@
           "entityId": "kagestudio-website-tasarimi",
           "assetRole": "media_gallery_1"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/kagestudio-website-tasarimi/media/01-combat-laptop-mockup.webp",
@@ -345,7 +394,8 @@
           "entityId": "kagestudio-website-tasarimi",
           "assetRole": "media_gallery_2"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/kagestudio-website-tasarimi/media/03-hero-detail.webp",
@@ -362,7 +412,8 @@
           "entityId": "kagestudio-website-tasarimi",
           "assetRole": "media_gallery_3"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/kagestudio-website-tasarimi/media/04-premium-presentation.webp",
@@ -379,7 +430,8 @@
           "entityId": "kagestudio-website-tasarimi",
           "assetRole": "media_gallery_4"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/deva-yangin-website-tasarimi/cover.webp",
@@ -396,7 +448,8 @@
           "entityId": "deva-yangin-website-tasarimi",
           "assetRole": "cover"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/deva-yangin-website-tasarimi/thumbnail.webp",
@@ -423,7 +476,8 @@
           "entityId": "deva-yangin-website-tasarimi",
           "assetRole": "desktopThumbnail"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/deva-yangin-website-tasarimi/media/02-homepage-browser.webp",
@@ -440,7 +494,8 @@
           "entityId": "deva-yangin-website-tasarimi",
           "assetRole": "media_gallery_1"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/deva-yangin-website-tasarimi/media/01-laptop-presentation.webp",
@@ -457,7 +512,8 @@
           "entityId": "deva-yangin-website-tasarimi",
           "assetRole": "media_gallery_2"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/deva-yangin-website-tasarimi/media/03-hero-detail.webp",
@@ -474,7 +530,8 @@
           "entityId": "deva-yangin-website-tasarimi",
           "assetRole": "media_gallery_3"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/deva-yangin-website-tasarimi/media/04-fire-safety-presentation.webp",
@@ -491,7 +548,8 @@
           "entityId": "deva-yangin-website-tasarimi",
           "assetRole": "media_gallery_4"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/deva-yangin-website-tasarimi/media/05-service-architecture.webp",
@@ -508,7 +566,8 @@
           "entityId": "deva-yangin-website-tasarimi",
           "assetRole": "media_gallery_5"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/emix-creative-website-tasarimi/cover.webp",
@@ -525,7 +584,8 @@
           "entityId": "emix-creative-website-tasarimi",
           "assetRole": "cover"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/emix-creative-website-tasarimi/thumbnail.webp",
@@ -552,7 +612,8 @@
           "entityId": "emix-creative-website-tasarimi",
           "assetRole": "desktopThumbnail"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/emix-creative-website-tasarimi/media/02-dark-agency-homepage.webp",
@@ -569,7 +630,8 @@
           "entityId": "emix-creative-website-tasarimi",
           "assetRole": "media_gallery_1"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/emix-creative-website-tasarimi/media/01-agency-laptop-presentation.webp",
@@ -586,7 +648,8 @@
           "entityId": "emix-creative-website-tasarimi",
           "assetRole": "media_gallery_2"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/emix-creative-website-tasarimi/media/03-service-hero-detail.webp",
@@ -603,7 +666,8 @@
           "entityId": "emix-creative-website-tasarimi",
           "assetRole": "media_gallery_3"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/emix-creative-website-tasarimi/media/04-agency-presentation.webp",
@@ -620,7 +684,8 @@
           "entityId": "emix-creative-website-tasarimi",
           "assetRole": "media_gallery_4"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/emix-creative-website-tasarimi/media/05-service-ecosystem.webp",
@@ -637,7 +702,8 @@
           "entityId": "emix-creative-website-tasarimi",
           "assetRole": "media_gallery_5"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/iuckmk-website-tasarimi/cover.webp",
@@ -654,7 +720,8 @@
           "entityId": "iuckmk-website-tasarimi",
           "assetRole": "cover"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/iuckmk-website-tasarimi/thumbnail.webp",
@@ -681,7 +748,8 @@
           "entityId": "iuckmk-website-tasarimi",
           "assetRole": "desktopThumbnail"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/iuckmk-website-tasarimi/media/02-homepage-browser.webp",
@@ -698,7 +766,8 @@
           "entityId": "iuckmk-website-tasarimi",
           "assetRole": "media_gallery_1"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/iuckmk-website-tasarimi/media/01-imac-presentation.webp",
@@ -715,7 +784,8 @@
           "entityId": "iuckmk-website-tasarimi",
           "assetRole": "media_gallery_2"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/iuckmk-website-tasarimi/media/03-navigation-detail.webp",
@@ -732,7 +802,8 @@
           "entityId": "iuckmk-website-tasarimi",
           "assetRole": "media_gallery_3"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/iuckmk-website-tasarimi/media/04-community-presentation.webp",
@@ -749,7 +820,8 @@
           "entityId": "iuckmk-website-tasarimi",
           "assetRole": "media_gallery_4"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/iuckmk-website-tasarimi/media/05-content-architecture.webp",
@@ -766,7 +838,8 @@
           "entityId": "iuckmk-website-tasarimi",
           "assetRole": "media_gallery_5"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/engin-perde-website-optimizasyonu/cover.webp",
@@ -783,7 +856,8 @@
           "entityId": "engin-perde-website-optimizasyonu",
           "assetRole": "cover"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/engin-perde-website-optimizasyonu/thumbnail.webp",
@@ -810,7 +884,8 @@
           "entityId": "engin-perde-website-optimizasyonu",
           "assetRole": "desktopThumbnail"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/engin-perde-website-optimizasyonu/media/02-homepage.webp",
@@ -827,7 +902,8 @@
           "entityId": "engin-perde-website-optimizasyonu",
           "assetRole": "media_gallery_1"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/engin-perde-website-optimizasyonu/media/01-product-detail-mockup.webp",
@@ -844,7 +920,8 @@
           "entityId": "engin-perde-website-optimizasyonu",
           "assetRole": "media_gallery_2"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/engin-perde-website-optimizasyonu/media/03-pricing-system-showcase.webp",
@@ -861,7 +938,8 @@
           "entityId": "engin-perde-website-optimizasyonu",
           "assetRole": "media_gallery_3"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/engin-perde-website-optimizasyonu/media/04-website-presentation.webp",
@@ -878,7 +956,8 @@
           "entityId": "engin-perde-website-optimizasyonu",
           "assetRole": "media_gallery_4"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/sanda-yachting-website-ceviri-calismasi/cover.webp",
@@ -895,7 +974,8 @@
           "entityId": "sanda-yachting-website-ceviri-calismasi",
           "assetRole": "cover"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/sanda-yachting-website-ceviri-calismasi/thumbnail.webp",
@@ -922,7 +1002,8 @@
           "entityId": "sanda-yachting-website-ceviri-calismasi",
           "assetRole": "desktopThumbnail"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/sanda-yachting-website-ceviri-calismasi/media/02-homepage-screenshot.webp",
@@ -939,7 +1020,8 @@
           "entityId": "sanda-yachting-website-ceviri-calismasi",
           "assetRole": "media_gallery_1"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/sanda-yachting-website-ceviri-calismasi/media/01-laptop-mockup.webp",
@@ -956,7 +1038,8 @@
           "entityId": "sanda-yachting-website-ceviri-calismasi",
           "assetRole": "media_gallery_2"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/sanda-yachting-website-ceviri-calismasi/media/03-content-localization-showcase.webp",
@@ -973,7 +1056,8 @@
           "entityId": "sanda-yachting-website-ceviri-calismasi",
           "assetRole": "media_gallery_3"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/sanda-yachting-website-ceviri-calismasi/media/04-website-presentation.webp",
@@ -990,7 +1074,8 @@
           "entityId": "sanda-yachting-website-ceviri-calismasi",
           "assetRole": "media_gallery_4"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/ceylanlar-site-yonetimi-website-tasarimi/cover.webp",
@@ -1007,7 +1092,8 @@
           "entityId": "ceylanlar-site-yonetimi-website-tasarimi",
           "assetRole": "cover"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/ceylanlar-site-yonetimi-website-tasarimi/thumbnail.webp",
@@ -1034,7 +1120,8 @@
           "entityId": "ceylanlar-site-yonetimi-website-tasarimi",
           "assetRole": "desktopThumbnail"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/ceylanlar-site-yonetimi-website-tasarimi/media/02-homepage-browser.webp",
@@ -1051,7 +1138,8 @@
           "entityId": "ceylanlar-site-yonetimi-website-tasarimi",
           "assetRole": "media_gallery_1"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/ceylanlar-site-yonetimi-website-tasarimi/media/01-lifestyle-laptop.webp",
@@ -1068,7 +1156,8 @@
           "entityId": "ceylanlar-site-yonetimi-website-tasarimi",
           "assetRole": "media_gallery_2"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/ceylanlar-site-yonetimi-website-tasarimi/media/03-hero-detail.webp",
@@ -1085,7 +1174,8 @@
           "entityId": "ceylanlar-site-yonetimi-website-tasarimi",
           "assetRole": "media_gallery_3"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/ceylanlar-site-yonetimi-website-tasarimi/media/04-corporate-presentation.webp",
@@ -1102,7 +1192,8 @@
           "entityId": "ceylanlar-site-yonetimi-website-tasarimi",
           "assetRole": "media_gallery_4"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/ceylanlar-site-yonetimi-website-tasarimi/media/05-service-experience.webp",
@@ -1119,7 +1210,8 @@
           "entityId": "ceylanlar-site-yonetimi-website-tasarimi",
           "assetRole": "media_gallery_5"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/alchemia-subat-2025-dergi-tasarimi/cover.webp",
@@ -1136,7 +1228,8 @@
           "entityId": "alchemia-subat-2025-dergi-tasarimi",
           "assetRole": "cover"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/alchemia-subat-2025-dergi-tasarimi/thumbnail.webp",
@@ -1163,7 +1256,8 @@
           "entityId": "alchemia-subat-2025-dergi-tasarimi",
           "assetRole": "desktopThumbnail"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/alchemia-subat-2025-dergi-tasarimi/media/01-magazine-cover-mockup.webp",
@@ -1180,7 +1274,8 @@
           "entityId": "alchemia-subat-2025-dergi-tasarimi",
           "assetRole": "media_gallery_1"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/alchemia-subat-2025-dergi-tasarimi/media/02-cover-detail.webp",
@@ -1197,7 +1292,8 @@
           "entityId": "alchemia-subat-2025-dergi-tasarimi",
           "assetRole": "media_gallery_2"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/alchemia-subat-2025-dergi-tasarimi/media/03-editorial-presentation.webp",
@@ -1214,7 +1310,8 @@
           "entityId": "alchemia-subat-2025-dergi-tasarimi",
           "assetRole": "media_gallery_3"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/alchemia-subat-2025-dergi-tasarimi/media/04-publication-system.webp",
@@ -1231,7 +1328,8 @@
           "entityId": "alchemia-subat-2025-dergi-tasarimi",
           "assetRole": "media_gallery_4"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/kmz-2025/cover.webp",
@@ -1248,7 +1346,8 @@
           "entityId": "kmz-2025",
           "assetRole": "cover"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/kmz-2025/thumbnail.webp",
@@ -1275,7 +1374,8 @@
           "entityId": "kmz-2025",
           "assetRole": "desktopThumbnail"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/kmz-2025/media/01-kmz-2025-primary-poster.webp",
@@ -1292,7 +1392,8 @@
           "entityId": "kmz-2025",
           "assetRole": "media_gallery_1"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/fling-arena/cover.webp",
@@ -1309,7 +1410,8 @@
           "entityId": "fling-arena",
           "assetRole": "cover"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/fling-arena/thumbnail.webp",
@@ -1336,7 +1438,8 @@
           "entityId": "fling-arena",
           "assetRole": "desktopThumbnail"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/fling-arena/media/01-fling-arena-identity.webp",
@@ -1353,7 +1456,8 @@
           "entityId": "fling-arena",
           "assetRole": "media_gallery_1"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/kagestudio-marka-kimligi/cover.webp",
@@ -1370,7 +1474,8 @@
           "entityId": "kagestudio-marka-kimligi",
           "assetRole": "cover"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/kagestudio-marka-kimligi/thumbnail.webp",
@@ -1397,7 +1502,8 @@
           "entityId": "kagestudio-marka-kimligi",
           "assetRole": "desktopThumbnail"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/kagestudio-marka-kimligi/media/01-kagestudio-brand-identity.webp",
@@ -1414,7 +1520,8 @@
           "entityId": "kagestudio-marka-kimligi",
           "assetRole": "media_gallery_1"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/eigestore-marka-kimligi/cover.webp",
@@ -1431,7 +1538,8 @@
           "entityId": "eigestore-marka-kimligi",
           "assetRole": "cover"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/eigestore-marka-kimligi/thumbnail.webp",
@@ -1458,7 +1566,8 @@
           "entityId": "eigestore-marka-kimligi",
           "assetRole": "desktopThumbnail"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/eigestore-marka-kimligi/media/01-eigestore-logo.webp",
@@ -1475,7 +1584,8 @@
           "entityId": "eigestore-marka-kimligi",
           "assetRole": "media_gallery_1"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/eigestore-marka-kimligi/media/02-eigestore-business-card.webp",
@@ -1492,7 +1602,8 @@
           "entityId": "eigestore-marka-kimligi",
           "assetRole": "media_gallery_2"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/hizir-yangin-marka-kimligi/cover.webp",
@@ -1509,7 +1620,8 @@
           "entityId": "hizir-yangin-marka-kimligi",
           "assetRole": "cover"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/hizir-yangin-marka-kimligi/thumbnail.webp",
@@ -1536,7 +1648,8 @@
           "entityId": "hizir-yangin-marka-kimligi",
           "assetRole": "desktopThumbnail"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/hizir-yangin-marka-kimligi/media/01-hizir-yangin-tabela-mockup.webp",
@@ -1553,7 +1666,8 @@
           "entityId": "hizir-yangin-marka-kimligi",
           "assetRole": "media_gallery_1"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/hizir-yangin-marka-kimligi/media/02-hizir-yangin-kartvizit-mockup.webp",
@@ -1570,7 +1684,8 @@
           "entityId": "hizir-yangin-marka-kimligi",
           "assetRole": "media_gallery_2"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/emix-qr-menu/cover.webp",
@@ -1587,7 +1702,8 @@
           "entityId": "emix-qr-menu",
           "assetRole": "cover"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/emix-qr-menu/thumbnail.webp",
@@ -1614,7 +1730,8 @@
           "entityId": "emix-qr-menu",
           "assetRole": "desktopThumbnail"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/emix-qr-menu/media/01-emix-qr-menu-website.webp",
@@ -1631,7 +1748,8 @@
           "entityId": "emix-qr-menu",
           "assetRole": "media_gallery_1"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/emix-qr-menu/media/02-emix-qr-menu-admin-dashboard.webp",
@@ -1648,7 +1766,8 @@
           "entityId": "emix-qr-menu",
           "assetRole": "media_gallery_2"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/planfiq-logo-tasarimi/cover.webp",
@@ -1665,7 +1784,8 @@
           "entityId": "planfiq-logo-tasarimi",
           "assetRole": "cover"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/planfiq-logo-tasarimi/thumbnail.webp",
@@ -1692,7 +1812,8 @@
           "entityId": "planfiq-logo-tasarimi",
           "assetRole": "desktopThumbnail"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/planfiq-logo-tasarimi/media/01-planfiq-logo-presentation.webp",
@@ -1709,7 +1830,8 @@
           "entityId": "planfiq-logo-tasarimi",
           "assetRole": "media_gallery_1"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/ceylanlar-site-yonetimi-marka-kimligi/cover.webp",
@@ -1726,7 +1848,8 @@
           "entityId": "ceylanlar-site-yonetimi-marka-kimligi",
           "assetRole": "cover"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/ceylanlar-site-yonetimi-marka-kimligi/thumbnail.webp",
@@ -1753,7 +1876,8 @@
           "entityId": "ceylanlar-site-yonetimi-marka-kimligi",
           "assetRole": "desktopThumbnail"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/ceylanlar-site-yonetimi-marka-kimligi/media/01-ceylanlar-brand-identity.webp",
@@ -1770,7 +1894,8 @@
           "entityId": "ceylanlar-site-yonetimi-marka-kimligi",
           "assetRole": "media_gallery_1"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/deva-yangin-marka-kimligi/cover.webp",
@@ -1787,7 +1912,8 @@
           "entityId": "deva-yangin-marka-kimligi",
           "assetRole": "cover"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/deva-yangin-marka-kimligi/thumbnail.webp",
@@ -1814,7 +1940,8 @@
           "entityId": "deva-yangin-marka-kimligi",
           "assetRole": "desktopThumbnail"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/deva-yangin-marka-kimligi/media/01-deva-yangin-brand-identity.webp",
@@ -1831,7 +1958,8 @@
           "entityId": "deva-yangin-marka-kimligi",
           "assetRole": "media_gallery_1"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/goobzy-logo-tasarimi/cover.webp",
@@ -1848,7 +1976,8 @@
           "entityId": "goobzy-logo-tasarimi",
           "assetRole": "cover"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/goobzy-logo-tasarimi/thumbnail.webp",
@@ -1875,7 +2004,8 @@
           "entityId": "goobzy-logo-tasarimi",
           "assetRole": "desktopThumbnail"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/goobzy-logo-tasarimi/media/01-goobzy-logo-application.webp",
@@ -1892,7 +2022,8 @@
           "entityId": "goobzy-logo-tasarimi",
           "assetRole": "media_gallery_1"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/yanarsan-yangin-logo-tasarimi/cover.webp",
@@ -1909,7 +2040,8 @@
           "entityId": "yanarsan-yangin-logo-tasarimi",
           "assetRole": "cover"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/yanarsan-yangin-logo-tasarimi/thumbnail.webp",
@@ -1936,7 +2068,8 @@
           "entityId": "yanarsan-yangin-logo-tasarimi",
           "assetRole": "desktopThumbnail"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/yanarsan-yangin-logo-tasarimi/media/01-yanarsan-logo-application.webp",
@@ -1953,7 +2086,8 @@
           "entityId": "yanarsan-yangin-logo-tasarimi",
           "assetRole": "media_gallery_1"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/emix-creative-logo-tasarimi/cover.webp",
@@ -1970,7 +2104,8 @@
           "entityId": "emix-creative-logo-tasarimi",
           "assetRole": "cover"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/emix-creative-logo-tasarimi/thumbnail.webp",
@@ -1997,7 +2132,8 @@
           "entityId": "emix-creative-logo-tasarimi",
           "assetRole": "desktopThumbnail"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/emix-creative-logo-tasarimi/media/01-emix-creative-logo-application.webp",
@@ -2014,7 +2150,8 @@
           "entityId": "emix-creative-logo-tasarimi",
           "assetRole": "media_gallery_1"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/kixogames-logo-tasarimi/cover.webp",
@@ -2031,7 +2168,8 @@
           "entityId": "kixogames-logo-tasarimi",
           "assetRole": "cover"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/kixogames-logo-tasarimi/thumbnail.webp",
@@ -2058,7 +2196,8 @@
           "entityId": "kixogames-logo-tasarimi",
           "assetRole": "desktopThumbnail"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/kixogames-logo-tasarimi/media/01-kixogames-logo-identity.webp",
@@ -2075,7 +2214,8 @@
           "entityId": "kixogames-logo-tasarimi",
           "assetRole": "media_gallery_1"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/kiyris-games-logo-tasarimi/cover.webp",
@@ -2092,7 +2232,8 @@
           "entityId": "kiyris-games-logo-tasarimi",
           "assetRole": "cover"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/kiyris-games-logo-tasarimi/thumbnail.webp",
@@ -2119,7 +2260,8 @@
           "entityId": "kiyris-games-logo-tasarimi",
           "assetRole": "desktopThumbnail"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/kiyris-games-logo-tasarimi/media/01-kiyris-games-logo-identity.webp",
@@ -2136,7 +2278,8 @@
           "entityId": "kiyris-games-logo-tasarimi",
           "assetRole": "media_gallery_1"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/alchemia-ocak-2025-dergi-tasarimi/cover.webp",
@@ -2153,7 +2296,8 @@
           "entityId": "alchemia-ocak-2025-dergi-tasarimi",
           "assetRole": "cover"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/alchemia-ocak-2025-dergi-tasarimi/thumbnail.webp",
@@ -2180,7 +2324,8 @@
           "entityId": "alchemia-ocak-2025-dergi-tasarimi",
           "assetRole": "desktopThumbnail"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/alchemia-ocak-2025-dergi-tasarimi/media/01-alchemia-ocak-2025-cover.webp",
@@ -2197,7 +2342,8 @@
           "entityId": "alchemia-ocak-2025-dergi-tasarimi",
           "assetRole": "media_gallery_1"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/alchemia-aralik-2024-dergi-tasarimi/cover.webp",
@@ -2214,7 +2360,8 @@
           "entityId": "alchemia-aralik-2024-dergi-tasarimi",
           "assetRole": "cover"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/alchemia-aralik-2024-dergi-tasarimi/thumbnail.webp",
@@ -2241,7 +2388,8 @@
           "entityId": "alchemia-aralik-2024-dergi-tasarimi",
           "assetRole": "desktopThumbnail"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/alchemia-aralik-2024-dergi-tasarimi/media/01-alchemia-aralik-2024-cover.webp",
@@ -2258,7 +2406,8 @@
           "entityId": "alchemia-aralik-2024-dergi-tasarimi",
           "assetRole": "media_gallery_1"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/alchemia-kasim-2024-dergi-tasarimi/cover.webp",
@@ -2275,7 +2424,8 @@
           "entityId": "alchemia-kasim-2024-dergi-tasarimi",
           "assetRole": "cover"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/alchemia-kasim-2024-dergi-tasarimi/thumbnail.webp",
@@ -2302,7 +2452,8 @@
           "entityId": "alchemia-kasim-2024-dergi-tasarimi",
           "assetRole": "desktopThumbnail"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/alchemia-kasim-2024-dergi-tasarimi/media/01-alchemia-kasim-2024-editorial-spread.webp",
@@ -2319,7 +2470,8 @@
           "entityId": "alchemia-kasim-2024-dergi-tasarimi",
           "assetRole": "media_gallery_1"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/alchemia-nisan-2025-dergi-tasarimi/cover.webp",
@@ -2336,7 +2488,8 @@
           "entityId": "alchemia-nisan-2025-dergi-tasarimi",
           "assetRole": "cover"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/alchemia-nisan-2025-dergi-tasarimi/thumbnail.webp",
@@ -2363,7 +2516,8 @@
           "entityId": "alchemia-nisan-2025-dergi-tasarimi",
           "assetRole": "desktopThumbnail"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/alchemia-nisan-2025-dergi-tasarimi/media/01-alchemia-nisan-2025-cover.webp",
@@ -2380,7 +2534,8 @@
           "entityId": "alchemia-nisan-2025-dergi-tasarimi",
           "assetRole": "media_gallery_1"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/planfiq-website-web-uygulamasi/cover.webp",
@@ -2397,7 +2552,8 @@
           "entityId": "planfiq-website-web-uygulamasi",
           "assetRole": "cover"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/planfiq-website-web-uygulamasi/thumbnail.webp",
@@ -2424,7 +2580,8 @@
           "entityId": "planfiq-website-web-uygulamasi",
           "assetRole": "desktopThumbnail"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/planfiq-website-web-uygulamasi/media/01-planfiq-control-panel.webp",
@@ -2441,7 +2598,8 @@
           "entityId": "planfiq-website-web-uygulamasi",
           "assetRole": "media_gallery_1"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/planfiq-website-web-uygulamasi/media/02-planfiq-finans.webp",
@@ -2458,7 +2616,8 @@
           "entityId": "planfiq-website-web-uygulamasi",
           "assetRole": "media_gallery_2"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/solo-leveling-manga-website/cover.webp",
@@ -2475,7 +2634,8 @@
           "entityId": "solo-leveling-manga-website",
           "assetRole": "cover"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/solo-leveling-manga-website/thumbnail.webp",
@@ -2502,7 +2662,8 @@
           "entityId": "solo-leveling-manga-website",
           "assetRole": "desktopThumbnail"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/projects/solo-leveling-manga-website/media/01-solo-leveling-homepage.webp",
@@ -2519,7 +2680,8 @@
           "entityId": "solo-leveling-manga-website",
           "assetRole": "media_gallery_1"
         }
-      ]
+      ],
+      "scope": "CANONICAL_PROJECT_MEDIA"
     },
     {
       "sourcePath": "public/videos/ai-moda-kombin-reels/video.mp4",
@@ -2536,7 +2698,8 @@
           "entityId": "ai-moda-kombin-reels",
           "assetRole": "video_mp4"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/ai-moda-kombin-reels/poster.webp",
@@ -2553,7 +2716,8 @@
           "entityId": "ai-moda-kombin-reels",
           "assetRole": "video_poster"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/la-ruota-pizza-artigianale-reels/video.mp4",
@@ -2570,7 +2734,8 @@
           "entityId": "la-ruota-pizza-artigianale-reels",
           "assetRole": "video_mp4"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/la-ruota-pizza-artigianale-reels/poster.webp",
@@ -2587,7 +2752,8 @@
           "entityId": "la-ruota-pizza-artigianale-reels",
           "assetRole": "video_poster"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/la-ruota-pizza-yapim-reels/video.mp4",
@@ -2604,7 +2770,8 @@
           "entityId": "la-ruota-pizza-yapim-reels",
           "assetRole": "video_mp4"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/la-ruota-pizza-yapim-reels/poster.webp",
@@ -2621,7 +2788,8 @@
           "entityId": "la-ruota-pizza-yapim-reels",
           "assetRole": "video_poster"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/it-works-alum-stick-roll-on-reels/video.mp4",
@@ -2638,7 +2806,8 @@
           "entityId": "it-works-alum-stick-roll-on-reels",
           "assetRole": "video_mp4"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/it-works-alum-stick-roll-on-reels/poster.webp",
@@ -2655,7 +2824,8 @@
           "entityId": "it-works-alum-stick-roll-on-reels",
           "assetRole": "video_poster"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/liorwell-kadin-streetwear-ai-reels/video.mp4",
@@ -2672,7 +2842,8 @@
           "entityId": "liorwell-kadin-streetwear-ai-reels",
           "assetRole": "video_mp4"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/liorwell-kadin-streetwear-ai-reels/poster.webp",
@@ -2689,7 +2860,8 @@
           "entityId": "liorwell-kadin-streetwear-ai-reels",
           "assetRole": "video_poster"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/yavrumsa-cocuk-giyim-ai-reels/video.mp4",
@@ -2706,7 +2878,8 @@
           "entityId": "yavrumsa-cocuk-giyim-ai-reels",
           "assetRole": "video_mp4"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/yavrumsa-cocuk-giyim-ai-reels/poster.webp",
@@ -2723,7 +2896,8 @@
           "entityId": "yavrumsa-cocuk-giyim-ai-reels",
           "assetRole": "video_poster"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/bosnak-dilek-boregi-uretim-reels/video.mp4",
@@ -2740,7 +2914,8 @@
           "entityId": "bosnak-dilek-boregi-uretim-reels",
           "assetRole": "video_mp4"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/bosnak-dilek-boregi-uretim-reels/poster.webp",
@@ -2757,7 +2932,8 @@
           "entityId": "bosnak-dilek-boregi-uretim-reels",
           "assetRole": "video_poster"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/liorwell-ai-streetwear-reels/video.mp4",
@@ -2774,7 +2950,8 @@
           "entityId": "liorwell-ai-streetwear-reels",
           "assetRole": "video_mp4"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/liorwell-ai-streetwear-reels/poster.webp",
@@ -2791,7 +2968,8 @@
           "entityId": "liorwell-ai-streetwear-reels",
           "assetRole": "video_poster"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/ai-oversize-tshirt-reels/video.mp4",
@@ -2808,7 +2986,8 @@
           "entityId": "ai-oversize-tshirt-reels",
           "assetRole": "video_mp4"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/ai-oversize-tshirt-reels/poster.webp",
@@ -2825,7 +3004,8 @@
           "entityId": "ai-oversize-tshirt-reels",
           "assetRole": "video_poster"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/elara-skincare-ai-urun-reels/video.mp4",
@@ -2842,7 +3022,8 @@
           "entityId": "elara-skincare-ai-urun-reels",
           "assetRole": "video_mp4"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/elara-skincare-ai-urun-reels/poster.webp",
@@ -2859,7 +3040,8 @@
           "entityId": "elara-skincare-ai-urun-reels",
           "assetRole": "video_poster"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/thg-yapi-kurumsal-reels/video.mp4",
@@ -2876,7 +3058,8 @@
           "entityId": "thg-yapi-kurumsal-reels",
           "assetRole": "video_mp4"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/thg-yapi-kurumsal-reels/poster.webp",
@@ -2893,7 +3076,8 @@
           "entityId": "thg-yapi-kurumsal-reels",
           "assetRole": "video_poster"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/chofee-kahve-yapim-reels/video.mp4",
@@ -2910,7 +3094,8 @@
           "entityId": "chofee-kahve-yapim-reels",
           "assetRole": "video_mp4"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/chofee-kahve-yapim-reels/poster.webp",
@@ -2927,7 +3112,8 @@
           "entityId": "chofee-kahve-yapim-reels",
           "assetRole": "video_poster"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/ai-moda-urun-reels/video.mp4",
@@ -2944,7 +3130,8 @@
           "entityId": "ai-moda-urun-reels",
           "assetRole": "video_mp4"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/ai-moda-urun-reels/poster.webp",
@@ -2961,7 +3148,8 @@
           "entityId": "ai-moda-urun-reels",
           "assetRole": "video_poster"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/mythic-bastion-ai-game-ad/video.mp4",
@@ -2978,7 +3166,8 @@
           "entityId": "mythic-bastion-ai-game-ad",
           "assetRole": "video_mp4"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/mythic-bastion-ai-game-ad/poster.webp",
@@ -2995,7 +3184,8 @@
           "entityId": "mythic-bastion-ai-game-ad",
           "assetRole": "video_poster"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/cupistan-ai-tatli-urun-reels/video.mp4",
@@ -3012,7 +3202,8 @@
           "entityId": "cupistan-ai-tatli-urun-reels",
           "assetRole": "video_mp4"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/cupistan-ai-tatli-urun-reels/poster.webp",
@@ -3029,7 +3220,8 @@
           "entityId": "cupistan-ai-tatli-urun-reels",
           "assetRole": "video_poster"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/emix-creative-website-design-ad-reels/video.mp4",
@@ -3046,7 +3238,8 @@
           "entityId": "emix-creative-website-design-ad-reels",
           "assetRole": "video_mp4"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/emix-creative-website-design-ad-reels/poster.webp",
@@ -3063,7 +3256,8 @@
           "entityId": "emix-creative-website-design-ad-reels",
           "assetRole": "video_poster"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/emix-creative-ai-content-transformation-ad/video.mp4",
@@ -3080,7 +3274,8 @@
           "entityId": "emix-creative-ai-content-transformation-ad",
           "assetRole": "video_mp4"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/emix-creative-ai-content-transformation-ad/poster.webp",
@@ -3097,7 +3292,8 @@
           "entityId": "emix-creative-ai-content-transformation-ad",
           "assetRole": "video_poster"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/chofee-ai-lifestyle-icecek-reels/video.mp4",
@@ -3114,7 +3310,8 @@
           "entityId": "chofee-ai-lifestyle-icecek-reels",
           "assetRole": "video_mp4"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/chofee-ai-lifestyle-icecek-reels/poster.webp",
@@ -3131,7 +3328,8 @@
           "entityId": "chofee-ai-lifestyle-icecek-reels",
           "assetRole": "video_poster"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/cupistan-ai-ekler-urun-reels/video.mp4",
@@ -3148,7 +3346,8 @@
           "entityId": "cupistan-ai-ekler-urun-reels",
           "assetRole": "video_mp4"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/cupistan-ai-ekler-urun-reels/poster.webp",
@@ -3165,7 +3364,8 @@
           "entityId": "cupistan-ai-ekler-urun-reels",
           "assetRole": "video_poster"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/cupistan-ai-tart-tatli-urun-reels/video.mp4",
@@ -3182,7 +3382,8 @@
           "entityId": "cupistan-ai-tart-tatli-urun-reels",
           "assetRole": "video_mp4"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/cupistan-ai-tart-tatli-urun-reels/poster.webp",
@@ -3199,7 +3400,8 @@
           "entityId": "cupistan-ai-tart-tatli-urun-reels",
           "assetRole": "video_poster"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/cupistan-ai-lifestyle-tatli-reels/video.mp4",
@@ -3216,7 +3418,8 @@
           "entityId": "cupistan-ai-lifestyle-tatli-reels",
           "assetRole": "video_mp4"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/videos/cupistan-ai-lifestyle-tatli-reels/poster.webp",
@@ -3233,7 +3436,8 @@
           "entityId": "cupistan-ai-lifestyle-tatli-reels",
           "assetRole": "video_poster"
         }
-      ]
+      ],
+      "scope": "CANONICAL_VIDEO_MEDIA"
     },
     {
       "sourcePath": "public/profile/kerem-mihci-avatar.webp",
@@ -3250,7 +3454,8 @@
           "entityId": "owner-profile",
           "assetRole": "personal_biography_image"
         }
-      ]
+      ],
+      "scope": "OWNER_APPROVAL_REQUIRED_PROFILE_MEDIA"
     },
     {
       "sourcePath": "public/profile/kerem-mihci-profile.webp",
@@ -3267,7 +3472,8 @@
           "entityId": "owner-profile",
           "assetRole": "personal_biography_image"
         }
-      ]
+      ],
+      "scope": "OWNER_APPROVAL_REQUIRED_PROFILE_MEDIA"
     }
   ],
   "references": [

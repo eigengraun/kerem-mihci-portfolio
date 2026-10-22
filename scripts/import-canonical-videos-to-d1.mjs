@@ -39,7 +39,7 @@ export const APPROVED_PRODUCTION_CONFIG = Object.freeze({
   r2Bucket: "kerem-portfolio-media"
 });
 
-export function verifyProductionTargetConfiguration() {
+export function verifyProductionTargetConfiguration({ allowUnprovisioned = false } = {}) {
   const wranglerPath = path.join(ROOT, "cloudflare", "portfolio-api", "wrangler.jsonc");
   if (!fs.existsSync(wranglerPath)) {
     throw new Error(`Wrangler configuration file not found at ${wranglerPath}`);
@@ -68,14 +68,15 @@ export function verifyProductionTargetConfiguration() {
   if (d1?.database_name !== APPROVED_PRODUCTION_CONFIG.databaseName) {
     throw new Error(`D1 database name mismatch: expected ${APPROVED_PRODUCTION_CONFIG.databaseName}, found ${d1?.database_name}`);
   }
-  if (!d1?.database_id || d1?.database_id === "REPLACE_WITH_PRODUCTION_D1_DATABASE_ID" || d1?.database_id.startsWith("local-")) {
+  const isUnprovisioned = !d1?.database_id || d1?.database_id === "REPLACE_WITH_PRODUCTION_D1_DATABASE_ID" || d1?.database_id.startsWith("local-");
+  if (isUnprovisioned && !allowUnprovisioned) {
     throw new Error(`Production D1 database is unprovisioned (found placeholder '${d1?.database_id}').`);
   }
   if (r2?.bucket_name !== APPROVED_PRODUCTION_CONFIG.r2Bucket) {
     throw new Error(`R2 bucket mismatch: expected ${APPROVED_PRODUCTION_CONFIG.r2Bucket}, found ${r2?.bucket_name}`);
   }
 
-  return { workerName, d1, r2 };
+  return { workerName, d1, r2, isUnprovisioned };
 }
 
 function verifyStagingTargetConfiguration() {
@@ -175,8 +176,6 @@ if (isMain) {
   isStrictAdmission = rawArgs.includes("--strict-admission") || rawArgs.includes("--strict");
 
   if (isRemoteProduction) {
-    verifyProductionTargetConfiguration();
-
     if (isExecute) {
       console.error("\nFATAL: Production remote execution is strictly NOT_AUTHORIZED.");
       console.error("Gate B release approval has not been granted by the human operator.");
@@ -189,7 +188,19 @@ if (isMain) {
       process.exit(1);
     }
 
-    console.log("Production target validated (dry-run mode). Remote writes strictly forbidden.");
+    console.log("Validating production target configuration [CONFIG_PREFLIGHT_ONLY]...");
+    verifyProductionTargetConfiguration({ allowUnprovisioned: true });
+
+    console.log("\n============================================================");
+    console.log("PRODUCTION TARGET STATUS: CONFIG_PREFLIGHT_ONLY");
+    console.log("============================================================");
+    console.log("  Target Worker:           kerem-mihci-portfolio-api");
+    console.log("  Target D1 Database:      kerem-portfolio-db (UNPROVISIONED)");
+    console.log("  Remote Data Dry-Run:     NOT_RUN / TARGET_UNPROVISIONED");
+    console.log("  Remote Data Parity:      NOT_VERIFIED (No remote database exists)");
+    console.log("  Remote Writes:           STRICTLY FORBIDDEN (Zero remote mutations)");
+    console.log("============================================================\n");
+    process.exit(0);
   }
 
   if (isRemoteStaging) {

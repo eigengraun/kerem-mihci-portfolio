@@ -52,12 +52,12 @@
     },
     "production": {
       "name": "kerem-mihci-portfolio-api",
-      "workers_dev": false,
+      "workers_dev": true,
       "d1_databases": [
         {
           "binding": "PORTFOLIO_DB",
           "database_name": "kerem-portfolio-db",
-          "database_id": "REPLACE_WITH_PRODUCTION_D1_DATABASE_ID",
+          "database_id": "d28c39dc-dc9b-4e9c-9477-1d8535f9e051",
           "migrations_dir": "migrations"
         }
       ],

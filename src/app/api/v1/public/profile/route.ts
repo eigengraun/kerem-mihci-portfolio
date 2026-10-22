@@ -8,7 +8,7 @@ export async function GET() {
     const profile = await getPublishedProfile();
     if (!profile) {
       return NextResponse.json(
-        { ok: false, error: "Profile not found or not published" },
+        { ok: false, code: "PROFILE_NOT_PUBLISHED", error: "Profile not found or not published" },
         { status: 404, headers: { "Cache-Control": "no-store, no-cache, must-revalidate" } }
       );
     }

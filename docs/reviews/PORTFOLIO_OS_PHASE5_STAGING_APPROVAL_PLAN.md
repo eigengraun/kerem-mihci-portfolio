@@ -2,7 +2,7 @@
 
 **Project:** Kerem Mıhçı Portfolio OS  
 **Repository Branch:** `feature/portfolio-phase5-notes-profile-cv`  
-**Current Phase:** Phase 5.2 — Final Local Release Readiness & Operator Gate  
+**Current Phase:** Phase 5.2 — Final Content Provenance, Hardened Runbook & Operator Gate
 **Current Status:** **LOCAL VERIFICATION COMPLETE — STAGING GATE CLOSED**  
 
 ---
@@ -23,8 +23,9 @@ This runbook defines the exact sequence of operational steps required to deploy 
 
 ---
 
-## 2. Target Staging Infrastructure Identities
+## 2. Target Staging Infrastructure Identities & Baseline Disambiguation
 
+### Target Infrastructure Identities
 | Resource | Target Identity | Verification ID / Details |
 | :--- | :--- | :--- |
 | **Cloudflare Account** | Eigengraun Studio | `9791a288e2e99e7f3403590480e3ad6f` |
@@ -32,19 +33,49 @@ This runbook defines the exact sequence of operational steps required to deploy 
 | **Staging D1 Database** | `kerem-portfolio-db-staging` | UUID: `0efef7a7-cc93-4dc2-8cb7-db28379fe01f` |
 | **Staging R2 Bucket** | `kerem-portfolio-media-staging` | Media object storage |
 | **Wrangler Configuration**| `cloudflare/portfolio-api/wrangler.jsonc` | Target environment: `staging` |
-| **Migration to Apply** | `0004_profile_notes_cv_schema.sql` | Status: `NOT_APPLIED` |
+| **Pending Migration** | `0004_profile_notes_cv_schema.sql` | Status: `NOT_APPLIED` |
+
+### Disambiguation: Local Canonical vs Remote Staging Database Baseline
+Operators must never confuse the local test database with the remote staging database.
+
+| Entity Type | Historical Local Sandbox (`.local-d1`) | Historical Remote Staging (`kerem-portfolio-db-staging`) | Governance Rule |
+| :--- | :---: | :---: | :--- |
+| **Projects** | 30 canonical records | **31 records** (30 canonical + 1 test draft) | Reference only; do NOT normalize |
+| **Project Media** | 70 canonical media | **72 media records** | Reference only; preserve intact |
+| **Videos** | 21 canonical videos | **21 canonical videos** | Exact match |
+| **Gallery Items** | 3 local preview items | **0 records** (cleaned post Phase 4 closeout) | Staging gallery was cleaned up |
+| **Profile & Notes**| 73 seeded local records | **0 records** (unmigrated pre-0004) | Seeding blocked fail-closed |
+
+> [!IMPORTANT]
+> These counts are historical baselines. Before executing any future staging deployment, the operator must execute fresh read-only queries (Step D & Step J) to establish current live counts. If unexplained drift is detected, **HALT EXECUTION IMMEDIATELY**.
 
 ---
 
-## 3. Verified Local Baseline Test Evidence
+## 3. Exact Migration Inventory & Admission Cryptographic Hashes
+
+For admission to Cloudflare staging, the migrations directory `cloudflare/portfolio-api/migrations/` must contain exactly the following four migrations:
+
+| File Name | SHA-256 Checksum | Expected Remote Status |
+| :--- | :--- | :---: |
+| `0001_initial_schema.sql` | `453593cdcf472f41e8504ad95ca9f941225562310a30009b68ea492c83479bcf` | **Applied** |
+| `0002_videos_and_reels_schema.sql` | `2c3ac9ff453d76e5afa2e980fcb08fdf08f3362a5a1a9a347634549f5b098f64` | **Applied** |
+| `0003_personal_gallery_schema.sql` | `da6aaabf624fbbaee35089ad27c8627e8709e7e570713d7c29ca6c1b403af606` | **Applied** |
+| `0004_profile_notes_cv_schema.sql` | `cc6e699e703db6527427d99ff490793b40564d21d8681fceec7e48c81dbe537d` | **Pending (Only)** |
+
+Any missing, altered, or additional migration file violates admission policy and must cause an immediate abort.
+
+---
+
+## 4. Verified Local Baseline Test Evidence (786 Automated Checks)
 
 All required local verification batteries have been executed and verified passing 100%:
 
 | Test Battery | Command | Checks | Status |
 | :--- | :--- | :---: | :---: |
-| **Phase 5 Functional & API Suite** | `node scripts/verify-phase5-profile-notes-cms.mjs` | **168** | **PASS (168/168)** |
-| **Phase 5.2 Real Browser Playwright E2E** | `node scripts/verify-phase5-browser-e2e.mjs` | **60** | **PASS (60/60)** |
-| **Phase 5.2 Local Worker Runtime E2E** | `node scripts/verify-phase5-worker-runtime.mjs` | **26** | **PASS (26/26)** |
+| **Phase 5 Functional & Schema Suite** | `node scripts/verify-phase5-profile-notes-cms.mjs` | **168** | **PASS (168/168)** |
+| **Phase 5.2 Browser Playwright E2E** | `node scripts/verify-phase5-browser-e2e.mjs` | **60** | **PASS (60/60)** |
+| **Phase 5.2 Local Worker Runtime E2E** | `node scripts/verify-phase5-worker-runtime.mjs` | **48** | **PASS (48/48)** |
+| **Phase 5.2 Content Parity & Provenance** | `node scripts/verify-phase5-content-parity.mjs` | **311** | **PASS (311/311)** |
 | **Phase 3 Video CMS Regression** | `node scripts/verify-phase3-video-cms.mjs` | **112** | **PASS (112/112)** |
 | **Phase 4 Gallery CMS Regression** | `node scripts/verify-phase4-gallery-cms.mjs` | **87** | **PASS (87/87)** |
 | **TypeScript Typecheck** | `npx tsc --noEmit` | N/A | **PASS (0 errors)** |
@@ -53,19 +84,19 @@ All required local verification batteries have been executed and verified passin
 | **Wrangler Deploy Dry-Run (Local)** | `npx wrangler deploy --dry-run` | N/A | **PASS (0 errors)** |
 | **Wrangler Deploy Dry-Run (Staging)** | `npx wrangler deploy --dry-run --env staging` | N/A | **PASS (0 errors)** |
 | **Host Database Checksum** | `shasum -a 256 .local-d1/portfolio.sqlite` | N/A | **PASS (`470d8f14ce12...`)** |
+| **Total Automated Checks** | — | **786** | **PASS (786/786)** |
 
 ---
 
-## 4. Single Fail-Closed Staging Preflight Sequence (Steps A through L)
+## 5. Single Fail-Closed Staging Preflight Sequence (Steps A through L)
 
 Before executing any remote mutations, the operator must execute this strict sequence:
 
 ### Step A: Verify Exact Reviewed Source Commit
 ```bash
 git rev-parse HEAD
-# Expected: 6de5c7d4e30f757c6b99bd970346b3eff44b01bf (or subsequent reviewed commit)
+# Verify working tree is clean
 git status --porcelain
-# Expected: Clean working tree
 ```
 
 ### Step B: Verify Cloudflare Staging Account Identity
@@ -80,15 +111,22 @@ Inspect `cloudflare/portfolio-api/wrangler.jsonc` under `"env.staging"`:
 - D1 Database ID: `0efef7a7-cc93-4dc2-8cb7-db28379fe01f`
 - R2 Bucket: `kerem-portfolio-media-staging`
 
-### Step D: Verify Current Worker Version & Deployment ID
+### Step D: Query Live Remote Inventory & Active Serving Version
 ```bash
+# Query active version
 npx wrangler deployments list --env staging --config cloudflare/portfolio-api/wrangler.jsonc
-# Record current active Version ID for instant non-destructive rollback capability
+# Record current active Version ID for audit log
+
+# Fresh live read-only count queries on remote staging D1:
+npx wrangler d1 execute kerem-portfolio-db-staging --env staging --remote --config cloudflare/portfolio-api/wrangler.jsonc --command "SELECT count(*) AS project_count FROM projects;"
+npx wrangler d1 execute kerem-portfolio-db-staging --env staging --remote --config cloudflare/portfolio-api/wrangler.jsonc --command "SELECT count(*) AS video_count FROM portfolio_videos;"
+npx wrangler d1 execute kerem-portfolio-db-staging --env staging --remote --config cloudflare/portfolio-api/wrangler.jsonc --command "SELECT count(*) AS gallery_count FROM portfolio_gallery_items;"
 ```
 
 ### Step E: Verify Migration Inventory and Approved Hashes
 ```bash
-shasum -a 256 cloudflare/portfolio-api/migrations/0004_profile_notes_cv_schema.sql
+shasum -a 256 cloudflare/portfolio-api/migrations/*.sql
+# Verify 0001, 0002, 0003, and 0004 match Section 3 exactly
 ```
 
 ### Step F: Confirm Migrations 0001, 0002, 0003 are Applied on Remote D1
@@ -103,33 +141,69 @@ Ensure no other migrations are listed as unapplied.
 Export a full SQL dump to durable private storage outside git tracking with restricted permissions (`umask 077`):
 ```bash
 mkdir -p ~/.cloudflare/backups && chmod 0700 ~/.cloudflare/backups
-BACKUP_PATH="$HOME/.cloudflare/backups/staging-d1-pre-phase5-$(date +%s).sql"
+export BACKUP_PATH="$HOME/.cloudflare/backups/staging-d1-pre-phase5-$(date +%s).sql"
 (umask 077 && npx wrangler d1 export kerem-portfolio-db-staging --env staging --remote --output "$BACKUP_PATH" --config cloudflare/portfolio-api/wrangler.jsonc)
 chmod 0600 "$BACKUP_PATH"
 shasum -a 256 "$BACKUP_PATH"
 ```
 
-### Step I: Restore Backup in Isolated SQLite Environment
-Verify dump syntax and table structure by importing it into a temporary local SQLite database:
+### Step I: Restore and Verify Backup in Isolated SQLite Fixture
+Verify dump syntax, table structure, and data integrity by importing the export into an isolated in-memory SQLite database:
 ```bash
 node -e '
 const { DatabaseSync } = require("node:sqlite");
 const fs = require("node:fs");
-const sql = fs.readFileSync(process.env.BACKUP_PATH, "utf-8");
+
+const backupPath = process.env.BACKUP_PATH;
+if (!backupPath || !fs.existsSync(backupPath)) {
+  console.error("FATAL: BACKUP_PATH environment variable not set or file missing.");
+  process.exit(1);
+}
+
+const sql = fs.readFileSync(backupPath, "utf-8");
 const db = new DatabaseSync(":memory:");
 db.exec(sql);
-console.log("Backup SQL restore verified successfully.");
+
+// 1. Integrity check
+const integrity = db.prepare("PRAGMA integrity_check;").get();
+if (integrity.integrity_check !== "ok") {
+  console.error("FATAL: SQLite integrity check failed:", integrity);
+  process.exit(1);
+}
+
+// 2. Migration ledger validation
+const appliedMigrations = db.prepare("SELECT name FROM d1_migrations ORDER BY id ASC;").all().map(r => r.name);
+console.log("Verified Applied Migrations:", appliedMigrations);
+if (!appliedMigrations.includes("0001_initial_schema.sql") ||
+    !appliedMigrations.includes("0002_videos_and_reels_schema.sql") ||
+    !appliedMigrations.includes("0003_personal_gallery_schema.sql")) {
+  console.error("FATAL: Missing baseline migrations in backup.");
+  process.exit(1);
+}
+
+// 3. Record count verification
+const projectsCount = db.prepare("SELECT count(*) as c FROM projects;").get().c;
+const videosCount = db.prepare("SELECT count(*) as c FROM portfolio_videos;").get().c;
+const galleryCount = db.prepare("SELECT count(*) as c FROM portfolio_gallery_items;").get().c;
+
+console.log(`Verified Backup Counts: Projects=${projectsCount}, Videos=${videosCount}, Gallery=${galleryCount}`);
+if (projectsCount < 30 || videosCount !== 21) {
+  console.error("FATAL: Canonical data mismatch in backup dump.");
+  process.exit(1);
+}
+
+console.log("✓ Backup verified 100% syntactically, structurally, and relationally sound.");
 '
 ```
 
-### Step J: Verify Identity-Level Canonical Data Preservation
-Confirm the backup contains:
-- 30 canonical projects
-- 21 canonical videos
-- 3 canonical gallery items
+### Step J: Verify Fail-Closed Empty/Draft Behavior
+Confirm that public unseeded endpoints return healthy empty states without marking the public site degraded:
+- Unseeded profile returns 404 with structured code `PROFILE_NOT_PUBLISHED` and `Cache-Control: no-store`.
+- Unseeded CV returns 404 with structured code `CV_NOT_PUBLISHED` and `Cache-Control: no-store`.
+- Next.js frontend handles empty profile gracefully without setting `isDegraded: true`.
 
 ### Step K: STOP at Explicit Operator Authorization Gate
-**HALT EXECUTION.** Present preflight evidence to the operator and await explicit written approval (`VERDICT A`).
+**HALT EXECUTION.** Present preflight evidence, backup verification logs, and checklist sign-off to the operator and await explicit written approval (`VERDICT A`).
 
 ### Step L: Execution (Only After Separate Approval)
 1. **Apply Migration 0004 to Staging D1:**
@@ -144,37 +218,42 @@ Confirm the backup contains:
 
 ---
 
-## 5. Remote Content Seeding Policy: STRICTLY BLOCKED
+## 6. Remote Content Seeding Policy: STRICTLY BLOCKED
 
 > [!CAUTION]
-> **CONTENT SEEDING IS STRICTLY BLOCKED BY DEFAULT.**
+> **REMOTE CONTENT SEEDING IS STRICTLY BLOCKED BY DEFAULT.**
 >
 > 1. `scripts/import-profile-notes-to-d1.mjs` explicitly rejects `--remote-staging` with exit code 1.
 > 2. Applying Migration 0004 does NOT grant authorization to seed or publish personal profile content.
 > 3. Profile, education, and career content must remain in draft state until explicit human operator confirmation is obtained via `docs/reviews/PORTFOLIO_OS_PHASE5_2_CONTENT_APPROVAL_CHECKLIST.md`.
+> 4. Do NOT present remote content seeding as implemented, tested, or authorized.
 
 ---
 
-## 6. Non-Destructive Rollback & Disaster Recovery Runbook
+## 7. Rollback & Disaster Recovery Runbook
 
 If any anomaly occurs during staging deployment:
 
-### Plan A: Worker Deployment Rollback (Instant & Non-Destructive)
-Roll back Worker execution to the recorded pre-deployment Version ID:
-```bash
-npx wrangler rollback <PREVIOUS_VERSION_ID> --env staging --config cloudflare/portfolio-api/wrangler.jsonc
-```
-Because Migration 0004 is purely additive (16 new tables, 13 new indexes), the previous Worker immediately resumes normal serving of projects, videos, and gallery without downtime or data corruption.
+### Plan A: Worker Deployment Rollback (Subject to Schema Compatibility)
+> [!WARNING]
+> Worker rollback is **NOT** unconditionally safe. Before executing a rollback:
+> 1. Verify that the previous Worker Version ID exists and is recorded.
+> 2. Confirm that Migration 0004 schema changes (16 new tables, 13 new indexes) are purely additive and do NOT alter columns or tables required by the previous Worker version.
+> 3. Execute rollback only with explicit operator authorization:
+>    ```bash
+>    npx wrangler rollback <PREVIOUS_VERSION_ID> --env staging --config cloudflare/portfolio-api/wrangler.jsonc
+>    ```
 
 ### Plan B: Non-Destructive Database Point-in-Time Restore
 In the event of database inconsistency:
 1. Cease all write operations immediately.
-2. Destructive `DROP TABLE` commands are **STRICTLY PROHIBITED**.
-3. Point-in-time restore is performed strictly using the verified backup captured in Step H under human supervision.
+2. **NEVER attempt full SQL restore against a populated remote D1 database.**
+3. Destructive commands (`DROP TABLE`, manual cascading deletes) are **STRICTLY FORBIDDEN**.
+4. In the event of catastrophic data corruption, follow Cloudflare D1 point-in-time recovery (PITR) procedures or isolated table-by-table reconstruction using the verified private backup taken in Step H.
 
 ---
 
-## 7. Operator Authorization Gate
+## 8. Operator Authorization Gate
 
 | Verdict | Meaning | Action |
 | :--- | :--- | :--- |

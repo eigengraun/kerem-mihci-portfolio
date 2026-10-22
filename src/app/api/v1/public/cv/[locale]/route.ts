@@ -19,7 +19,7 @@ export async function GET(
     const doc = await getPublishedCv(locale);
     if (!doc) {
       return NextResponse.json(
-        { ok: false, error: "CV document not found or not published" },
+        { ok: false, code: "CV_NOT_PUBLISHED", error: "CV document not found or not published" },
         { status: 404, headers: { "Cache-Control": "no-store, no-cache, must-revalidate" } }
       );
     }

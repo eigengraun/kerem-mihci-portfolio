@@ -1,0 +1,672 @@
+{
+  "suite": "Portfolio OS Phase 5.2 Content Parity & Provenance Verification",
+  "timestamp": "2026-10-22T09:20:28.725Z",
+  "totalChecks": 311,
+  "passedChecks": 311,
+  "failedChecks": 0,
+  "failures": [],
+  "entities": {
+    "profile": {
+      "id": "main",
+      "sourceParity": true,
+      "dbParity": true,
+      "name": "Kerem Mıhçı",
+      "headlineTR": "Tasarımcı • Web Tasarımcısı • Dijital Üretici",
+      "headlineEN": "Designer • Web Designer • Digital Creator",
+      "summariesTR": [
+        "Dijital dünyada tasarım, web, marka kimliği ve yaratıcı üretimi bir araya getirerek markalar için amaca hizmet eden görsel ve dijital deneyimler üretiyorum.",
+        "İşim yalnızca güzel görünen işler üretmek değil; markanın kimliğine, hedeflerine ve kullanıcı deneyimine uygun sürdürülebilir çözümler geliştirmek.",
+        "Çalışmalarımda tasarım ve teknolojiyi birlikte kullanıyor, yapay zekâ araçlarını yaratıcı süreci destekleyen bir üretim aracı olarak değerlendiriyorum."
+      ],
+      "summariesEN": [
+        "I combine design, web engineering, brand identity, and creative production to build purposeful visual and digital experiences for brands.",
+        "My work is not only about creating visually appealing graphics; I focus on building sustainable solutions aligned with a brand's identity, goals, and user experience.",
+        "I combine design and technology throughout my process, leveraging AI capabilities as part of a modern creative workflow."
+      ],
+      "status": "OWNER_VERIFICATION_REQUIRED"
+    },
+    "notes": [
+      {
+        "id": "note-design-1",
+        "workspace": "design",
+        "index": 1,
+        "contentTR": "hizalama göze doğru geliyorsa bazen grid'den daha önemlidir",
+        "contentEN": "if the alignment looks right, sometimes that matters more than the grid",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "note-design-2",
+        "workspace": "design",
+        "index": 2,
+        "contentTR": "logo küçük boyutta da çalışmalı",
+        "contentEN": "a logo still needs to work small",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "note-design-3",
+        "workspace": "design",
+        "index": 3,
+        "contentTR": "ilk frame önemli, son frame de öyle",
+        "contentEN": "the first frame matters, so does the last",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "note-design-4",
+        "workspace": "design",
+        "index": 4,
+        "contentTR": "fazla hareket her zaman daha iyi hareket değildir",
+        "contentEN": "more movement isn't always better movement",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "note-design-5",
+        "workspace": "design",
+        "index": 5,
+        "contentTR": "yazılar son frame'e kadar okunmalı",
+        "contentEN": "text should remain readable until the last frame",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "note-design-6",
+        "workspace": "design",
+        "index": 6,
+        "contentTR": "iyi tasarım sadece güzel görünmek değildir",
+        "contentEN": "good design is more than just looking good",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "note-design-7",
+        "workspace": "design",
+        "index": 7,
+        "contentTR": "export almadan önce son kez kontrol et",
+        "contentEN": "check everything one last time before export",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "note-design-8",
+        "workspace": "design",
+        "index": 8,
+        "contentTR": "bir varyasyon daha al",
+        "contentEN": "make one more variation",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "note-web-1",
+        "workspace": "web",
+        "index": 1,
+        "contentTR": "hizalama göze doğru geliyorsa bazen grid'den daha önemlidir",
+        "contentEN": "if the alignment looks right, sometimes that matters more than the grid",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "note-web-2",
+        "workspace": "web",
+        "index": 2,
+        "contentTR": "logo küçük boyutta da çalışmalı",
+        "contentEN": "a logo still needs to work small",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "note-web-3",
+        "workspace": "web",
+        "index": 3,
+        "contentTR": "ilk frame önemli, son frame de öyle",
+        "contentEN": "the first frame matters, so does the last",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "note-web-4",
+        "workspace": "web",
+        "index": 4,
+        "contentTR": "fazla hareket her zaman daha iyi hareket değildir",
+        "contentEN": "more movement isn't always better movement",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "note-web-5",
+        "workspace": "web",
+        "index": 5,
+        "contentTR": "yazılar son frame'e kadar okunmalı",
+        "contentEN": "text should remain readable until the last frame",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "note-web-6",
+        "workspace": "web",
+        "index": 6,
+        "contentTR": "iyi tasarım sadece güzel görünmek değildir",
+        "contentEN": "good design is more than just looking good",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "note-web-7",
+        "workspace": "web",
+        "index": 7,
+        "contentTR": "export almadan önce son kez kontrol et",
+        "contentEN": "check everything one last time before export",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "note-web-8",
+        "workspace": "web",
+        "index": 8,
+        "contentTR": "bir varyasyon daha al",
+        "contentEN": "make one more variation",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "note-motion-ai-1",
+        "workspace": "motion-ai",
+        "index": 1,
+        "contentTR": "hizalama göze doğru geliyorsa bazen grid'den daha önemlidir",
+        "contentEN": "if the alignment looks right, sometimes that matters more than the grid",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "note-motion-ai-2",
+        "workspace": "motion-ai",
+        "index": 2,
+        "contentTR": "logo küçük boyutta da çalışmalı",
+        "contentEN": "a logo still needs to work small",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "note-motion-ai-3",
+        "workspace": "motion-ai",
+        "index": 3,
+        "contentTR": "ilk frame önemli, son frame de öyle",
+        "contentEN": "the first frame matters, so does the last",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "note-motion-ai-4",
+        "workspace": "motion-ai",
+        "index": 4,
+        "contentTR": "fazla hareket her zaman daha iyi hareket değildir",
+        "contentEN": "more movement isn't always better movement",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "note-motion-ai-5",
+        "workspace": "motion-ai",
+        "index": 5,
+        "contentTR": "yazılar son frame'e kadar okunmalı",
+        "contentEN": "text should remain readable until the last frame",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "note-motion-ai-6",
+        "workspace": "motion-ai",
+        "index": 6,
+        "contentTR": "iyi tasarım sadece güzel görünmek değildir",
+        "contentEN": "good design is more than just looking good",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "note-motion-ai-7",
+        "workspace": "motion-ai",
+        "index": 7,
+        "contentTR": "export almadan önce son kez kontrol et",
+        "contentEN": "check everything one last time before export",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "note-motion-ai-8",
+        "workspace": "motion-ai",
+        "index": 8,
+        "contentTR": "bir varyasyon daha al",
+        "contentEN": "make one more variation",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      }
+    ],
+    "experience": [
+      {
+        "id": "emix-creative",
+        "organization": "eMix Creative",
+        "roleTR": "Kreatif Tasarımcı & Dijital İçerik Üreticisi",
+        "roleEN": "Creative Designer & Digital Content Creator",
+        "startDate": "2025",
+        "endDateTR": "Devam Ediyor",
+        "endDateEN": "Present",
+        "descriptionTR": "Marka kimliği, dijital içerik prodüksiyonu, sosyal medya kreatifleri ve responsive web tasarımı süreçlerini yürütüyorum.",
+        "descriptionEN": "Leading brand identity development, digital content production, social media creatives, and responsive web design workflows.",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "freelance",
+        "organization": "Bağımsız Projeler / Freelance",
+        "roleTR": "Freelance Web & Grafik Tasarımcısı",
+        "roleEN": "Freelance Web & Graphic Designer",
+        "startDate": "2021",
+        "endDateTR": "Devam Ediyor",
+        "endDateEN": "Present",
+        "descriptionTR": "Farklı ölçekteki markalar için kurumsal web siteleri, logo tasarımları, basılı / dijital yayınlar ve SEO optimizasyon projeleri gerçekleştiriyorum.",
+        "descriptionEN": "Building corporate websites, brand identities, editorial designs, and SEO optimization for diverse clients.",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "ai-trainer",
+        "organization": "AI & Görsel Teknolojiler",
+        "roleTR": "AI Model Değerlendirici & Kreatif AI Prodüksiyon",
+        "roleEN": "AI Model Evaluator & Creative AI Production",
+        "startDate": "2023",
+        "endDateTR": "Devam Ediyor",
+        "endDateEN": "Present",
+        "descriptionTR": "Yapay zekâ görsel ve metin modellerinin değerlendirilmesi, prompt tasarımı, içerik kalitesi denetimi ve yaratıcı iş akışlarına AI entegrasyonu.",
+        "descriptionEN": "Evaluating visual and language models, prompt engineering, content quality assessment, and integrating AI into creative pipelines.",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "art-director",
+        "organization": "Tasarım Ajansı",
+        "roleTR": "Grafik Tasarımcı & Sanat Yönetmeni",
+        "roleEN": "Graphic Designer & Art Director",
+        "startDate": "2022",
+        "endDateTR": "2024",
+        "endDateEN": "2024",
+        "descriptionTR": "Reklam kampanyaları, marka lansman görselleri, ambalaj / katalog tasarımları ve video kurgu projelerinin yürütülmesi.",
+        "descriptionEN": "Executing advertising campaigns, brand launches, editorial print layouts, and promotional video edits.",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "alchemia",
+        "organization": "Alchemia E-Dergisi",
+        "roleTR": "Kreatif Editör & Yayın Tasarımcısı",
+        "roleEN": "Creative Editor & Layout Designer",
+        "startDate": "2024",
+        "endDateTR": "2025",
+        "endDateEN": "2025",
+        "descriptionTR": "Dijital dergi konsept tasarımı, tipografik mizanpaj, kapak tasarımları ve içerik kurgusu.",
+        "descriptionEN": "Digital magazine concept design, typographic layout, cover art, and editorial direction.",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      }
+    ],
+    "education": [
+      {
+        "id": "iuc-engineering",
+        "institutionTR": "İstanbul Üniversitesi - Cerrahpaşa",
+        "institutionEN": "Istanbul University - Cerrahpasa",
+        "programTR": "Elektrik-Elektronik Mühendisliği",
+        "programEN": "Electrical & Electronics Engineering",
+        "startYear": "2020",
+        "endYearTR": "Devam Ediyor",
+        "endYearEN": "Present",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "duzce-fen-lisesi",
+        "institutionTR": "Düzce Fen Lisesi",
+        "institutionEN": "Düzce Fen Lisesi",
+        "programTR": "Lise",
+        "programEN": "High School",
+        "startYear": null,
+        "endYearTR": "",
+        "endYearEN": "",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      }
+    ],
+    "skills": [
+      {
+        "id": "skill-design-1",
+        "category": "design",
+        "nameTR": "Grafik Tasarım",
+        "nameEN": "Graphic Design",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-design-2",
+        "category": "design",
+        "nameTR": "Marka Kimliği",
+        "nameEN": "Brand Identity",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-design-3",
+        "category": "design",
+        "nameTR": "Logo Tasarımı",
+        "nameEN": "Logo Design",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-design-4",
+        "category": "design",
+        "nameTR": "Tipografi",
+        "nameEN": "Typography",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-design-5",
+        "category": "design",
+        "nameTR": "Sosyal Medya Tasarımı",
+        "nameEN": "Social Media Design",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-design-6",
+        "category": "design",
+        "nameTR": "Reklam Kreatifleri",
+        "nameEN": "Advertising Creatives",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-design-7",
+        "category": "design",
+        "nameTR": "Editorial Tasarım",
+        "nameEN": "Editorial Design",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-web-1",
+        "category": "web",
+        "nameTR": "Web Tasarımı",
+        "nameEN": "Web Design",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-web-2",
+        "category": "web",
+        "nameTR": "Responsive Design",
+        "nameEN": "Responsive Design",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-web-3",
+        "category": "web",
+        "nameTR": "UI / UX",
+        "nameEN": "UI / UX",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-web-4",
+        "category": "web",
+        "nameTR": "WordPress",
+        "nameEN": "WordPress",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-web-5",
+        "category": "web",
+        "nameTR": "SEO",
+        "nameEN": "SEO",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-web-6",
+        "category": "web",
+        "nameTR": "Web Development",
+        "nameEN": "Web Development",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-web-7",
+        "category": "web",
+        "nameTR": "Next.js",
+        "nameEN": "Next.js",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-web-8",
+        "category": "web",
+        "nameTR": "Tailwind CSS",
+        "nameEN": "Tailwind CSS",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-production-1",
+        "category": "production",
+        "nameTR": "Motion Design",
+        "nameEN": "Motion Design",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-production-2",
+        "category": "production",
+        "nameTR": "Video Editing",
+        "nameEN": "Video Editing",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-production-3",
+        "category": "production",
+        "nameTR": "Reels Prodüksiyonu",
+        "nameEN": "Reels Production",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-production-4",
+        "category": "production",
+        "nameTR": "Kreatif Prodüksiyon",
+        "nameEN": "Creative Production",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-production-5",
+        "category": "production",
+        "nameTR": "Görsel Hikaye Anlatıcılığı",
+        "nameEN": "Visual Storytelling",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-ai-1",
+        "category": "ai",
+        "nameTR": "AI Destekli Yaratıcı Üretim",
+        "nameEN": "AI-Assisted Creative Production",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-ai-2",
+        "category": "ai",
+        "nameTR": "AI Video",
+        "nameEN": "AI Video",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-ai-3",
+        "category": "ai",
+        "nameTR": "Prompt Tasarımı & İş Akışları",
+        "nameEN": "Prompt Engineering & Workflows",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-ai-4",
+        "category": "ai",
+        "nameTR": "Model Değerlendirme & Eğitimi",
+        "nameEN": "Model Evaluation & Training",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-strategy-1",
+        "category": "strategy",
+        "nameTR": "Dijital Pazarlama",
+        "nameEN": "Digital Marketing",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-strategy-2",
+        "category": "strategy",
+        "nameTR": "İçerik Stratejisi",
+        "nameEN": "Content Strategy",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-strategy-3",
+        "category": "strategy",
+        "nameTR": "Marka Konumlandırma",
+        "nameEN": "Brand Positioning",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-strategy-4",
+        "category": "strategy",
+        "nameTR": "Teknik SEO",
+        "nameEN": "Technical SEO",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-tools-1",
+        "category": "tools",
+        "nameTR": "Adobe Photoshop",
+        "nameEN": "Adobe Photoshop",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-tools-2",
+        "category": "tools",
+        "nameTR": "Adobe Illustrator",
+        "nameEN": "Adobe Illustrator",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-tools-3",
+        "category": "tools",
+        "nameTR": "Adobe Premiere Pro",
+        "nameEN": "Adobe Premiere Pro",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-tools-4",
+        "category": "tools",
+        "nameTR": "Adobe After Effects",
+        "nameEN": "Adobe After Effects",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-tools-5",
+        "category": "tools",
+        "nameTR": "Figma",
+        "nameEN": "Figma",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-tools-6",
+        "category": "tools",
+        "nameTR": "Canva",
+        "nameEN": "Canva",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-tools-7",
+        "category": "tools",
+        "nameTR": "WordPress",
+        "nameEN": "WordPress",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-tools-8",
+        "category": "tools",
+        "nameTR": "VS Code",
+        "nameEN": "VS Code",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-tools-9",
+        "category": "tools",
+        "nameTR": "Antigravity",
+        "nameEN": "Antigravity",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-tools-10",
+        "category": "tools",
+        "nameTR": "CapCut",
+        "nameEN": "CapCut",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "skill-tools-11",
+        "category": "tools",
+        "nameTR": "Higgsfield",
+        "nameEN": "Higgsfield",
+        "sourceParity": true,
+        "status": "OWNER_VERIFICATION_REQUIRED"
+      }
+    ],
+    "cv": [
+      {
+        "id": "cv-tr",
+        "locale": "tr",
+        "status": "draft",
+        "publicUrl": "/cv/kerem-mihci-cv-tr.pdf",
+        "sourceParity": true,
+        "ownerStatus": "OWNER_VERIFICATION_REQUIRED"
+      },
+      {
+        "id": "cv-en",
+        "locale": "en",
+        "status": "draft",
+        "publicUrl": "/cv/kerem-mihci-cv-en.pdf",
+        "sourceParity": true,
+        "ownerStatus": "OWNER_VERIFICATION_REQUIRED"
+      }
+    ]
+  }
+}

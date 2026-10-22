@@ -410,7 +410,11 @@ function requireWorkerConfigForMutation(operation: string): {
 
 async function fetchWorkerJson<T>(
   pathUrl: string,
-  init: RequestInit & { requireServiceAuth?: boolean; actorEmail?: string } = {}
+  init: RequestInit & {
+    requireServiceAuth?: boolean;
+    actorEmail?: string;
+    allowExpected404Codes?: string[];
+  } = {}
 ): Promise<T> {
   const baseUrl = getWorkerBaseUrl();
   const mode = getCmsStorageMode();
@@ -464,6 +468,13 @@ async function fetchWorkerJson<T>(
   }
 
   if (!response.ok) {
+    if (
+      response.status === 404 &&
+      typeof data.code === "string" &&
+      init.allowExpected404Codes?.includes(data.code)
+    ) {
+      return data as T;
+    }
     const errMsg = String(data.error || `Worker HTTP ${response.status}`);
     if (response.status === 401 || response.status === 403 || response.status >= 500) {
       throw new CmsStorageUnavailableError(`[Cloudflare Worker ${response.status}] ${errMsg}`);
@@ -1747,10 +1758,17 @@ export const rollbackGalleryRevisionInD1 = rollbackGalleryRevision;
 
 export async function getPublishedProfile(): Promise<CmsProfileRecord | null> {
   if (shouldUseWorkerApi()) {
-    const res = await fetchWorkerJson<{ ok: boolean; profile: CmsProfileRecord | null }>(
-      "/api/v1/public/profile"
-    );
-    return res.profile || null;
+    const res = await fetchWorkerJson<{
+      ok: boolean;
+      profile?: CmsProfileRecord | null;
+      code?: string;
+    }>("/api/v1/public/profile", {
+      allowExpected404Codes: ["PROFILE_NOT_PUBLISHED"]
+    });
+    if (res.code === "PROFILE_NOT_PUBLISHED" || !res.profile) {
+      return null;
+    }
+    return res.profile;
   }
   assertLocalSimulationAllowed("getPublishedProfile");
   const p = getProfileLocal();
@@ -2384,10 +2402,17 @@ export const updateSkillsOrderingInD1 = updateSkillsOrdering;
 
 export async function getPublishedCv(locale: "tr" | "en"): Promise<CmsCvDocument | null> {
   if (shouldUseWorkerApi()) {
-    const res = await fetchWorkerJson<{ ok: boolean; cv: CmsCvDocument | null }>(
-      `/api/v1/public/cv/${encodeURIComponent(locale)}`
-    );
-    return res.cv || null;
+    const res = await fetchWorkerJson<{
+      ok: boolean;
+      cv?: CmsCvDocument | null;
+      code?: string;
+    }>(`/api/v1/public/cv/${encodeURIComponent(locale)}`, {
+      allowExpected404Codes: ["CV_NOT_PUBLISHED"]
+    });
+    if (res.code === "CV_NOT_PUBLISHED" || !res.cv) {
+      return null;
+    }
+    return res.cv;
   }
   assertLocalSimulationAllowed("getPublishedCv");
   const doc = getCvDocumentLocal(locale);

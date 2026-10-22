@@ -4,8 +4,15 @@
   "branch": "feature/portfolio-phase6-final-qa",
   "baselineCommit": "224dd135cf4d7afb8e206dc860450ab5ea257261",
   "deployedStagingCommit": "a656482d34f2d11aa59f5688d615a4b44d79de6b",
-  "timestamp": "2026-10-22T18:45:00.000Z",
-  "finalVerdict": "GATEA_INFRA_PASS",
+  "gitIdentities": {
+    "baselineCommit": "224dd135cf4d7afb8e206dc860450ab5ea257261",
+    "deployedStagingCommit": "a656482d34f2d11aa59f5688d615a4b44d79de6b",
+    "deployedCodeSource": "6e8c053fc105db301b063a1df4c0dfbbd097be84",
+    "reportCommit": "aa552d6ad4df2c341ba962543ce0b89f85925423",
+    "currentReviewCommit": "HEAD"
+  },
+  "timestamp": "2026-10-22T20:30:00.000Z",
+  "finalVerdict": "GATEA_CLOSED_VERIFIED",
   "gates": {
     "functionalDesktopAudit": {
       "status": "PASS",
@@ -199,9 +206,28 @@
   "invariants": {
     "hostDatabaseSha256": "470d8f14ce1237cc557367f0b125be489f086fb99534ffa7fb046ad607182743",
     "hostDatabaseInvariant": true,
-    "remoteD1WritesExecuted": 0,
-    "remoteR2WritesExecuted": 0,
-    "productionModificationsExecuted": 0,
-    "mainBranchModificationsExecuted": 0
+    "authorizedInfrastructureChanges": {
+      "productionD1Created": true,
+      "migrationsAppliedCount": 4,
+      "productionWorkerDeployed": true,
+      "productionServiceTokenProvisioned": true
+    },
+    "unauthorizedContentChanges": {
+      "canonicalProjectsSeeded": 0,
+      "canonicalVideosSeeded": 0,
+      "personalContentPublished": 0,
+      "r2WritesExecuted": 0,
+      "frontendCutoverExecuted": 0,
+      "dnsModificationsExecuted": 0,
+      "hostingerModificationsExecuted": 0,
+      "mainBranchModificationsExecuted": 0
+    },
+    "closeoutReconciliation": {
+      "proceduralFinding": "FINDING-GATEA-POST-01: An out-of-scope POST to /api/v1/admin/seed was recorded in the initial 28-test script, which failed closed with HTTP 403 Forbidden. The test suite was hardened to eliminate production token reads and remote POSTs, validating seed lockdown via local disposable fixtures.",
+      "reconciliationReport": "docs/reviews/PORTFOLIO_OS_PHASE6_GATEA_CLOSEOUT_RECONCILIATION.md",
+      "closeoutResultsFile": "docs/reviews/PORTFOLIO_OS_PHASE6_GATEA_CLOSEOUT_RESULTS.json",
+      "closeoutChecksPassed": "37/37",
+      "finalCloseoutVerdict": "GATEA_CLOSED_VERIFIED"
+    }
   }
 }

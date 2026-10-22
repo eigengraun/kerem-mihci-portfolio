@@ -1,10 +1,11 @@
 # Portfolio OS Phase 6 — Production Release Admission Matrix
 
-**Document Version:** 2.2.0 (Gate A Production Infrastructure Rollout Completed & Verified)
+**Document Version:** 2.3.0 (Gate A Post-Deployment Evidence Reconciliation & Closeout)
 **Evaluated Branch:** `feature/portfolio-phase6-final-qa`
-**Evaluated Commit:** `6e8c053`
+**Deployed Code Source Commit:** `6e8c053fc105db301b063a1df4c0dfbbd097be84`
+**Previous Report Commit:** `aa552d6ad4df2c341ba962543ce0b89f85925423`
 **Host SQLite Invariant:** `470d8f14ce1237cc557367f0b125be489f086fb99534ffa7fb046ad607182743` (Strictly Invariant)
-**Overall Production Status:** `GATEA_INFRA_PASS` | `PROD_DATA_MIGRATION_NOT_AUTHORIZED (Gate B Pending)` | `PROD_CUTOVER_NOT_AUTHORIZED (Gate C Pending)`
+**Overall Production Status:** `GATEA_CLOSED_VERIFIED` | `PROD_DATA_MIGRATION_NOT_AUTHORIZED (Gate B Pending)` | `PROD_CUTOVER_NOT_AUTHORIZED (Gate C Pending)`
 
 ---
 
@@ -16,11 +17,11 @@
 | **2** | **Exact Cloudflare Account** | Must target verified account `9791a288e2e99e7f3403590480e3ad6f`. | Account confirmed active via `wrangler whoami` (`kerem.mihci@ogr.iuc.edu.tr`). | **PASS** | Target account validated. |
 | **3** | **Production Worker Name** | Name in `wrangler.jsonc` must be `kerem-mihci-portfolio-api`. | Verified `wrangler.jsonc` `env.production.name = "kerem-mihci-portfolio-api"`. | **PASS** | Worker identity aligned. |
 | **4** | **Production D1 UUID** | Must be a real, provisioned Cloudflare D1 UUID (not a placeholder). | Database `kerem-portfolio-db` provisioned with UUID `d28c39dc-dc9b-4e9c-9477-1d8535f9e051` in region EEUR. | **PASS** | Production D1 active. |
-| **5** | **Production R2 Bucket** | Verified bucket `kerem-portfolio-media` on Cloudflare account. | Bucket exists (created `2026-10-19T21:56:28.176Z`). Clean, empty/unseeded (0 objects). | **PASS** | Storage resource ready. |
+| **5** | **Production R2 Bucket** | Verified bucket `kerem-portfolio-media` on Cloudflare account. | Bucket exists (created `2026-10-19T21:56:28.176Z`). Exact name verified via `r2 bucket list`. `CURRENT_OBJECT_COUNT_VERIFIED: 0`, size: `0 B` via authenticated `r2 bucket info`. `PREDEPLOYMENT_COUNT_UNVERIFIED` noted. | **PASS** | Storage resource confirmed empty. |
 | **6** | **Worker Ingress & Routing** | Reachable endpoint via Option A (Custom Domain + Hostinger CNAME) or Option B (`workers_dev: true`). | `wrangler.jsonc` configured with `workers_dev: true`. Live ingress: `https://kerem-mihci-portfolio-api.kerem-mihci.workers.dev`. | **PASS** | Ingress routing operational. |
-| **7** | **Migration Inventory & Hashes** | Exactly 4 migrations (`0001`–`0004`) matching approved SHA-256 hashes. | 4/4 migrations verified and applied to production D1: `0001` (`4535...`), `0002` (`2c3a...`), `0003` (`da6a...`), `0004` (`cc6e...`). | **PASS** | DDL migration pack applied. |
-| **8** | **Schema Compatibility** | 37 app tables, 37 indexes, additive DDL only, zero destructive drops, 0 rows. | 37 app tables + `d1_migrations` and 37 explicit indexes confirmed active in production D1. All tables empty. | **PASS** | Relational schema ready. |
-| **9** | **Service Token Presence** | Production `CLOUDFLARE_API_SERVICE_TOKEN` stored in Cloudflare Secrets without exposure. | Provisioned via `--secrets-file` (256 bits entropy), stored in `~/.portfolio-production-secrets/gate-a-2026-10-22T16-38-43-598Z/secrets.json` (0600). | **PASS** | Security secret provisioned. |
+| **7** | **Migration Inventory & Hashes** | Exactly 4 migrations (`0001`–`0004`) matching approved SHA-256 hashes. | 4/4 migrations verified and applied to production D1: `0001` (`4535...`), `0002` (`2c3a...`), `0003` (`da6a...`), `0004` (`cc6e...`). Verified in `d1_migrations` ledger. | **PASS** | DDL migration pack applied. |
+| **8** | **Schema Compatibility** | 37 app tables, 37 indexes, additive DDL only, zero destructive drops, 0 rows. | 37 app tables + `d1_migrations` and 37 explicit indexes confirmed by exact name matching. All 33 content tables contain 0 rows; all 4 operational tables contain 0 rows. | **PASS** | Relational schema ready. |
+| **9** | **Service Token Presence** | Production `CLOUDFLARE_API_SERVICE_TOKEN` stored in Cloudflare Secrets without exposure. | Provisioned via `--secrets-file` (256 bits entropy), stored in `~/.portfolio-production-secrets/gate-a-2026-10-22T16-38-43-598Z/secrets.json` (0600). Token not passed via CLI args. | **PASS** | Security secret provisioned. |
 | **10** | **Admin Authentication** | Scrypt password hashing, rate limiting, and session revocation ready. | 100% verified in local and staging tests; admin endpoints fail closed without credentials. | **PASS** | Security controls ready. |
 | **11** | **Canonical Content Importers** | Dedicated, idempotent, non-destructive production project & video importers with full relational parity. | Implemented & verified (`scripts/import-canonical-projects-to-d1.mjs` & `scripts/import-canonical-videos-to-d1.mjs`). Full 7-table relational parity (30/30). Atomic transaction wraps writes, reconciliation, and strict admission; negative fixture proves zero residual mutations on rollback. 9/9 owner-edit preservation scenarios verified with zero silent overwrites. Strict admission fails closed on conflict. Honest dry-run reports `CONFIG_PREFLIGHT_ONLY`. | **GATEB_HARDENED (LOCAL)** | Awaiting operator Gate B execution sign-off. |
 | **12** | **Media Binary Sync Readiness** | Local asset manifest, privacy scope segregation, SHA-256 validation, real ownership checks. | Scopes segregated: 130 projects (11.59 MB / 11.06 MiB), 42 videos (332.52 MB / 317.12 MiB), 2 profile assets (0.08 MB / 0.08 MiB). Candidate pool = 172 canonical files (344.12 MB / 328.18 MiB). CANONICAL_PROJECT_MEDIA prefix aligned to `projects/`. Profile strictly excluded from default transfer. Missing files strictly rejected from upload planning. R2 sync simulator 9/9 cases PASS. | **GATEB_HARDENED (LOCAL)** | Awaiting operator Gate B execution sign-off. |
@@ -38,20 +39,24 @@
 ```
 +-----------------------------------------------------------------------------------------+
 | GATE A: Production Infrastructure Provisioning                                          |
-| Status: PASS (GATEA_INFRA_PASS)                                                         |
+| Status: PASS (GATEA_CLOSED_VERIFIED)                                                    |
 | Verified Operations:                                                                    |
 |   - Item 4: Production D1 database provisioned: kerem-portfolio-db                       |
 |     * UUID: d28c39dc-dc9b-4e9c-9477-1d8535f9e051 (EEUR)                               |
 |     * Schema: 37 app tables + d1_migrations, 37 explicit indexes, 0 content rows.       |
-|     * Migrations: 0001-0004 applied (4/4 applied, 0 pending).                           |
+|     * Exact name match: 37/37 tables and 37/37 indexes verified.                        |
+|     * Migrations: 0001-0004 applied (4/4 in ledger, 0 pending).                         |
 |   - Item 6: Ingress routing operational via workers_dev = true                          |
 |     * Ingress URL: https://kerem-mihci-portfolio-api.kerem-mihci.workers.dev             |
 |   - Item 9: Production service token provisioned with 256 bits of CSPRNG entropy        |
 |     * Stored outside Git: ~/.portfolio-production-secrets/gate-a-.../secrets.json        |
-|     * Permissions: dir 0700, file 0600. Zero secret exposure.                           |
+|     * Permissions: dir 0700, file 0600. CLI argument exposure eliminated.               |
 |   - Worker Deployment: kerem-mihci-portfolio-api active version                         |
 |     c7dfcd18-d5aa-483a-a821-7adf11610e87 (100% traffic).                                |
-|   - Read-only verification: 28/28 checks PASSED.                                        |
+|   - R2 Inventory: CURRENT_OBJECT_COUNT_VERIFIED: 0 objects (0 B).                       |
+|   - Procedural Erratum: FINDING-GATEA-POST-01 documented; test suite hardened to       |
+|     strictly GET/HEAD only with local disposable fixture for seed lockdown test.         |
+|   - Read-only closeout verification: 37/37 checks PASSED.                               |
 +-----------------------------------------------------------------------------------------+
                                              |
                                              v

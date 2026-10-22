@@ -1,0 +1,284 @@
+{
+  "suite": "PORTFOLIO_OS_PHASE6_GATEA_CLOSEOUT",
+  "timestamp": "2026-10-22T17:34:21.875Z",
+  "verdict": "GATEA_CLOSED_VERIFIED",
+  "stats": {
+    "total": 37,
+    "passed": 37,
+    "failed": 0
+  },
+  "gitProvenance": {
+    "deployed_code_source": "6e8c053fc105db301b063a1df4c0dfbbd097be84",
+    "latest_report_commit": "aa552d6ad4df2c341ba962543ce0b89f85925423",
+    "current_closeout_commit": "HEAD"
+  },
+  "cloudResources": {
+    "account_id": "9791a288e2e99e7f3403590480e3ad6f",
+    "production_worker": {
+      "name": "kerem-mihci-portfolio-api",
+      "version_id": "c7dfcd18-d5aa-483a-a821-7adf11610e87",
+      "url": "https://kerem-mihci-portfolio-api.kerem-mihci.workers.dev",
+      "traffic_percent": 100
+    },
+    "production_d1": {
+      "name": "kerem-portfolio-db",
+      "uuid": "d28c39dc-dc9b-4e9c-9477-1d8535f9e051",
+      "region": "EEUR",
+      "total_schema_tables": 38,
+      "application_tables": 37,
+      "explicit_indexes": 37,
+      "content_rows": 0,
+      "operational_rows": 0,
+      "migration_rows": 4
+    },
+    "production_r2": {
+      "name": "kerem-portfolio-media",
+      "r2_bucket_existence_verified": true,
+      "current_object_count_verified": 0,
+      "current_bucket_size": "0 B",
+      "predeployment_count_unverified": true
+    },
+    "staging_invariance": {
+      "d1_uuid": "0efef7a7-cc93-4dc2-8cb7-db28379fe01f",
+      "worker_version": "0f2b8f47-04f1-4103-852e-b241f475bcc3",
+      "r2_bucket": "kerem-portfolio-media-staging",
+      "status": "PRESERVED_UNTOUCHED"
+    },
+    "host_invariance": {
+      "path": ".local-d1/portfolio.sqlite",
+      "sha256": "470d8f14ce1237cc557367f0b125be489f086fb99534ffa7fb046ad607182743",
+      "status": "STRICTLY_INVARIANT"
+    }
+  },
+  "proceduralFindings": [
+    {
+      "id": "FINDING-GATEA-POST-01",
+      "description": "The historical test execution in verify-phase6-gatea-production-infra.mjs performed a POST to /api/v1/admin/seed using the production service token. The response was HTTP 403 Forbidden confirming seed lockdown. This request was outside the authorized GET/HEAD smoke-test scope.",
+      "resolution": "The test script was refactored: production token reading and remote POST requests were completely removed. Seed rejection is now validated via read-only source configuration checks and an isolated local disposable Worker fixture."
+    }
+  ],
+  "results": [
+    {
+      "category": "Cloudflare Worker",
+      "check": "Active Worker version is c7dfcd18-d5aa-483a-a821-7adf11610e87",
+      "passed": true,
+      "detail": "Version confirmed active"
+    },
+    {
+      "category": "Cloudflare Worker",
+      "check": "Production Worker version receives 100% of traffic",
+      "passed": true,
+      "detail": "100% traffic allocation"
+    },
+    {
+      "category": "Cloudflare D1",
+      "check": "Production D1 database exists with UUID d28c39dc-dc9b-4e9c-9477-1d8535f9e051",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "Cloudflare D1",
+      "check": "Staging D1 database preserved with UUID 0efef7a7-cc93-4dc2-8cb7-db28379fe01f",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "Cloudflare D1 Schema",
+      "check": "Production D1 has exactly 38 tables (37 app + d1_migrations)",
+      "passed": true,
+      "detail": "Found 38"
+    },
+    {
+      "category": "Cloudflare D1 Schema",
+      "check": "All 37 approved application tables match schema definitions by exact name",
+      "passed": true,
+      "detail": "37/37 exact name match"
+    },
+    {
+      "category": "Cloudflare D1 Schema",
+      "check": "Production D1 has exactly 37 explicit indexes",
+      "passed": true,
+      "detail": "Found 37"
+    },
+    {
+      "category": "Cloudflare D1 Schema",
+      "check": "All 37 explicit indexes match schema definitions by exact name",
+      "passed": true,
+      "detail": "37/37 exact name match"
+    },
+    {
+      "category": "Cloudflare D1 Ledger",
+      "check": "Exact migrations 0001 through 0004 recorded in d1_migrations ledger in order",
+      "passed": true,
+      "detail": "Ledger: [0001_initial_schema.sql, 0002_videos_and_reels_schema.sql, 0003_personal_gallery_schema.sql, 0004_profile_notes_cv_schema.sql]"
+    },
+    {
+      "category": "Cloudflare D1 Content",
+      "check": "All 33 canonical and editorial content tables contain exactly 0 rows (zero content seeding)",
+      "passed": true,
+      "detail": "33/33 tables 0 rows"
+    },
+    {
+      "category": "Cloudflare D1 Operations",
+      "check": "All 4 operational and audit tables accurately accounted (0 operational records)",
+      "passed": true,
+      "detail": "settings: 0, audit_logs: 0, sessions: 0, rate_limits: 0"
+    },
+    {
+      "category": "Cloudflare R2",
+      "check": "Production R2 bucket kerem-portfolio-media exists (exact name match)",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "Cloudflare R2",
+      "check": "Staging R2 bucket kerem-portfolio-media-staging preserved (exact name match)",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "Cloudflare R2 Inventory",
+      "check": "CURRENT_OBJECT_COUNT_VERIFIED via authenticated bucket info (object_count = 0, size = 0 B)",
+      "passed": true,
+      "detail": "object_count: 0, bucket_size: 0 B"
+    },
+    {
+      "category": "Cloudflare R2 Inventory",
+      "check": "PREDEPLOYMENT_COUNT_UNVERIFIED explicitly acknowledged (T-0 automated snapshot was not recorded)",
+      "passed": true,
+      "detail": "Differentiated from post-deployment verified count"
+    },
+    {
+      "category": "Staging Invariance",
+      "check": "Staging Worker intact with active version 0f2b8f47-04f1-4103-852e-b241f475bcc3",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "Host DB Invariance",
+      "check": "Local SQLite host database (.local-d1/portfolio.sqlite) is strictly invariant",
+      "passed": true,
+      "detail": "Hash: 470d8f14ce1237cc557367f0b125be489f086fb99534ffa7fb046ad607182743"
+    },
+    {
+      "category": "Worker API Health",
+      "check": "GET /api/v1/public/health returns 200 ok=true publishedCount=0",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "Worker API CORS",
+      "check": "GET /api/v1/public/health provides CORS header for https://keremmihci.com",
+      "passed": true,
+      "detail": "Origin: https://keremmihci.com"
+    },
+    {
+      "category": "Public Endpoints",
+      "check": "GET /api/v1/public/projects returns 200 with empty array",
+      "passed": true,
+      "detail": "projects.length = 0"
+    },
+    {
+      "category": "Public Endpoints",
+      "check": "GET /api/v1/public/videos returns 200 with empty array",
+      "passed": true,
+      "detail": "videos.length = 0"
+    },
+    {
+      "category": "Public Endpoints",
+      "check": "GET /api/v1/public/gallery returns 200 with empty array",
+      "passed": true,
+      "detail": "gallery.length = 0"
+    },
+    {
+      "category": "Public Endpoints",
+      "check": "GET /api/v1/public/experience returns 200 with empty array",
+      "passed": true,
+      "detail": "experience.length = 0"
+    },
+    {
+      "category": "Public Endpoints",
+      "check": "GET /api/v1/public/education returns 200 with empty array",
+      "passed": true,
+      "detail": "education.length = 0"
+    },
+    {
+      "category": "Public Endpoints",
+      "check": "GET /api/v1/public/skills returns 200 with empty array",
+      "passed": true,
+      "detail": "skills.length = 0"
+    },
+    {
+      "category": "Public Notes",
+      "check": "GET /api/v1/public/notes/design returns 200 with empty array",
+      "passed": true,
+      "detail": "notes.length = 0"
+    },
+    {
+      "category": "Public Notes",
+      "check": "GET /api/v1/public/notes/web returns 200 with empty array",
+      "passed": true,
+      "detail": "notes.length = 0"
+    },
+    {
+      "category": "Public Notes",
+      "check": "GET /api/v1/public/notes/motion-ai returns 200 with empty array",
+      "passed": true,
+      "detail": "notes.length = 0"
+    },
+    {
+      "category": "Unpublished Profile",
+      "check": "GET /api/v1/public/profile returns 404 PROFILE_NOT_PUBLISHED",
+      "passed": true,
+      "detail": "Code: PROFILE_NOT_PUBLISHED"
+    },
+    {
+      "category": "Unpublished CV",
+      "check": "GET /api/v1/public/cv/tr returns 404 CV_NOT_PUBLISHED",
+      "passed": true,
+      "detail": "Code: CV_NOT_PUBLISHED"
+    },
+    {
+      "category": "Unpublished CV",
+      "check": "GET /api/v1/public/cv/en returns 404 CV_NOT_PUBLISHED",
+      "passed": true,
+      "detail": "Code: CV_NOT_PUBLISHED"
+    },
+    {
+      "category": "Security",
+      "check": "GET /api/v1/admin/projects without auth returns 401 Unauthorized",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "Security",
+      "check": "GET /api/v1/admin/projects with invalid token returns 401 Unauthorized",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "Security",
+      "check": "GET /api/v1/admin/seed without auth returns 401 Unauthorized",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "category": "Source Config Verification",
+      "check": "ALLOW_CANONICAL_SEED=false confirmed in production configuration (wrangler.jsonc)",
+      "passed": true,
+      "detail": "ALLOW_CANONICAL_SEED: \"false\""
+    },
+    {
+      "category": "Source Config Verification",
+      "check": "ENVIRONMENT=production confirmed in production configuration (wrangler.jsonc)",
+      "passed": true,
+      "detail": "ENVIRONMENT: \"production\""
+    },
+    {
+      "category": "Local Worker Fixture",
+      "check": "POST /api/v1/admin/seed with valid synthetic token rejected with 403 (ALLOW_CANONICAL_SEED=false)",
+      "passed": true,
+      "detail": "Status: 403, Error: \"Canonical seed endpoint is disabled via ALLOW_CANONICAL_SEED=false.\""
+    }
+  ]
+}

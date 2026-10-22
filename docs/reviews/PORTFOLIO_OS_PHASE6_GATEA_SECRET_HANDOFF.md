@@ -37,15 +37,22 @@ The generated service token is stored in a dedicated, isolated operator director
 ### Live Production API Ingress:
 - Base URL: `https://kerem-mihci-portfolio-api.kerem-mihci.workers.dev`
 
-### Authenticated Admin Requests:
-When performing future administrative maintenance (such as Gate B content migration once authorized), provide the token in the HTTP `Authorization` header:
+### Authenticated Admin Requests (Process-Safe Protocol):
+When performing future administrative maintenance (such as Gate B content migration once authorized), automated scripts must load the token directly from the protected local JSON file into memory, without placing the literal secret value into shell arguments or process tables (`ps`).
+
+For manual operator inspection using `curl`, feed the authorization header via a pipe or configuration file rather than command-line arguments:
 
 ```bash
-TOKEN=$(jq -r .CLOUDFLARE_API_SERVICE_TOKEN ~/.portfolio-production-secrets/gate-a-2026-10-22T16-38-43-598Z/secrets.json)
-
-curl -X GET "https://kerem-mihci-portfolio-api.kerem-mihci.workers.dev/api/v1/admin/projects" \
-  -H "Authorization: Bearer ${TOKEN}"
+# Safe curl invocation reading the header via stdin/subshell config (avoids ps argument exposure):
+curl -s -K <(python3 -c "
+import json, os
+p = os.path.expanduser('~/.portfolio-production-secrets/gate-a-2026-10-22T16-38-43-598Z/secrets.json')
+t = json.load(open(p))['CLOUDFLARE_API_SERVICE_TOKEN']
+print(f'header = \"Authorization: Bearer {t}\"')
+") "https://kerem-mihci-portfolio-api.kerem-mihci.workers.dev/api/v1/admin/projects"
 ```
+
+> **Security Rule:** Never pass the literal token value directly as a CLI argument (`curl -H "Authorization: Bearer $TOKEN"`), never print it in shell logs, and never store it in Git. Automated Gate B scripts will accept the secrets file path via a restricted environment variable (`PORTFOLIO_SECRETS_FILE`) and read it internally.
 
 ### Fail-Closed Safeguards:
 - Requests without `Authorization` header return `401 Unauthorized` (`"Missing Bearer service token."`).

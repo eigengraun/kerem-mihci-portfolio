@@ -47,7 +47,7 @@
         "ENVIRONMENT": "staging",
         "PUBLIC_SITE_ORIGIN": "https://keremmihci.com",
         "R2_PUBLIC_BASE_URL": "",
-        "ALLOW_CANONICAL_SEED": "true"
+        "ALLOW_CANONICAL_SEED": "false"
       }
     },
     "production": {

@@ -194,6 +194,9 @@ if (projectsCount < 30 || videosCount !== 21) {
 
 console.log("✓ Backup verified 100% syntactically, structurally, and relationally sound.");
 '
+
+# Or run the comprehensive automated verifier directly:
+node scripts/verify-backup-integrity.mjs "$BACKUP_PATH"
 ```
 
 ### Step J: Verify Fail-Closed Empty/Draft Behavior

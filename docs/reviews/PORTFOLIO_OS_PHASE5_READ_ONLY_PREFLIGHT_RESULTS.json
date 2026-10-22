@@ -1,0 +1,153 @@
+{
+  "suite": "Portfolio OS Phase 5 Read-Only Cloudflare Staging Preflight & Audit",
+  "project": "eigengraun/kerem-mihci-portfolio",
+  "branch": "feature/portfolio-phase5-notes-profile-cv",
+  "commit": "a1eb37133f4c9257adbb55d7c677758bf7a22408",
+  "timestamp": "2026-10-22T09:34:00.000Z",
+  "verdict": "INFRA_PREFLIGHT_READY_CONTENT_PENDING",
+  "executionSummary": {
+    "remoteMutations": 0,
+    "productionImpact": 0,
+    "mainModifications": 0,
+    "readOnlyCloudflareAuth": "AUTHENTICATED",
+    "zeroRemoteWritesEnforced": true
+  },
+  "sourceIdentity": {
+    "repository": "eigengraun/kerem-mihci-portfolio",
+    "branch": "feature/portfolio-phase5-notes-profile-cv",
+    "head": "a1eb37133f4c9257adbb55d7c677758bf7a22408",
+    "workingTreeClean": true,
+    "reviewedMigration0004Sha256": "cc6e699e703db6527427d99ff490793b40564d21d8681fceec7e48c81dbe537d"
+  },
+  "cloudflareStagingResources": {
+    "accountId": "9791a288e2e99e7f3403590480e3ad6f",
+    "accountName": "Kerem.mihci@ogr.iuc.edu.tr's Account",
+    "workerName": "kerem-mihci-portfolio-api-staging",
+    "workerUrl": "https://kerem-mihci-portfolio-api-staging.kerem-mihci.workers.dev",
+    "d1DatabaseName": "kerem-portfolio-db-staging",
+    "d1DatabaseId": "0efef7a7-cc93-4dc2-8cb7-db28379fe01f",
+    "r2BucketName": "kerem-portfolio-media-staging",
+    "activeServingVersionId": "17c423b0-0b8e-4d6a-b402-ec6aba90616e",
+    "trafficAllocation": "100%",
+    "deploymentTimestamp": "2026-10-21T19:48:10.053Z",
+    "publicHealthStatus": 200,
+    "publicHealthResponse": {
+      "ok": true,
+      "service": "kerem-mihci-portfolio-api",
+      "bindings": {
+        "d1": "PORTFOLIO_DB",
+        "r2": "PORTFOLIO_MEDIA"
+      },
+      "publishedCount": 30
+    },
+    "publicProfileProbeStatus": 404,
+    "publicProfileProbeResponse": {
+      "ok": false,
+      "error": "Route not found"
+    },
+    "phase5WorkerDeployedOnStaging": false
+  },
+  "migrationInventoryAndLedger": {
+    "migrationsDirectory": "cloudflare/portfolio-api/migrations",
+    "totalMigrationFiles": 4,
+    "unauthorizedFiles": 0,
+    "symlinksDetected": false,
+    "reviewedHashes": {
+      "0001_initial_schema.sql": "453593cdcf472f41e8504ad95ca9f941225562310a30009b68ea492c83479bcf",
+      "0002_videos_and_reels_schema.sql": "2c3ac9ff453d76e5afa2e980fcb08fdf08f3362a5a1a9a347634549f5b098f64",
+      "0003_personal_gallery_schema.sql": "da6aaabf624fbbaee35089ad27c8627e8709e7e570713d7c29ca6c1b403af606",
+      "0004_profile_notes_cv_schema.sql": "cc6e699e703db6527427d99ff490793b40564d21d8681fceec7e48c81dbe537d"
+    },
+    "remoteAppliedMigrations": [
+      { "id": 1, "name": "0001_initial_schema.sql", "appliedAt": "2026-10-19 21:17:15" },
+      { "id": 2, "name": "0002_videos_and_reels_schema.sql", "appliedAt": "2026-10-20 17:35:07" },
+      { "id": 3, "name": "0003_personal_gallery_schema.sql", "appliedAt": "2026-10-21 19:47:34" }
+    ],
+    "remotePendingMigrations": [
+      "0004_profile_notes_cv_schema.sql"
+    ],
+    "unexpectedRemoteMigrations": 0
+  },
+  "remoteInventoryObservations": {
+    "projects": {
+      "total": 31,
+      "published": 30,
+      "draft": 1,
+      "draftId": "staging-e2e-29cbd44d",
+      "canonicalParity30": true
+    },
+    "projectMedia": {
+      "total": 72,
+      "canonical70Parity": true,
+      "stagingTestMedia": 2
+    },
+    "portfolioVideos": {
+      "total": 21,
+      "published": 21,
+      "canonical21Parity": true
+    },
+    "portfolioGalleryItems": {
+      "total": 0,
+      "cleanedAfterPhase4": true
+    },
+    "phase5TablesOnRemoteD1": 0
+  },
+  "workerRuntimeAccountingReconciliation": {
+    "totalAssertionsExecuted": 48,
+    "totalAssertionsReported": 48,
+    "discrepancyDiagnosis": "Five real assertions were omitted from the category subtotal mapping in earlier summary metadata while the total of 48 was verified and true.",
+    "omittedAssertionsIdentified": [
+      { "location": "line 174", "category": "sandboxSetupAndMigrations", "assertion": "Wrangler local D1 migrations applied successfully (0001, 0002, 0003, 0004)" },
+      { "location": "line 266", "category": "healthyEmptyVsDegraded", "assertion": "Unknown public route does not return unpublished resource code (distinguishable from healthy empty)" },
+      { "location": "line 312", "category": "profileLifecycleAndRollback", "assertion": "PUT /api/v1/admin/profile publishes profile [HTTP 200]" },
+      { "location": "line 480", "category": "cvUploadAndMediaRevocation", "assertion": "Uploaded CV returned valid storageKey" },
+      { "location": "line 506", "category": "cvUploadAndMediaRevocation", "assertion": "Public binary media delivery returns application/pdf Content-Type" }
+    ],
+    "reconciledCategories": {
+      "sandboxSetupAndMigrations": 1,
+      "healthAndBindings": 7,
+      "healthyEmptyVsDegraded": 9,
+      "profileLifecycleAndRollback": 7,
+      "notesCrudAndWorkspaceIsolation": 5,
+      "experienceEducationSkills": 6,
+      "cvUploadAndMediaRevocation": 12,
+      "hostDatabaseIsolation": 1
+    },
+    "reconciledSum": 48
+  },
+  "stagingPreflightBackupSelfTests": {
+    "script": "scripts/verify-backup-integrity.mjs",
+    "total": 13,
+    "passed": 13,
+    "failed": 0,
+    "targetPhase": "Phase 5",
+    "verifiedCriteria": [
+      "Positive: Complete staging backup with 0001-0003 applied passes",
+      "Negative: Corrupted SQL with syntax error rejected",
+      "Negative: Missing d1_migrations table rejected",
+      "Negative: Corrupt d1_migrations schema rejected",
+      "Negative: Already-applied migration 0004 rejected",
+      "Negative: Unexpected migration entry rejected",
+      "Negative: Missing migration 0003 rejected",
+      "Negative: Project count mismatch rejected",
+      "Negative: Missing canonical project slug rejected",
+      "Negative: Video count mismatch rejected",
+      "Negative: Missing canonical video slug rejected",
+      "Negative: Empty 0-byte file rejected",
+      "Security: Cryptographic SHA-256 match on all 4 migration files"
+    ]
+  },
+  "hostDatabaseStatus": {
+    "path": ".local-d1/portfolio.sqlite",
+    "sha256": "470d8f14ce1237cc557367f0b125be489f086fb99534ffa7fb046ad607182743",
+    "mutated": false
+  },
+  "contentApprovalStatus": {
+    "checklist": "docs/reviews/PORTFOLIO_OS_PHASE5_2_CONTENT_APPROVAL_CHECKLIST.md",
+    "gateStatus": "OWNER_VERIFICATION_REQUIRED",
+    "totalEntities": 73,
+    "approvedByOwner": 0,
+    "pendingOwnerReview": 73,
+    "remoteSeedingAuthorized": false
+  }
+}

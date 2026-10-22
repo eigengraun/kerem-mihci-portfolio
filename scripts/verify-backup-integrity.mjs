@@ -34,17 +34,19 @@ const rootDir = path.resolve(__dirname, "..");
 export const REVIEWED_MIGRATION_HASHES = {
   "0001_initial_schema.sql": "453593cdcf472f41e8504ad95ca9f941225562310a30009b68ea492c83479bcf",
   "0002_videos_and_reels_schema.sql": "2c3ac9ff453d76e5afa2e980fcb08fdf08f3362a5a1a9a347634549f5b098f64",
-  "0003_personal_gallery_schema.sql": "da6aaabf624fbbaee35089ad27c8627e8709e7e570713d7c29ca6c1b403af606"
+  "0003_personal_gallery_schema.sql": "da6aaabf624fbbaee35089ad27c8627e8709e7e570713d7c29ca6c1b403af606",
+  "0004_profile_notes_cv_schema.sql": "cc6e699e703db6527427d99ff490793b40564d21d8681fceec7e48c81dbe537d"
 };
 
-// Expected Migration State for Phase 4 Preflight
+// Expected Migration State for Phase 5 Preflight
 export const DEFAULT_EXPECTED_APPLIED_MIGRATIONS = [
   "0001_initial_schema.sql",
-  "0002_videos_and_reels_schema.sql"
+  "0002_videos_and_reels_schema.sql",
+  "0003_personal_gallery_schema.sql"
 ];
 
 export const DEFAULT_EXPECTED_PENDING_MIGRATIONS = [
-  "0003_personal_gallery_schema.sql"
+  "0004_profile_notes_cv_schema.sql"
 ];
 
 // Exact Canonical 30 Project Slugs
@@ -214,7 +216,7 @@ export function verifyBackupSql(sqlFilePath, options = {}) {
     const tablesRaw = query("SELECT name FROM sqlite_master WHERE type='table';");
     const tables = new Set(tablesRaw.split(/\r?\n/).map((t) => t.trim()));
 
-    const requiredTables = ["d1_migrations", "projects", "project_media", "portfolio_videos"];
+    const requiredTables = ["d1_migrations", "projects", "project_media", "portfolio_videos", "portfolio_gallery_items"];
     for (const reqTable of requiredTables) {
       if (!tables.has(reqTable)) {
         throw new Error(`MISSING_TABLE: Required table "${reqTable}" not found in backup schema`);
@@ -352,7 +354,7 @@ if (process.argv.includes("--test") || (process.argv[1] && import.meta.url.endsW
     includeSyntaxError = false,
     missingTable = false,
     corruptMigrationSchema = false,
-    migrations = ["0001_initial_schema.sql", "0002_videos_and_reels_schema.sql"],
+    migrations = ["0001_initial_schema.sql", "0002_videos_and_reels_schema.sql", "0003_personal_gallery_schema.sql"],
     projectCount = 31,
     missingProjectSlug = null,
     mediaCount = 72,
@@ -373,6 +375,7 @@ if (process.argv.includes("--test") || (process.argv[1] && import.meta.url.endsW
         }
       }
     }
+    sql += `CREATE TABLE portfolio_gallery_items (id TEXT PRIMARY KEY, sort_order INTEGER, status TEXT, created_at TIMESTAMP);\n`;
     sql += `CREATE TABLE projects (id TEXT PRIMARY KEY, slug TEXT, title TEXT, is_published INTEGER);\n`;
     for (let i = 0; i < projectCount; i++) {
       const slug = CANONICAL_PROJECT_SLUGS[i] || `extra-proj-${i}`;
@@ -409,7 +412,7 @@ if (process.argv.includes("--test") || (process.argv[1] && import.meta.url.endsW
       const res = verifyBackupSql(sqlFile, { expectedProjects: 31, expectedMedia: 72, expectedVideos: 21 });
       if (!res.valid) throw new Error("Expected valid: true");
       if (res.projectCount !== 31) throw new Error(`Expected 31 projects, got ${res.projectCount}`);
-      if (res.appliedMigrations.length !== 2) throw new Error(`Expected 2 applied migrations`);
+      if (res.appliedMigrations.length !== 3) throw new Error(`Expected 3 applied migrations, got ${res.appliedMigrations.length}`);
     });
 
     // 2. Negative case: SQL syntax / corruption error
@@ -451,13 +454,18 @@ if (process.argv.includes("--test") || (process.argv[1] && import.meta.url.endsW
       if (!threw) throw new Error("Did not reject corrupt migration schema");
     });
 
-    // 5. Negative case: Migration 0003 already applied (preflight expects pending)
-    runCase("Negative: Rejects backup where 0003 is already applied", () => {
-      const sqlFile = path.join(tmpDir, "already-applied-0003.sql");
+    // 5. Negative case: Migration 0004 already applied (preflight expects pending)
+    runCase("Negative: Rejects backup where 0004 is already applied", () => {
+      const sqlFile = path.join(tmpDir, "already-applied-0004.sql");
       fs.writeFileSync(
         sqlFile,
         buildMockSql({
-          migrations: ["0001_initial_schema.sql", "0002_videos_and_reels_schema.sql", "0003_personal_gallery_schema.sql"]
+          migrations: [
+            "0001_initial_schema.sql",
+            "0002_videos_and_reels_schema.sql",
+            "0003_personal_gallery_schema.sql",
+            "0004_profile_notes_cv_schema.sql"
+          ]
         })
       );
       let threw = false;
@@ -466,16 +474,21 @@ if (process.argv.includes("--test") || (process.argv[1] && import.meta.url.endsW
       } catch (err) {
         threw = err.message.includes("MIGRATION_ALREADY_APPLIED");
       }
-      if (!threw) throw new Error("Did not reject already-applied migration 0003");
+      if (!threw) throw new Error("Did not reject already-applied migration 0004");
     });
 
     // 6. Negative case: Unexpected / unauthorized migration entry
-    runCase("Negative: Rejects unexpected migration entry (e.g. 0004_unknown.sql)", () => {
+    runCase("Negative: Rejects unexpected migration entry (e.g. 0005_unknown.sql)", () => {
       const sqlFile = path.join(tmpDir, "unexpected-migration.sql");
       fs.writeFileSync(
         sqlFile,
         buildMockSql({
-          migrations: ["0001_initial_schema.sql", "0002_videos_and_reels_schema.sql", "0004_unauthorized_patch.sql"]
+          migrations: [
+            "0001_initial_schema.sql",
+            "0002_videos_and_reels_schema.sql",
+            "0003_personal_gallery_schema.sql",
+            "0005_unauthorized_patch.sql"
+          ]
         })
       );
       let threw = false;
@@ -487,13 +500,13 @@ if (process.argv.includes("--test") || (process.argv[1] && import.meta.url.endsW
       if (!threw) throw new Error("Did not reject unexpected migration");
     });
 
-    // 7. Negative case: Missing required migration (e.g. 0002 missing)
-    runCase("Negative: Rejects missing required migration 0002", () => {
-      const sqlFile = path.join(tmpDir, "missing-migration-2.sql");
+    // 7. Negative case: Missing required migration (e.g. 0003 missing)
+    runCase("Negative: Rejects missing required migration 0003", () => {
+      const sqlFile = path.join(tmpDir, "missing-migration-3.sql");
       fs.writeFileSync(
         sqlFile,
         buildMockSql({
-          migrations: ["0001_initial_schema.sql"]
+          migrations: ["0001_initial_schema.sql", "0002_videos_and_reels_schema.sql"]
         })
       );
       let threw = false;
@@ -502,7 +515,7 @@ if (process.argv.includes("--test") || (process.argv[1] && import.meta.url.endsW
       } catch (err) {
         threw = err.message.includes("MIGRATION_COUNT_MISMATCH");
       }
-      if (!threw) throw new Error("Did not reject missing migration 0002");
+      if (!threw) throw new Error("Did not reject missing migration 0003");
     });
 
     // 8. Negative case: Mismatched project count (30 vs 31)

@@ -22,22 +22,24 @@ const rootDir = process.cwd();
 export const AUTHORIZED_LOCAL_MIGRATIONS = [
   "0001_initial_schema.sql",
   "0002_videos_and_reels_schema.sql",
-  "0003_personal_gallery_schema.sql"
+  "0003_personal_gallery_schema.sql",
+  "0004_profile_notes_cv_schema.sql"
 ];
 
 export const AUTHORIZED_REMOTE_APPLIED = [
   "0001_initial_schema.sql",
-  "0002_videos_and_reels_schema.sql"
+  "0002_videos_and_reels_schema.sql",
+  "0003_personal_gallery_schema.sql",
+  "0004_profile_notes_cv_schema.sql"
 ];
 
-export const AUTHORIZED_REMOTE_PENDING = [
-  "0003_personal_gallery_schema.sql"
-];
+export const AUTHORIZED_REMOTE_PENDING = [];
 
 export const REVIEWED_MIGRATION_HASHES = {
   "0001_initial_schema.sql": "453593cdcf472f41e8504ad95ca9f941225562310a30009b68ea492c83479bcf",
   "0002_videos_and_reels_schema.sql": "2c3ac9ff453d76e5afa2e980fcb08fdf08f3362a5a1a9a347634549f5b098f64",
-  "0003_personal_gallery_schema.sql": "da6aaabf624fbbaee35089ad27c8627e8709e7e570713d7c29ca6c1b403af606"
+  "0003_personal_gallery_schema.sql": "da6aaabf624fbbaee35089ad27c8627e8709e7e570713d7c29ca6c1b403af606",
+  "0004_profile_notes_cv_schema.sql": "cc6e699e703db6527427d99ff490793b40564d21d8681fceec7e48c81dbe537d"
 };
 
 export const APPROVED_STAGING_TARGET = {
@@ -230,13 +232,6 @@ export function verifyRemoteMigrationLedger({
   }
 
   // Reconcile applied
-  if (appliedMigrations.includes("0003_personal_gallery_schema.sql")) {
-    throw new Error(
-      "MIGRATION_ALREADY_APPLIED: Migration '0003_personal_gallery_schema.sql' is already marked applied remotely! " +
-      "Preflight requires 0003 to be pending."
-    );
-  }
-
   if (appliedMigrations.length !== expectedApplied.length) {
     throw new Error(
       `REMOTE_APPLIED_COUNT_MISMATCH: Remote d1_migrations has ${appliedMigrations.length} records ` +
@@ -335,7 +330,7 @@ export function runLocalAdmissionCheck(options = {}) {
         console.log(`    - ${file}: ${hash}`);
       }
       console.log("\n============================================================");
-      console.log("VERDICT: LOCAL MIGRATION ADMISSION GUARD PASSED (3/3 VALID)");
+      console.log(`VERDICT: LOCAL MIGRATION ADMISSION GUARD PASSED (${localRes.filesCount}/${AUTHORIZED_LOCAL_MIGRATIONS.length} VALID)`);
       console.log("============================================================\n");
     }
 
@@ -436,23 +431,23 @@ export function runSelfTests() {
   };
 
   try {
-    // 1. Positive: exactly 3 authorized files with reviewed hashes
-    runCase("Positive: Exactly 3 authorized files pass admission", () => {
+    // 1. Positive: exactly 4 authorized files with reviewed hashes
+    runCase("Positive: Exactly 4 authorized files pass admission", () => {
       const mDir = setupMockMigrations();
       const res = verifyLocalMigrationInventory({ migrationsDir: mDir });
-      if (res.filesCount !== 3) throw new Error(`Expected 3 files, got ${res.filesCount}`);
+      if (res.filesCount !== 4) throw new Error(`Expected 4 files, got ${res.filesCount}`);
     });
 
-    // 2. Negative: unexpected fourth migration (0004_patch.sql)
-    runCase("Negative: Rejects unexpected fourth migration (0004_patch.sql)", () => {
-      const mDir = setupMockMigrations({ "0004_patch.sql": "SELECT 1;" });
+    // 2. Negative: unexpected fifth migration (0005_patch.sql)
+    runCase("Negative: Rejects unexpected fifth migration (0005_patch.sql)", () => {
+      const mDir = setupMockMigrations({ "0005_patch.sql": "SELECT 1;" });
       let threw = false;
       try {
         verifyLocalMigrationInventory({ migrationsDir: mDir });
       } catch (err) {
         threw = err.message.includes("UNAUTHORIZED_MIGRATION_DETECTED");
       }
-      if (!threw) throw new Error("Did not reject unexpected fourth migration");
+      if (!threw) throw new Error("Did not reject unexpected fifth migration");
     });
 
     // 3. Negative: unknown nested SQL file
@@ -503,27 +498,27 @@ export function runSelfTests() {
       if (!threw) throw new Error("Did not reject wrong database ID");
     });
 
-    // 6. Negative: migration 0003 already applied remotely
-    runCase("Negative: Rejects remote state where migration 0003 is already applied", () => {
+    // 6. Negative: unexpected extra applied migration remotely
+    runCase("Negative: Rejects remote state with unexpected extra applied migration", () => {
       let threw = false;
       try {
         verifyRemoteMigrationLedger({
-          appliedMigrations: ["0001_initial_schema.sql", "0002_videos_and_reels_schema.sql", "0003_personal_gallery_schema.sql"],
+          appliedMigrations: ["0001_initial_schema.sql", "0002_videos_and_reels_schema.sql", "0003_personal_gallery_schema.sql", "0004_profile_notes_cv_schema.sql", "0005_unexpected.sql"],
           pendingMigrations: []
         });
       } catch (err) {
-        threw = err.message.includes("MIGRATION_ALREADY_APPLIED");
+        threw = err.message.includes("REMOTE_APPLIED_COUNT_MISMATCH");
       }
-      if (!threw) throw new Error("Did not reject already-applied migration 0003");
+      if (!threw) throw new Error("Did not reject unexpected extra applied migration");
     });
 
-    // 7. Negative: unexpected pending migration remotely
-    runCase("Negative: Rejects unexpected pending migration remotely (e.g. 0004 pending)", () => {
+    // 7. Negative: unexpected pending migration remotely (e.g. 0005 pending)
+    runCase("Negative: Rejects unexpected pending migration remotely (e.g. 0005 pending)", () => {
       let threw = false;
       try {
         verifyRemoteMigrationLedger({
-          appliedMigrations: ["0001_initial_schema.sql", "0002_videos_and_reels_schema.sql"],
-          pendingMigrations: ["0003_personal_gallery_schema.sql", "0004_unknown.sql"]
+          appliedMigrations: ["0001_initial_schema.sql", "0002_videos_and_reels_schema.sql", "0003_personal_gallery_schema.sql", "0004_profile_notes_cv_schema.sql"],
+          pendingMigrations: ["0005_unknown.sql"]
         });
       } catch (err) {
         threw = err.message.includes("REMOTE_PENDING_COUNT_MISMATCH");

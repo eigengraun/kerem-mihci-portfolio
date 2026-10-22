@@ -1,5 +1,5 @@
 {
-  "startedAt": "2026-10-19T23:00:17.615Z",
+  "startedAt": "2026-10-22T12:04:00.276Z",
   "passwordSecurityAndIdentity": {
     "scryptCliGenerated": true,
     "productionRejectsSha256AndPlaintext": "PASS",
@@ -16,7 +16,7 @@
     "enforcedAcrossSecondProcess3100": "PASS",
     "forgedXForwardedForRotationBlocked": "PASS",
     "survivesProcessRestart": "PASS",
-    "unusedEmail": "ratelimit-1792450824871@keremmihci.com"
+    "unusedEmail": "ratelimit-1792670647147@keremmihci.com"
   },
   "csrfAndOriginTests": {
     "missingCsrf403": "PASS",
@@ -47,5 +47,5 @@
   },
   "e2eAndResponsiveSuite": "PASS",
   "allPassed": true,
-  "completedAt": "2026-10-19T23:00:45.868Z"
+  "completedAt": "2026-10-22T12:04:31.033Z"
 }

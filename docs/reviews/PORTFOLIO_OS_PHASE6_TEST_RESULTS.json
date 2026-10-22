@@ -1,0 +1,550 @@
+{
+  "suite": "Portfolio OS Phase 6 QA & Staging Suite",
+  "timestamp": "2026-10-22T12:43:58.647Z",
+  "tests": [
+    {
+      "group": "Cloudflare",
+      "name": "Active Worker version is 0f2b8f47-04f1-4103-852e-b241f475bcc3",
+      "passed": true,
+      "details": "Version confirmed active"
+    },
+    {
+      "group": "Cloudflare",
+      "name": "Worker version receives 100% of staging traffic",
+      "passed": true,
+      "details": "100% traffic allocation"
+    },
+    {
+      "group": "Cloudflare",
+      "name": "Staging D1 database exists with UUID 0efef7a7-cc93-4dc2-8cb7-db28379fe01f",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Cloudflare",
+      "name": "Production D1 database kerem-portfolio-db is unprovisioned",
+      "passed": true,
+      "details": "Confirmed only staging exists"
+    },
+    {
+      "group": "Cloudflare",
+      "name": "Staging R2 bucket kerem-portfolio-media-staging exists",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Staging D1",
+      "name": "Migration ledger has exactly 4 applied migrations",
+      "passed": true,
+      "details": "Count: 4"
+    },
+    {
+      "group": "Staging D1",
+      "name": "All 16 Phase 5 schema tables exist in remote staging D1",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Staging D1",
+      "name": "All 16 Phase 5 tables are strictly empty (0 rows seeded)",
+      "passed": true,
+      "details": "Total P5 rows across 16 tables: 0"
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "GET /api/v1/public/health returns HTTP 200",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "Health endpoint reports ok: true",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "Health reports service name kerem-mihci-portfolio-api",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "Health reports D1 binding PORTFOLIO_DB",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "Health reports R2 binding PORTFOLIO_MEDIA",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "Health reports 30 published canonical projects",
+      "passed": true,
+      "details": "Count: 30"
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "GET /api/v1/public/projects returns HTTP 200",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "Projects list contains exactly 30 published canonical projects",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "Draft projects strictly excluded from public listing",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "GET /api/v1/public/videos returns HTTP 200",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "Videos list contains exactly 21 published canonical videos",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "GET /api/v1/public/gallery returns HTTP 200",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "Gallery list contains 0 items (clean state)",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "GET /api/v1/public/profile returns HTTP 404 for unseeded profile",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "Profile 404 structured code is PROFILE_NOT_PUBLISHED",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "Profile 404 enforces Cache-Control: no-store",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "GET /api/v1/public/cv/tr returns HTTP 404 for unseeded CV",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "CV TR 404 structured code is CV_NOT_PUBLISHED",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "CV TR 404 enforces Cache-Control: no-store",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "GET /api/v1/public/cv/en returns HTTP 404 for unseeded CV",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "CV EN 404 structured code is CV_NOT_PUBLISHED",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "CV EN 404 enforces Cache-Control: no-store",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "GET /api/v1/public/notes/design returns HTTP 200",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "Notes for design returns empty array []",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "GET /api/v1/public/notes/web returns HTTP 200",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "Notes for web returns empty array []",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "GET /api/v1/public/notes/motion-ai returns HTTP 200",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "Notes for motion-ai returns empty array []",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "GET /api/v1/public/experience returns HTTP 200 []",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "GET /api/v1/public/education returns HTTP 200 []",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "GET /api/v1/public/skills returns HTTP 200 []",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "Anonymous GET /api/v1/admin/health rejected with HTTP 401",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "Anonymous GET /api/v1/admin/profile rejected with HTTP 401",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "Anonymous GET /api/v1/admin/cv rejected with HTTP 401",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "Anonymous GET /api/v1/admin/notes rejected with HTTP 401",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "Invalid bearer token rejected with HTTP 401",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "Nonexistent public route returns HTTP 404",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "Nonexistent route error code is NOT PROFILE_NOT_PUBLISHED",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Live HTTPS",
+      "name": "Media path traversal attempt rejected (400 or 404)",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Staging Frontend",
+      "name": "Local Next.js booted on port 3299 connected to live staging Worker",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Browser QA",
+      "name": "Desktop 1440x900 — Page title loaded",
+      "passed": true,
+      "details": "Kerem Mıhçı — Designer & Digital Creator"
+    },
+    {
+      "group": "Browser QA",
+      "name": "Desktop 1440x900 — Notes launcher visible on dock",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Browser QA",
+      "name": "Desktop 1440x900 — Notes window opened on desktop",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Browser QA",
+      "name": "Desktop 1440x900 — Notes shows fail-closed empty state against unseeded staging",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Browser QA",
+      "name": "Captured Notes Tab screenshot (desktop_1440x900)",
+      "passed": true,
+      "details": "/Volumes/EMIX_WORK/02_DEV/GEMINI/CreativePortfolio/docs/reviews/screenshots/phase6/notes_staging_tab_notes_desktop_1440x900.png"
+    },
+    {
+      "group": "Browser QA",
+      "name": "Desktop 1440x900 — About tab shows 'No published profile' against staging",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Browser QA",
+      "name": "Captured About Tab screenshot (desktop_1440x900)",
+      "passed": true,
+      "details": "/Volumes/EMIX_WORK/02_DEV/GEMINI/CreativePortfolio/docs/reviews/screenshots/phase6/notes_staging_tab_about_desktop_1440x900.png"
+    },
+    {
+      "group": "Browser QA",
+      "name": "Desktop 1440x900 — CV tab shows 'CV coming soon' against unseeded staging",
+      "passed": true,
+      "details": "Placeholders found: 2"
+    },
+    {
+      "group": "Browser QA",
+      "name": "Captured CV Tab screenshot (desktop_1440x900)",
+      "passed": true,
+      "details": "/Volumes/EMIX_WORK/02_DEV/GEMINI/CreativePortfolio/docs/reviews/screenshots/phase6/notes_staging_tab_cv_desktop_1440x900.png"
+    },
+    {
+      "group": "Browser QA",
+      "name": "Desktop 1440x900 — Zero console runtime errors",
+      "passed": true,
+      "details": "Errors: 0"
+    },
+    {
+      "group": "Browser QA",
+      "name": "Desktop 1920x1080 — Page title loaded",
+      "passed": true,
+      "details": "Kerem Mıhçı — Designer & Digital Creator"
+    },
+    {
+      "group": "Browser QA",
+      "name": "Desktop 1920x1080 — Notes launcher visible on dock",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Browser QA",
+      "name": "Desktop 1920x1080 — Notes window opened on desktop",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Browser QA",
+      "name": "Desktop 1920x1080 — Notes shows fail-closed empty state against unseeded staging",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Browser QA",
+      "name": "Desktop 1920x1080 — About tab shows 'No published profile' against staging",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Browser QA",
+      "name": "Desktop 1920x1080 — CV tab shows 'CV coming soon' against unseeded staging",
+      "passed": true,
+      "details": "Placeholders found: 2"
+    },
+    {
+      "group": "Browser QA",
+      "name": "Desktop 1920x1080 — Zero console runtime errors",
+      "passed": true,
+      "details": "Errors: 0"
+    },
+    {
+      "group": "Browser QA",
+      "name": "Tablet 768x1024 — Page title loaded",
+      "passed": true,
+      "details": "Kerem Mıhçı — Designer & Digital Creator"
+    },
+    {
+      "group": "Browser QA",
+      "name": "Tablet 768x1024 — Notes launcher visible on dock",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Browser QA",
+      "name": "Tablet 768x1024 — Notes window opened on desktop",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Browser QA",
+      "name": "Tablet 768x1024 — Notes shows fail-closed empty state against unseeded staging",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Browser QA",
+      "name": "Tablet 768x1024 — About tab shows 'No published profile' against staging",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Browser QA",
+      "name": "Tablet 768x1024 — CV tab shows 'CV coming soon' against unseeded staging",
+      "passed": true,
+      "details": "Placeholders found: 2"
+    },
+    {
+      "group": "Browser QA",
+      "name": "Tablet 768x1024 — Zero console runtime errors",
+      "passed": true,
+      "details": "Errors: 0"
+    },
+    {
+      "group": "Browser QA",
+      "name": "Mobile 390x844 — Page title loaded",
+      "passed": true,
+      "details": "Kerem Mıhçı — Designer & Digital Creator"
+    },
+    {
+      "group": "Browser QA",
+      "name": "Mobile 390x844 — Notes launcher visible on dock",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Browser QA",
+      "name": "Mobile 390x844 — Notes window opened on desktop",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Browser QA",
+      "name": "Mobile 390x844 — Notes shows fail-closed empty state against unseeded staging",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Browser QA",
+      "name": "Captured Notes Tab screenshot (mobile_390x844)",
+      "passed": true,
+      "details": "/Volumes/EMIX_WORK/02_DEV/GEMINI/CreativePortfolio/docs/reviews/screenshots/phase6/notes_staging_tab_notes_mobile_390x844.png"
+    },
+    {
+      "group": "Browser QA",
+      "name": "Mobile 390x844 — About tab shows 'No published profile' against staging",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Browser QA",
+      "name": "Captured About Tab screenshot (mobile_390x844)",
+      "passed": true,
+      "details": "/Volumes/EMIX_WORK/02_DEV/GEMINI/CreativePortfolio/docs/reviews/screenshots/phase6/notes_staging_tab_about_mobile_390x844.png"
+    },
+    {
+      "group": "Browser QA",
+      "name": "Mobile 390x844 — CV tab shows 'CV coming soon' against unseeded staging",
+      "passed": true,
+      "details": "Placeholders found: 2"
+    },
+    {
+      "group": "Browser QA",
+      "name": "Captured CV Tab screenshot (mobile_390x844)",
+      "passed": true,
+      "details": "/Volumes/EMIX_WORK/02_DEV/GEMINI/CreativePortfolio/docs/reviews/screenshots/phase6/notes_staging_tab_cv_mobile_390x844.png"
+    },
+    {
+      "group": "Browser QA",
+      "name": "Mobile 390x844 — Zero console runtime errors",
+      "passed": true,
+      "details": "Errors: 0"
+    },
+    {
+      "group": "Browser QA",
+      "name": "Mobile 375x812 — Page title loaded",
+      "passed": true,
+      "details": "Kerem Mıhçı — Designer & Digital Creator"
+    },
+    {
+      "group": "Browser QA",
+      "name": "Mobile 375x812 — Notes launcher visible on dock",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Browser QA",
+      "name": "Mobile 375x812 — Notes window opened on desktop",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Browser QA",
+      "name": "Mobile 375x812 — Notes shows fail-closed empty state against unseeded staging",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Browser QA",
+      "name": "Mobile 375x812 — About tab shows 'No published profile' against staging",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "group": "Browser QA",
+      "name": "Mobile 375x812 — CV tab shows 'CV coming soon' against unseeded staging",
+      "passed": true,
+      "details": "Placeholders found: 2"
+    },
+    {
+      "group": "Browser QA",
+      "name": "Mobile 375x812 — Zero console runtime errors",
+      "passed": true,
+      "details": "Errors: 0"
+    },
+    {
+      "group": "Integrity",
+      "name": "Host SQLite database (.local-d1/portfolio.sqlite) is 100% invariant",
+      "passed": true,
+      "details": "SHA: 470d8f14ce1237cc557367f0b125be489f086fb99534ffa7fb046ad607182743"
+    }
+  ],
+  "summary": {
+    "passed": 90,
+    "failed": 0
+  }
+}

@@ -98,6 +98,20 @@ export function verifyProjectTargetConfiguration(targetEnv = "staging", { allowU
   return { workerName, d1, r2 };
 }
 
+export function initializeProjectSchema(dbPath) {
+  const activePath = path.resolve(dbPath);
+  fs.mkdirSync(path.dirname(activePath), { recursive: true });
+  const db = new DatabaseSync(activePath);
+  db.exec("PRAGMA journal_mode = WAL;");
+  db.exec("PRAGMA foreign_keys = ON;");
+  const migration0001 = path.join(ROOT, "cloudflare", "portfolio-api", "migrations", "0001_initial_schema.sql");
+  if (!fs.existsSync(migration0001)) {
+    throw new Error(`SCHEMA_MIGRATION_NOT_FOUND: Migration file 0001_initial_schema.sql not found at ${migration0001}`);
+  }
+  db.exec(fs.readFileSync(migration0001, "utf-8"));
+  db.close();
+}
+
 export function extractCanonicalProjects(projectsTsPath = null) {
   const targetPath = projectsTsPath || path.join(ROOT, "src", "data", "projects.ts");
   const rawTs = fs.readFileSync(targetPath, "utf-8");
@@ -265,9 +279,11 @@ export function buildExpectedCanonicalProjectRecord(p, rootDir = ROOT) {
       workspace: p.workspace,
       featured: p.featured ? 1 : 0,
       featured_order: fOrder,
+      sort_order: p.sortOrder ?? 0,
       client_name: p.client || "",
       year: String(p.year ?? ""),
       live_url: liveLink,
+      source_url: p.source_url || p.sourceUrl || p.externalLinks?.find((l) => l.type === "github" || l.type === "source")?.href || null,
       initials: p.initials ?? null,
       cover_image_url: p.cover ?? null,
       thumbnail_url: p.thumbnail ?? null,
@@ -364,9 +380,11 @@ export function compareCanonicalWithProjectRecord(c, composite, rootDir = ROOT) 
   check("parent", "workspace", exp.parent.workspace, p.workspace);
   check("parent", "featured", exp.parent.featured, p.featured);
   check("parent", "featured_order", exp.parent.featured_order, p.featured_order);
+  check("parent", "sort_order", exp.parent.sort_order, p.sort_order);
   check("parent", "client_name", exp.parent.client_name, p.client_name);
   check("parent", "year", exp.parent.year, String(p.year ?? ""));
   check("parent", "live_url", exp.parent.live_url, p.live_url);
+  check("parent", "source_url", exp.parent.source_url, p.source_url);
   check("parent", "initials", exp.parent.initials, p.initials);
   check("parent", "cover_image_url", exp.parent.cover_image_url, p.cover_image_url);
   check("parent", "thumbnail_url", exp.parent.thumbnail_url, p.thumbnail_url);
@@ -417,13 +435,18 @@ export function compareCanonicalWithProjectRecord(c, composite, rootDir = ROOT) 
     check("translation_en", "deliverables_json", JSON.parse(exp.en.deliverables_json), JSON.parse(composite.en.deliverables_json || "[]"));
   }
 
-  // 4. Category Assignment
+  // 4. Category Assignment (Strict 1:1 assignment, reject extraneous categories)
   const assignedCategories = (composite.categories || []).map((c) => c.slug);
-  if (!assignedCategories.includes(exp.categorySlug)) {
-    diffs.push({ domain: "category", field: "categorySlug", expected: exp.categorySlug, actual: assignedCategories });
+  if (assignedCategories.length !== 1 || assignedCategories[0] !== exp.categorySlug) {
+    diffs.push({
+      domain: "category",
+      field: "categoryAssignments",
+      expected: [exp.categorySlug],
+      actual: assignedCategories
+    });
   }
 
-  // 5. Gallery Media Parity
+  // 5. Gallery Media Parity (All 14 attributes checked for strict fidelity)
   const actMedia = composite.media || [];
   check("media", "count", exp.media.length, actMedia.length);
 
@@ -434,17 +457,64 @@ export function compareCanonicalWithProjectRecord(c, composite, rootDir = ROOT) 
       diffs.push({ domain: "media", field: `item_${mIdx + 1}`, expected: expItem.storage_key, actual: "missing" });
       continue;
     }
+    check("media", `item_${mIdx + 1}_id`, expItem.id, actItem.id);
+    check("media", `item_${mIdx + 1}_kind`, expItem.kind, actItem.kind);
+    check("media", `item_${mIdx + 1}_media_type`, expItem.media_type, actItem.media_type);
     check("media", `item_${mIdx + 1}_storage_key`, expItem.storage_key, actItem.storage_key);
+    check("media", `item_${mIdx + 1}_public_url`, expItem.public_url, actItem.public_url);
+    check("media", `item_${mIdx + 1}_filename`, expItem.filename, actItem.filename);
     check("media", `item_${mIdx + 1}_mime_type`, expItem.mime_type, actItem.mime_type);
+    check("media", `item_${mIdx + 1}_byte_size`, expItem.byte_size, actItem.byte_size);
+    check("media", `item_${mIdx + 1}_width`, expItem.width, actItem.width);
+    check("media", `item_${mIdx + 1}_height`, expItem.height, actItem.height);
     check("media", `item_${mIdx + 1}_alt_tr`, expItem.alt_tr, actItem.alt_tr);
     check("media", `item_${mIdx + 1}_alt_en`, expItem.alt_en, actItem.alt_en);
+    check("media", `item_${mIdx + 1}_caption_tr`, expItem.caption_tr, actItem.caption_tr);
+    check("media", `item_${mIdx + 1}_caption_en`, expItem.caption_en, actItem.caption_en);
     check("media", `item_${mIdx + 1}_sort_order`, expItem.sort_order, actItem.sort_order);
+  }
+
+  if (actMedia.length > exp.media.length) {
+    for (let mIdx = exp.media.length; mIdx < actMedia.length; mIdx++) {
+      diffs.push({
+        domain: "media",
+        field: `item_${mIdx + 1}_extra`,
+        expected: null,
+        actual: actMedia[mIdx].storage_key
+      });
+    }
+  }
+
+  // 6. Historical Integrity (initial seed migration revision & publishing event)
+  const hasInitialSeedRevision = (composite.revisions || []).some(
+    (r) => r.revision_number === 1 && r.action === "seed_migration"
+  );
+  if (!hasInitialSeedRevision) {
+    diffs.push({
+      domain: "history",
+      field: "initial_seed_revision",
+      expected: { revision_number: 1, action: "seed_migration" },
+      actual: (composite.revisions || []).map((r) => ({ revision_number: r.revision_number, action: r.action }))
+    });
+  }
+
+  const hasPublishingEvent = (composite.publishingEvents || []).some(
+    (e) => e.event_type === "publish"
+  );
+  if (!hasPublishingEvent) {
+    diffs.push({
+      domain: "history",
+      field: "initial_publishing_event",
+      expected: { event_type: "publish" },
+      actual: (composite.publishingEvents || []).map((e) => e.event_type)
+    });
   }
 
   return diffs;
 }
 
 export async function runLocalProjectSeed(canonicalProjects, options = {}) {
+  const activeRootDir = options.rootDir || ROOT;
   const activeDbPath = options.dbPath
     ? path.resolve(options.dbPath)
     : process.env.LOCAL_D1_DB_PATH
@@ -463,400 +533,505 @@ export async function runLocalProjectSeed(canonicalProjects, options = {}) {
 
   let db;
   try {
-    if (isDryRunActive) {
-      if (!fs.existsSync(activeDbPath)) {
-        throw new Error(`LOCAL_DB_NOT_FOUND: Cannot run local dry-run on non-existent database "${activeDbPath}".`);
-      }
-      db = new DatabaseSync(activeDbPath, { readOnly: true });
+    if (!fs.existsSync(activeDbPath)) {
+      throw new Error(`LOCAL_DB_NOT_FOUND: Cannot target non-existent database "${activeDbPath}". Target database schema must be initialized prior to import.`);
+    }
 
-      const requiredTables = ["projects", "project_translations", "project_media", "categories", "project_categories"];
-      const foundTables = db.prepare(
-        `SELECT name FROM sqlite_master WHERE type='table' AND name IN ('projects', 'project_translations', 'project_media', 'categories', 'project_categories')`
-      ).all().map((r) => r.name);
-
-      const missingTables = requiredTables.filter((t) => !foundTables.includes(t));
-      if (missingTables.length > 0) {
-        throw new Error(`SCHEMA_INCOMPLETE: Required table(s) [${missingTables.join(", ")}] missing in "${activeDbPath}".`);
-      }
-    } else {
-      fs.mkdirSync(path.dirname(activeDbPath), { recursive: true });
-      db = new DatabaseSync(activeDbPath);
+    db = new DatabaseSync(activeDbPath, isDryRunActive ? { readOnly: true } : {});
+    if (!isDryRunActive) {
       db.exec("PRAGMA journal_mode = WAL;");
       db.exec("PRAGMA foreign_keys = ON;");
-
-      const migration0001 = path.join(ROOT, "cloudflare", "portfolio-api", "migrations", "0001_initial_schema.sql");
-      if (fs.existsSync(migration0001)) {
-        db.exec(fs.readFileSync(migration0001, "utf-8"));
-      }
-      console.log("✓ Verified schema migration 0001 (Initial Schema).");
     }
 
-  // Verify asset presence on disk
-  const missingAssetsSummary = [];
-  for (const p of canonicalProjects) {
-    const missing = verifyProjectAssetsOnDisk(p);
-    if (missing.length > 0) {
-      missingAssetsSummary.push({ project: p.slug, missing });
+    const requiredTables = [
+      "projects",
+      "project_translations",
+      "project_media",
+      "categories",
+      "project_categories",
+      "project_revisions",
+      "publishing_events"
+    ];
+    const foundTables = db.prepare(
+      `SELECT name FROM sqlite_master WHERE type='table' AND name IN ('projects', 'project_translations', 'project_media', 'categories', 'project_categories', 'project_revisions', 'publishing_events')`
+    ).all().map((r) => r.name);
+
+    const missingTables = requiredTables.filter((t) => !foundTables.includes(t));
+    if (missingTables.length > 0) {
+      throw new Error(`SCHEMA_INCOMPLETE: Required table(s) [${missingTables.join(", ")}] missing in "${activeDbPath}". Target database must have schema provisioned prior to project import.`);
     }
-  }
 
-  if (missingAssetsSummary.length > 0) {
-    console.warn(`WARNING: Missing local media assets detected in ${missingAssetsSummary.length} project(s).`);
-  }
-
-  const existingProjectRows = db.prepare(`SELECT * FROM projects`).all();
-
-  // Check duplicate / identity collisions
-  const identityConflicts = [];
-  for (const c of canonicalProjects) {
-    const slugMatch = existingProjectRows.find((r) => r.slug === c.slug);
-    const idMatch = existingProjectRows.find((r) => r.id === c.id);
-
-    if (slugMatch && idMatch && slugMatch.id !== idMatch.id) {
-      identityConflicts.push({ canonical: c, reason: `Slug '${c.slug}' belongs to id '${slugMatch.id}', but canonical ID is '${c.id}'` });
-    } else if (slugMatch && slugMatch.id !== c.id) {
-      identityConflicts.push({ canonical: c, reason: `Slug '${c.slug}' already used by non-canonical id '${slugMatch.id}'` });
-    } else if (idMatch && idMatch.slug !== c.slug) {
-      identityConflicts.push({ canonical: c, reason: `ID '${c.id}' already used by non-canonical slug '${idMatch.slug}'` });
-    }
-  }
-
-  if (identityConflicts.length > 0 && !isForceActive) {
-    console.error(`FATAL: Detected ${identityConflicts.length} identity collision(s) in destination database.`);
-    if (isStrictActive) {
-      throw new Error(`STRICT_ADMISSION_FAILED: Detected ${identityConflicts.length} identity collisions.`);
-    }
-  }
-
-  const manifest = [];
-  const editorialConflicts = [];
-
-  for (let idx = 0; idx < canonicalProjects.length; idx++) {
-    const p = canonicalProjects[idx];
-    const existing = existingProjectRows.find((r) => r.id === p.id || r.slug === p.slug);
-
-    let status = "PLANNED_INSERT";
-    let diffs = [];
-
-    if (existing) {
-      const composite = getCompositeProjectRecord(db, existing.id);
-      diffs = compareCanonicalWithProjectRecord(p, composite);
-
-      if (diffs.length === 0) {
-        status = "CANONICAL_PARITY";
-      } else {
-        // Any difference from canonical source is an editorial conflict!
-        // Absence of an editorial revision row is NOT proof that data can be overwritten.
-        status = "EDITORIAL_CONFLICT";
-        const hasRevs = composite?.revisions?.length > 0;
-        const nonSeedCount = (composite?.revisions || []).filter((r) => r.action !== "seed_migration").length;
-        editorialConflicts.push({
-          id: p.id,
-          slug: p.slug,
-          hasRevisionHistory: hasRevs,
-          nonSeedRevsCount: nonSeedCount,
-          diffCount: diffs.length,
-          diffs
-        });
+    // Verify asset presence on disk
+    const missingAssetsSummary = [];
+    for (const p of canonicalProjects) {
+      const missing = verifyProjectAssetsOnDisk(p);
+      if (missing.length > 0) {
+        missingAssetsSummary.push({ project: p.slug, missing });
       }
     }
 
-    manifest.push({
-      id: p.id,
-      slug: p.slug,
-      workspace: p.workspace,
-      status,
-      diffs
-    });
-  }
-
-  const now = new Date().toISOString();
-  let insertedCount = 0;
-  let updatedCount = 0;
-  let skippedCount = 0;
-
-  if (!isDryRunActive) {
-    db.exec("BEGIN TRANSACTION;");
-    try {
-      for (let idx = 0; idx < canonicalProjects.length; idx++) {
-        const p = canonicalProjects[idx];
-        const item = manifest[idx];
-
-        if (item.status === "CANONICAL_PARITY" && !isForceActive) {
-          skippedCount++;
-          continue;
-        }
-
-        if (item.status === "EDITORIAL_CONFLICT" && !isForceActive) {
-          console.warn(`[PRESERVE_DESTINATION] Preserving existing editorial state on project ${p.slug} (${item.diffs.length} diffs).`);
-          skippedCount++;
-          continue;
-        }
-
-        const exp = buildExpectedCanonicalProjectRecord(p);
-        const fOrder = exp.parent.featured_order;
-        const sortOrder = p.sortOrder ?? idx + 1;
-        const tagsJson = exp.parent.tags_json;
-
-        const existingRecord = existingProjectRows.find((r) => r.id === p.id || r.slug === p.slug);
-
-        if (!existingRecord) {
-          db.prepare(
-            `INSERT INTO projects (
-              id, slug, status, workspace, featured, featured_order, sort_order,
-              client_name, year, live_url, source_url, initials,
-              cover_image_url, thumbnail_url, desktop_icon_url, og_image_url,
-              desktop_thumbnail_json, desktop_position_x, desktop_position_y,
-              window_width, window_height, tags_json,
-              created_at, updated_at, published_at, archived_at
-            ) VALUES (?, ?, 'published', ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`
-          ).run(
-            p.id,
-            p.slug,
-            p.workspace,
-            p.featured ? 1 : 0,
-            fOrder,
-            sortOrder,
-            p.client || "",
-            String(p.year ?? ""),
-            exp.parent.live_url,
-            p.initials ?? null,
-            p.cover ?? null,
-            p.thumbnail ?? null,
-            p.desktopIcon ?? null,
-            p.ogImage ?? p.seo?.ogImage ?? null,
-            exp.parent.desktop_thumbnail_json,
-            exp.parent.desktop_position_x,
-            exp.parent.desktop_position_y,
-            exp.parent.window_width,
-            exp.parent.window_height,
-            tagsJson,
-            now,
-            now,
-            now
-          );
-          insertedCount++;
-        } else {
-          db.prepare(
-            `UPDATE projects SET
-              slug = ?, workspace = ?, featured = ?, featured_order = ?, sort_order = ?,
-              client_name = ?, year = ?, live_url = ?, initials = ?,
-              cover_image_url = ?, thumbnail_url = ?, desktop_icon_url = ?, og_image_url = ?,
-              desktop_thumbnail_json = ?, desktop_position_x = ?, desktop_position_y = ?,
-              window_width = ?, window_height = ?, tags_json = ?, updated_at = ?
-            WHERE id = ?`
-          ).run(
-            p.slug,
-            p.workspace,
-            p.featured ? 1 : 0,
-            fOrder,
-            sortOrder,
-            p.client || "",
-            String(p.year ?? ""),
-            exp.parent.live_url,
-            p.initials ?? null,
-            p.cover ?? null,
-            p.thumbnail ?? null,
-            p.desktopIcon ?? null,
-            p.ogImage ?? p.seo?.ogImage ?? null,
-            exp.parent.desktop_thumbnail_json,
-            exp.parent.desktop_position_x,
-            exp.parent.desktop_position_y,
-            exp.parent.window_width,
-            exp.parent.window_height,
-            tagsJson,
-            now,
-            p.id
-          );
-          updatedCount++;
-        }
-
-        // Translations TR & EN
-        db.prepare(
-          `INSERT INTO project_translations (
-            id, project_id, locale, title, subtitle, summary, description, role,
-            category_label, seo_title, seo_description, deliverables_json, highlights_json, updated_at
-          ) VALUES (?, ?, 'tr', ?, ?, ?, ?, ?, ?, ?, ?, ?, '[]', ?)
-          ON CONFLICT(project_id, locale) DO UPDATE SET
-            title = excluded.title, subtitle = excluded.subtitle, summary = excluded.summary,
-            description = excluded.description, role = excluded.role, category_label = excluded.category_label,
-            seo_title = excluded.seo_title, seo_description = excluded.seo_description,
-            deliverables_json = excluded.deliverables_json, updated_at = excluded.updated_at`
-        ).run(
-          `${p.id}:tr`,
-          p.id,
-          exp.tr.title,
-          exp.tr.subtitle,
-          exp.tr.summary,
-          exp.tr.description,
-          exp.tr.role,
-          exp.tr.category_label,
-          exp.tr.seo_title,
-          exp.tr.seo_description,
-          exp.tr.deliverables_json,
-          now
-        );
-
-        db.prepare(
-          `INSERT INTO project_translations (
-            id, project_id, locale, title, subtitle, summary, description, role,
-            category_label, seo_title, seo_description, deliverables_json, highlights_json, updated_at
-          ) VALUES (?, ?, 'en', ?, ?, ?, ?, ?, ?, ?, ?, ?, '[]', ?)
-          ON CONFLICT(project_id, locale) DO UPDATE SET
-            title = excluded.title, subtitle = excluded.subtitle, summary = excluded.summary,
-            description = excluded.description, role = excluded.role, category_label = excluded.category_label,
-            seo_title = excluded.seo_title, seo_description = excluded.seo_description,
-            deliverables_json = excluded.deliverables_json, updated_at = excluded.updated_at`
-        ).run(
-          `${p.id}:en`,
-          p.id,
-          exp.en.title,
-          exp.en.subtitle,
-          exp.en.summary,
-          exp.en.description,
-          exp.en.role,
-          exp.en.category_label,
-          exp.en.seo_title,
-          exp.en.seo_description,
-          exp.en.deliverables_json,
-          now
-        );
-
-        // Categories
-        const catSlug = exp.categorySlug;
-        const catId = `cat-${catSlug}`;
-        db.prepare(
-          `INSERT OR IGNORE INTO categories (id, slug, workspace, label_tr, label_en, sort_order, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`
-        ).run(catId, catSlug, p.workspace, p.categoryTR, p.categoryEN, idx + 1, now);
-        db.prepare(`INSERT OR IGNORE INTO project_categories (project_id, category_id) VALUES (?, ?)`).run(p.id, catId);
-
-        // Project Media with accurate binary byte_size
-        db.prepare(`DELETE FROM project_media WHERE project_id = ? AND kind = 'gallery'`).run(p.id);
-        for (const item of exp.media) {
-          db.prepare(
-            `INSERT INTO project_media (
-              id, project_id, kind, media_type, storage_key, public_url, filename,
-              mime_type, byte_size, width, height, alt_tr, alt_en, caption_tr, caption_en,
-              sort_order, created_at, updated_at
-            ) VALUES (?, ?, 'gallery', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-          ).run(
-            item.id,
-            p.id,
-            item.media_type,
-            item.storage_key,
-            item.public_url,
-            item.filename,
-            item.mime_type,
-            item.byte_size,
-            item.width,
-            item.height,
-            item.alt_tr,
-            item.alt_en,
-            item.caption_tr,
-            item.caption_en,
-            item.sort_order,
-            now,
-            now
-          );
-        }
-
-        if (!existingRecord) {
-          db.prepare(
-            `INSERT INTO project_revisions (id, project_id, revision_number, action, snapshot_json, actor_email, created_at)
-             VALUES (?, ?, 1, 'seed_migration', ?, 'system@keremmihci.com', ?)`
-          ).run(`rev-${p.id}-1`, p.id, JSON.stringify(p), now);
-
-          db.prepare(
-            `INSERT INTO publishing_events (id, project_id, event_type, previous_status, new_status, actor_email, notes, created_at)
-             VALUES (?, ?, 'publish', NULL, 'published', 'system@keremmihci.com', 'Canonical migration from src/data/projects.ts', ?)`
-          ).run(`pub-${p.id}-1`, p.id, now);
-        }
-      }
-      db.exec("COMMIT;");
-    } catch (err) {
-      db.exec("ROLLBACK;");
-      throw err;
-    }
-  }
-
-  // Final Relational Reconciliation & Parity Audit
-  const finalProjects = db.prepare(`SELECT * FROM projects ORDER BY sort_order ASC`).all();
-  const canonicalSlugs = new Set(canonicalProjects.map((p) => p.slug));
-  const missingSlugs = canonicalProjects.filter((p) => !finalProjects.some((r) => r.slug === p.slug)).map((p) => p.slug);
-  const nonCanonicalRecords = finalProjects.filter((r) => !canonicalSlugs.has(r.slug));
-
-  let verifiedRelationalParityCount = 0;
-  for (const c of canonicalProjects) {
-    const row = finalProjects.find((r) => r.slug === c.slug);
-    if (!row) continue;
-    const comp = getCompositeProjectRecord(db, row.id);
-    const d = compareCanonicalWithProjectRecord(c, comp);
-    if (d.length === 0) {
-      verifiedRelationalParityCount++;
-    }
-  }
-
-  console.log(`Reconciliation summary:`);
-  console.log(`  Total Canonical Expected:       ${canonicalProjects.length}`);
-  console.log(`  Full Relational Parity:         ${verifiedRelationalParityCount}/30`);
-  console.log(`  Missing Canonical Records:      ${missingSlugs.length}`);
-  console.log(`  Non-Canonical Destination Rows: ${nonCanonicalRecords.length}`);
-  console.log(`  Editorial Conflicts Detected:   ${editorialConflicts.length}`);
-  console.log(`  Identity Collisions Detected:   ${identityConflicts.length}`);
-  console.log(`  Inserted: ${insertedCount}, Updated: ${updatedCount}, Skipped: ${skippedCount}`);
-
-  // Strict Admission Gate Enforcement
-  if (isStrictActive) {
-    console.log("\nEvaluating Strict Project Admission Invariants:");
-    const strictErrors = [];
-
-    if (canonicalProjects.length !== 30) {
-      strictErrors.push(`Canonical source count mismatch: expected 30, got ${canonicalProjects.length}`);
-    }
-    if (identityConflicts.length > 0) {
-      strictErrors.push(`${identityConflicts.length} identity collision(s) detected`);
-    }
-    if (missingSlugs.length > 0) {
-      strictErrors.push(`${missingSlugs.length} canonical project(s) missing from database: ${missingSlugs.join(", ")}`);
-    }
-    if (editorialConflicts.length > 0 && !isForceActive) {
-      strictErrors.push(`${editorialConflicts.length} unresolved editorial conflict(s) detected`);
-    }
-    if (nonCanonicalRecords.length > 0) {
-      strictErrors.push(`${nonCanonicalRecords.length} unexpected non-canonical record(s) in destination`);
-    }
     if (missingAssetsSummary.length > 0) {
-      strictErrors.push(`${missingAssetsSummary.length} project(s) have missing local disk assets`);
-    }
-    if (verifiedRelationalParityCount !== 30 && !isForceActive && editorialConflicts.length === 0) {
-      strictErrors.push(`Relational parity incomplete: ${verifiedRelationalParityCount}/30`);
+      console.warn(`WARNING: Missing local media assets detected in ${missingAssetsSummary.length} project(s).`);
     }
 
-    if (strictErrors.length > 0) {
-      console.error("\nFATAL: Strict admission rejected project import preflight:");
-      for (const err of strictErrors) {
-        console.error(`  - ${err}`);
+    const existingProjectRows = db.prepare(`SELECT * FROM projects`).all();
+
+    // Check duplicate / identity collisions
+    const identityConflicts = [];
+    for (const c of canonicalProjects) {
+      const slugMatch = existingProjectRows.find((r) => r.slug === c.slug);
+      const idMatch = existingProjectRows.find((r) => r.id === c.id);
+
+      if (slugMatch && idMatch && slugMatch.id !== idMatch.id) {
+        identityConflicts.push({ canonical: c, reason: `Slug '${c.slug}' belongs to id '${slugMatch.id}', but canonical ID is '${c.id}'` });
+      } else if (slugMatch && slugMatch.id !== c.id) {
+        identityConflicts.push({ canonical: c, reason: `Slug '${c.slug}' already used by non-canonical id '${slugMatch.id}'` });
+      } else if (idMatch && idMatch.slug !== c.slug) {
+        identityConflicts.push({ canonical: c, reason: `ID '${c.id}' already used by non-canonical slug '${idMatch.slug}'` });
       }
-      throw new Error(`STRICT_ADMISSION_FAILED: ${strictErrors.join("; ")}`);
     }
 
-    console.log("✓ Strict admission gate PASSED (30/30 verified with complete relational parity).");
-  }
+    if (identityConflicts.length > 0 && !isForceActive) {
+      console.error(`FATAL: Detected ${identityConflicts.length} identity collision(s) in destination database.`);
+      if (isStrictActive) {
+        throw new Error(`STRICT_ADMISSION_FAILED: Detected ${identityConflicts.length} identity collisions.`);
+      }
+    }
 
-  return {
-    dryRun: isDryRunActive,
-    totalCanonical: canonicalProjects.length,
-    canonicalParityCount: verifiedRelationalParityCount,
-    missingSlugs,
-    nonCanonicalRecords: nonCanonicalRecords.map((r) => r.slug),
-    editorialConflicts,
-    identityConflicts,
-    insertedCount,
-    updatedCount,
-    skippedCount,
-    manifest
-  };
+    const manifest = [];
+    const editorialConflicts = [];
+
+    for (let idx = 0; idx < canonicalProjects.length; idx++) {
+      const p = canonicalProjects[idx];
+      const existing = existingProjectRows.find((r) => r.id === p.id || r.slug === p.slug);
+
+      let status = "PLANNED_INSERT";
+      let diffs = [];
+
+      if (existing) {
+        const composite = getCompositeProjectRecord(db, existing.id);
+        diffs = compareCanonicalWithProjectRecord(p, composite, activeRootDir);
+
+        if (diffs.length === 0) {
+          status = "CANONICAL_PARITY";
+        } else {
+          const hasHistoryDiffs = diffs.some((d) => d.domain === "history");
+          const hasContentDiffs = diffs.some((d) => d.domain === "parent" || d.domain === "translation_tr" || d.domain === "translation_en" || d.domain === "media" || d.domain === "category");
+          const hasIdentityMismatch = diffs.some((d) => d.domain === "parent" && (d.field === "id" || d.field === "slug"));
+
+          if (hasIdentityMismatch) {
+            status = "UNEXPECTED_DESTINATION_STATE";
+          } else if (hasContentDiffs) {
+            status = "EDITORIAL_CONFLICT";
+          } else if (hasHistoryDiffs) {
+            status = "MISSING_CANONICAL_HISTORY";
+          } else {
+            status = "EDITORIAL_CONFLICT";
+          }
+
+          if (status === "EDITORIAL_CONFLICT") {
+            const hasRevs = composite?.revisions?.length > 0;
+            const nonSeedCount = (composite?.revisions || []).filter((r) => r.action !== "seed_migration").length;
+            editorialConflicts.push({
+              id: p.id,
+              slug: p.slug,
+              hasRevisionHistory: hasRevs,
+              nonSeedRevsCount: nonSeedCount,
+              diffCount: diffs.length,
+              diffs
+            });
+          }
+        }
+      }
+
+      manifest.push({
+        id: p.id,
+        slug: p.slug,
+        workspace: p.workspace,
+        status,
+        diffs
+      });
+    }
+
+    const now = new Date().toISOString();
+    let insertedCount = 0;
+    let updatedCount = 0;
+    let skippedCount = 0;
+
+    if (!isDryRunActive) {
+      db.exec("BEGIN TRANSACTION;");
+      try {
+        for (let idx = 0; idx < canonicalProjects.length; idx++) {
+          const p = canonicalProjects[idx];
+          const item = manifest[idx];
+
+          if (item.status === "CANONICAL_PARITY" && !isForceActive) {
+            skippedCount++;
+            continue;
+          }
+
+          if (item.status === "EDITORIAL_CONFLICT" && !isForceActive) {
+            console.warn(`[PRESERVE_DESTINATION] Preserving existing editorial state on project ${p.slug} (${item.diffs.length} diffs).`);
+            skippedCount++;
+            continue;
+          }
+
+          if (item.status === "MISSING_CANONICAL_HISTORY" && !isForceActive) {
+            console.warn(`[MISSING_HISTORY] Project ${p.slug} has missing canonical revision or publishing event.`);
+            skippedCount++;
+            continue;
+          }
+
+          const exp = buildExpectedCanonicalProjectRecord(p, activeRootDir);
+          const fOrder = exp.parent.featured_order;
+          const sortOrder = exp.parent.sort_order;
+          const sourceUrl = exp.parent.source_url;
+          const tagsJson = exp.parent.tags_json;
+
+          const existingRecord = existingProjectRows.find((r) => r.id === p.id || r.slug === p.slug);
+
+          if (!existingRecord) {
+            db.prepare(
+              `INSERT INTO projects (
+                id, slug, status, workspace, featured, featured_order, sort_order,
+                client_name, year, live_url, source_url, initials,
+                cover_image_url, thumbnail_url, desktop_icon_url, og_image_url,
+                desktop_thumbnail_json, desktop_position_x, desktop_position_y,
+                window_width, window_height, tags_json,
+                created_at, updated_at, published_at, archived_at
+              ) VALUES (?, ?, 'published', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`
+            ).run(
+              p.id,
+              p.slug,
+              p.workspace,
+              p.featured ? 1 : 0,
+              fOrder,
+              sortOrder,
+              p.client || "",
+              String(p.year ?? ""),
+              exp.parent.live_url,
+              sourceUrl,
+              p.initials ?? null,
+              p.cover ?? null,
+              p.thumbnail ?? null,
+              p.desktopIcon ?? null,
+              p.ogImage ?? p.seo?.ogImage ?? null,
+              exp.parent.desktop_thumbnail_json,
+              exp.parent.desktop_position_x,
+              exp.parent.desktop_position_y,
+              exp.parent.window_width,
+              exp.parent.window_height,
+              tagsJson,
+              now,
+              now,
+              now
+            );
+            insertedCount++;
+          } else {
+            db.prepare(
+              `UPDATE projects SET
+                slug = ?, workspace = ?, featured = ?, featured_order = ?, sort_order = ?,
+                client_name = ?, year = ?, live_url = ?, source_url = ?, initials = ?,
+                cover_image_url = ?, thumbnail_url = ?, desktop_icon_url = ?, og_image_url = ?,
+                desktop_thumbnail_json = ?, desktop_position_x = ?, desktop_position_y = ?,
+                window_width = ?, window_height = ?, tags_json = ?, updated_at = ?
+              WHERE id = ?`
+            ).run(
+              p.slug,
+              p.workspace,
+              p.featured ? 1 : 0,
+              fOrder,
+              sortOrder,
+              p.client || "",
+              String(p.year ?? ""),
+              exp.parent.live_url,
+              sourceUrl,
+              p.initials ?? null,
+              p.cover ?? null,
+              p.thumbnail ?? null,
+              p.desktopIcon ?? null,
+              p.ogImage ?? p.seo?.ogImage ?? null,
+              exp.parent.desktop_thumbnail_json,
+              exp.parent.desktop_position_x,
+              exp.parent.desktop_position_y,
+              exp.parent.window_width,
+              exp.parent.window_height,
+              tagsJson,
+              now,
+              p.id
+            );
+            updatedCount++;
+          }
+
+          // Translations TR & EN
+          db.prepare(
+            `INSERT INTO project_translations (
+              id, project_id, locale, title, subtitle, summary, description, role,
+              category_label, seo_title, seo_description, deliverables_json, highlights_json, updated_at
+            ) VALUES (?, ?, 'tr', ?, ?, ?, ?, ?, ?, ?, ?, ?, '[]', ?)
+            ON CONFLICT(project_id, locale) DO UPDATE SET
+              title = excluded.title, subtitle = excluded.subtitle, summary = excluded.summary,
+              description = excluded.description, role = excluded.role, category_label = excluded.category_label,
+              seo_title = excluded.seo_title, seo_description = excluded.seo_description,
+              deliverables_json = excluded.deliverables_json, updated_at = excluded.updated_at`
+          ).run(
+            `${p.id}:tr`,
+            p.id,
+            exp.tr.title,
+            exp.tr.subtitle,
+            exp.tr.summary,
+            exp.tr.description,
+            exp.tr.role,
+            exp.tr.category_label,
+            exp.tr.seo_title,
+            exp.tr.seo_description,
+            exp.tr.deliverables_json,
+            now
+          );
+
+          db.prepare(
+            `INSERT INTO project_translations (
+              id, project_id, locale, title, subtitle, summary, description, role,
+              category_label, seo_title, seo_description, deliverables_json, highlights_json, updated_at
+            ) VALUES (?, ?, 'en', ?, ?, ?, ?, ?, ?, ?, ?, ?, '[]', ?)
+            ON CONFLICT(project_id, locale) DO UPDATE SET
+              title = excluded.title, subtitle = excluded.subtitle, summary = excluded.summary,
+              description = excluded.description, role = excluded.role, category_label = excluded.category_label,
+              seo_title = excluded.seo_title, seo_description = excluded.seo_description,
+              deliverables_json = excluded.deliverables_json, updated_at = excluded.updated_at`
+          ).run(
+            `${p.id}:en`,
+            p.id,
+            exp.en.title,
+            exp.en.subtitle,
+            exp.en.summary,
+            exp.en.description,
+            exp.en.role,
+            exp.en.category_label,
+            exp.en.seo_title,
+            exp.en.seo_description,
+            exp.en.deliverables_json,
+            now
+          );
+
+          // Categories
+          const catSlug = exp.categorySlug;
+          const catId = `cat-${catSlug}`;
+          db.prepare(
+            `INSERT OR IGNORE INTO categories (id, slug, workspace, label_tr, label_en, sort_order, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`
+          ).run(catId, catSlug, p.workspace, p.categoryTR, p.categoryEN, idx + 1, now);
+          db.prepare(`INSERT OR IGNORE INTO project_categories (project_id, category_id) VALUES (?, ?)`).run(p.id, catId);
+
+          // Project Media with accurate binary byte_size
+          db.prepare(`DELETE FROM project_media WHERE project_id = ? AND kind = 'gallery'`).run(p.id);
+          for (const item of exp.media) {
+            db.prepare(
+              `INSERT INTO project_media (
+                id, project_id, kind, media_type, storage_key, public_url, filename,
+                mime_type, byte_size, width, height, alt_tr, alt_en, caption_tr, caption_en,
+                sort_order, created_at, updated_at
+              ) VALUES (?, ?, 'gallery', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            ).run(
+              item.id,
+              p.id,
+              item.media_type,
+              item.storage_key,
+              item.public_url,
+              item.filename,
+              item.mime_type,
+              item.byte_size,
+              item.width,
+              item.height,
+              item.alt_tr,
+              item.alt_en,
+              item.caption_tr,
+              item.caption_en,
+              item.sort_order,
+              now,
+              now
+            );
+          }
+
+          if (!existingRecord) {
+            db.prepare(
+              `INSERT INTO project_revisions (id, project_id, revision_number, action, snapshot_json, actor_email, created_at)
+               VALUES (?, ?, 1, 'seed_migration', ?, 'system@keremmihci.com', ?)`
+            ).run(`rev-${p.id}-1`, p.id, JSON.stringify(p), now);
+
+            db.prepare(
+              `INSERT INTO publishing_events (id, project_id, event_type, previous_status, new_status, actor_email, notes, created_at)
+               VALUES (?, ?, 'publish', NULL, 'published', 'system@keremmihci.com', 'Canonical migration from src/data/projects.ts', ?)`
+            ).run(`pub-${p.id}-1`, p.id, now);
+          }
+        }
+
+        // Post-write Relational Reconciliation & Parity Audit inside transaction
+        const finalProjects = db.prepare(`SELECT * FROM projects ORDER BY sort_order ASC`).all();
+        const canonicalSlugs = new Set(canonicalProjects.map((p) => p.slug));
+        const missingSlugs = canonicalProjects.filter((p) => !finalProjects.some((r) => r.slug === p.slug)).map((p) => p.slug);
+        const nonCanonicalRecords = finalProjects.filter((r) => !canonicalSlugs.has(r.slug));
+
+        let verifiedRelationalParityCount = 0;
+        for (const c of canonicalProjects) {
+          const row = finalProjects.find((r) => r.slug === c.slug);
+          if (!row) continue;
+          const comp = getCompositeProjectRecord(db, row.id);
+          const d = compareCanonicalWithProjectRecord(c, comp, activeRootDir);
+          if (d.length === 0) {
+            verifiedRelationalParityCount++;
+          }
+        }
+
+        console.log(`Reconciliation summary (in transaction):`);
+        console.log(`  Total Canonical Expected:       ${canonicalProjects.length}`);
+        console.log(`  Full Relational Parity:         ${verifiedRelationalParityCount}/30`);
+        console.log(`  Missing Canonical Records:      ${missingSlugs.length}`);
+        console.log(`  Non-Canonical Destination Rows: ${nonCanonicalRecords.length}`);
+        console.log(`  Editorial Conflicts Detected:   ${editorialConflicts.length}`);
+        console.log(`  Identity Collisions Detected:   ${identityConflicts.length}`);
+        console.log(`  Inserted: ${insertedCount}, Updated: ${updatedCount}, Skipped: ${skippedCount}`);
+
+        // Strict Admission Gate Enforcement inside transaction (fails closed & triggers rollback)
+        if (isStrictActive) {
+          console.log("\nEvaluating Strict Project Admission Invariants (in transaction):");
+          const strictErrors = [];
+
+          if (canonicalProjects.length !== 30) {
+            strictErrors.push(`Canonical source count mismatch: expected 30, got ${canonicalProjects.length}`);
+          }
+          if (identityConflicts.length > 0) {
+            strictErrors.push(`${identityConflicts.length} identity collision(s) detected`);
+          }
+          if (missingSlugs.length > 0) {
+            strictErrors.push(`${missingSlugs.length} canonical project(s) missing from database: ${missingSlugs.join(", ")}`);
+          }
+          if (editorialConflicts.length > 0 && !isForceActive) {
+            strictErrors.push(`${editorialConflicts.length} unresolved editorial conflict(s) detected`);
+          }
+          if (nonCanonicalRecords.length > 0) {
+            strictErrors.push(`${nonCanonicalRecords.length} unexpected non-canonical record(s) in destination`);
+          }
+          if (missingAssetsSummary.length > 0) {
+            strictErrors.push(`${missingAssetsSummary.length} project(s) have missing local disk assets`);
+          }
+          if (verifiedRelationalParityCount !== 30 && !isForceActive && editorialConflicts.length === 0) {
+            strictErrors.push(`Relational parity incomplete: ${verifiedRelationalParityCount}/30`);
+          }
+
+          if (strictErrors.length > 0) {
+            console.error("\nFATAL: Strict admission rejected project import preflight inside transaction:");
+            for (const err of strictErrors) {
+              console.error(`  - ${err}`);
+            }
+            throw new Error(`STRICT_ADMISSION_FAILED: ${strictErrors.join("; ")}`);
+          }
+
+          console.log("✓ Strict admission gate PASSED (30/30 verified with complete relational parity).");
+        }
+
+        db.exec("COMMIT;");
+        console.log("✓ Project import transaction committed successfully.");
+      } catch (err) {
+        db.exec("ROLLBACK;");
+        console.error("✓ Transaction rolled back cleanly on error:", err.message);
+        throw err;
+      }
+    } else {
+      // DRY RUN: Evaluate reconciliation and strict admission without writes
+      const finalProjects = db.prepare(`SELECT * FROM projects ORDER BY sort_order ASC`).all();
+      const canonicalSlugs = new Set(canonicalProjects.map((p) => p.slug));
+      const missingSlugs = canonicalProjects.filter((p) => !finalProjects.some((r) => r.slug === p.slug)).map((p) => p.slug);
+      const nonCanonicalRecords = finalProjects.filter((r) => !canonicalSlugs.has(r.slug));
+
+      let verifiedRelationalParityCount = 0;
+      for (const c of canonicalProjects) {
+        const row = finalProjects.find((r) => r.slug === c.slug);
+        if (!row) continue;
+        const comp = getCompositeProjectRecord(db, row.id);
+        const d = compareCanonicalWithProjectRecord(c, comp, activeRootDir);
+        if (d.length === 0) {
+          verifiedRelationalParityCount++;
+        }
+      }
+
+      console.log(`Reconciliation summary (dry run):`);
+      console.log(`  Total Canonical Expected:       ${canonicalProjects.length}`);
+      console.log(`  Full Relational Parity:         ${verifiedRelationalParityCount}/30`);
+      console.log(`  Missing Canonical Records:      ${missingSlugs.length}`);
+      console.log(`  Non-Canonical Destination Rows: ${nonCanonicalRecords.length}`);
+      console.log(`  Editorial Conflicts Detected:   ${editorialConflicts.length}`);
+      console.log(`  Identity Collisions Detected:   ${identityConflicts.length}`);
+      console.log(`  Inserted: ${insertedCount}, Updated: ${updatedCount}, Skipped: ${skippedCount}`);
+
+      if (isStrictActive) {
+        console.log("\nEvaluating Strict Project Admission Invariants (dry run):");
+        const strictErrors = [];
+
+        if (canonicalProjects.length !== 30) {
+          strictErrors.push(`Canonical source count mismatch: expected 30, got ${canonicalProjects.length}`);
+        }
+        if (identityConflicts.length > 0) {
+          strictErrors.push(`${identityConflicts.length} identity collision(s) detected`);
+        }
+        if (missingSlugs.length > 0) {
+          strictErrors.push(`${missingSlugs.length} canonical project(s) missing from database: ${missingSlugs.join(", ")}`);
+        }
+        if (editorialConflicts.length > 0 && !isForceActive) {
+          strictErrors.push(`${editorialConflicts.length} unresolved editorial conflict(s) detected`);
+        }
+        if (nonCanonicalRecords.length > 0) {
+          strictErrors.push(`${nonCanonicalRecords.length} unexpected non-canonical record(s) in destination`);
+        }
+        if (missingAssetsSummary.length > 0) {
+          strictErrors.push(`${missingAssetsSummary.length} project(s) have missing local disk assets`);
+        }
+        if (verifiedRelationalParityCount !== 30 && !isForceActive && editorialConflicts.length === 0) {
+          strictErrors.push(`Relational parity incomplete: ${verifiedRelationalParityCount}/30`);
+        }
+
+        if (strictErrors.length > 0) {
+          console.error("\nFATAL: Strict admission rejected project import dry run:");
+          for (const err of strictErrors) {
+            console.error(`  - ${err}`);
+          }
+          throw new Error(`STRICT_ADMISSION_FAILED: ${strictErrors.join("; ")}`);
+        }
+
+        console.log("✓ Strict admission gate PASSED (dry run).");
+      }
+    }
+
+    // Final Relational Reconciliation & Parity Audit for returned summary
+    const finalProjects = db.prepare(`SELECT * FROM projects ORDER BY sort_order ASC`).all();
+    const canonicalSlugs = new Set(canonicalProjects.map((p) => p.slug));
+    const missingSlugs = canonicalProjects.filter((p) => !finalProjects.some((r) => r.slug === p.slug)).map((p) => p.slug);
+    const nonCanonicalRecords = finalProjects.filter((r) => !canonicalSlugs.has(r.slug));
+
+    let verifiedRelationalParityCount = 0;
+    for (const c of canonicalProjects) {
+      const row = finalProjects.find((r) => r.slug === c.slug);
+      if (!row) continue;
+      const comp = getCompositeProjectRecord(db, row.id);
+      const d = compareCanonicalWithProjectRecord(c, comp, activeRootDir);
+      if (d.length === 0) {
+        verifiedRelationalParityCount++;
+      }
+    }
+
+    return {
+      dryRun: isDryRunActive,
+      totalCanonical: canonicalProjects.length,
+      canonicalParityCount: verifiedRelationalParityCount,
+      missingSlugs,
+      nonCanonicalRecords: nonCanonicalRecords.map((r) => r.slug),
+      editorialConflicts,
+      identityConflicts,
+      insertedCount,
+      updatedCount,
+      skippedCount,
+      manifest
+    };
   } finally {
     if (db) {
       try {

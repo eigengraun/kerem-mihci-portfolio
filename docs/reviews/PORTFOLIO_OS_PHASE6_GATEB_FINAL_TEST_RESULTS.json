@@ -1,7 +1,7 @@
 {
-  "timestamp": "2026-10-22T14:35:35.441Z",
-  "totalChecks": 27,
-  "passedChecks": 27,
+  "timestamp": "2026-10-22T15:43:53.834Z",
+  "totalChecks": 32,
+  "passedChecks": 32,
   "failedChecks": 0,
   "verdict": "GATEB_LOCAL_HARDENING_PASS",
   "results": [
@@ -163,6 +163,36 @@
     },
     {
       "id": "GATEB-27",
+      "name": "Atomic Transaction Rollback Proof (Negative fixture fails closed with zero residual mutations)",
+      "status": "PASS",
+      "details": "Strict admission failure triggered atomic rollback: 0 projects inserted, 0 translations, 0 media, 0 categories, 0 revisions, 0 publishing events committed."
+    },
+    {
+      "id": "GATEB-28",
+      "name": "Complete Media Attributes Deep Parity (All 14 attributes checked for strict fidelity)",
+      "status": "PASS",
+      "details": "Binary byte_size tampering correctly detected as media relational parity diff."
+    },
+    {
+      "id": "GATEB-29",
+      "name": "Historical Integrity & Category Association Parity (Initial revision/publishing required, owner edits retained, extra category rejected)",
+      "status": "PASS",
+      "details": "Missing initial revision/publish events caught as history diffs, owner edit history retained without false conflict, and extra category assignment strictly rejected."
+    },
+    {
+      "id": "GATEB-30",
+      "name": "Strict Namespace Boundaries & Missing Local File Rejection in R2 Simulator",
+      "status": "PASS",
+      "details": "Arbitrary key prefix (images/projects/...) rejected as namespace violation, and missing local files strictly rejected from upload planning."
+    },
+    {
+      "id": "GATEB-31",
+      "name": "Canonical R2 Key Verification & Transfer Scope Parity (100% projects/ and videos/)",
+      "status": "PASS",
+      "details": "130 project media keys match 'projects/', 42 video keys match 'videos/', and transfer scope specification defines 'projects/'."
+    },
+    {
+      "id": "GATEB-32",
       "name": "Host Database Checksum Invariance (.local-d1/portfolio.sqlite SHA-256 invariant)",
       "status": "PASS",
       "details": "Checksum strictly invariant: 470d8f14ce1237cc557367f0b125be489f086fb99534ffa7fb046ad607182743. Zero development database mutations across all tests."

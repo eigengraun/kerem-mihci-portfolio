@@ -198,10 +198,10 @@ async function runSimulation() {
     recordTest("GATE-SIM-05", "Rejection of `npm run cms:migrate` in Production", "FAIL", err.message);
   }
 
-  // Test 6: Unsupported Video Importer Command Rejection (--remote-production)
+  // Test 6: Unsupported Video Importer Command Rejection (--remote-production --execute)
   try {
     const importerPath = path.join(ROOT, "scripts", "import-canonical-videos-to-d1.mjs");
-    const spawnRes = spawnSync(process.execPath, [importerPath, "--remote-production"], {
+    const spawnRes = spawnSync(process.execPath, [importerPath, "--remote-production", "--execute"], {
       cwd: ROOT,
       encoding: "utf-8"
     });
@@ -216,7 +216,7 @@ async function runSimulation() {
     if (exitedWithError && hasFatalOutput) {
       recordTest(
         "GATE-SIM-06",
-        "Unsupported Video Importer Flag Rejection (--remote-production)",
+        "Unsupported Video Importer Flag Rejection (--remote-production --execute)",
         "PASS",
         `Execution failed closed as expected (exit code ${spawnRes.status}): "${spawnRes.stderr.trim().split("\n")[0]}". Production safety verified.`
       );

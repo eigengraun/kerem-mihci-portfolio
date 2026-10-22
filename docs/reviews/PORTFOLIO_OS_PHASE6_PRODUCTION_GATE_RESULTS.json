@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-22T13:44:07.316Z",
+  "timestamp": "2026-10-22T15:44:48.257Z",
   "totalChecks": 12,
   "passedChecks": 12,
   "failedChecks": 0,
@@ -37,9 +37,9 @@
     },
     {
       "id": "GATE-SIM-06",
-      "name": "Unsupported Video Importer Flag Rejection (--remote-production)",
+      "name": "Unsupported Video Importer Flag Rejection (--remote-production --execute)",
       "status": "PASS",
-      "details": "Execution failed closed as expected (exit code 1): \"file:///Volumes/EMIX_WORK/02_DEV/GEMINI/CreativePortfolio/scripts/import-canonical-videos-to-d1.mjs:72\". Production safety verified."
+      "details": "Execution failed closed as expected (exit code 1): \"FATAL: Production remote execution is strictly NOT_AUTHORIZED.\". Production safety verified."
     },
     {
       "id": "GATE-SIM-07",

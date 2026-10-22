@@ -35,6 +35,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   extractCanonicalProjects,
+  initializeProjectSchema,
   runLocalProjectSeed,
   verifyProjectTargetConfiguration,
   getCompositeProjectRecord,
@@ -350,6 +351,7 @@ async function runMasterGateBSuite() {
             mimeType: "image/webp",
             byteSize: 1000,
             sha256: "aaa",
+            status: "LOCAL_PRESENT",
             scope: MEDIA_SCOPES.CANONICAL_PROJECT_MEDIA,
             owners: [{ entityType: "project", entityId: "project-beta", assetRole: "cover" }]
           }
@@ -365,6 +367,7 @@ async function runMasterGateBSuite() {
             mimeType: "image/webp",
             byteSize: 1000,
             sha256: "bbb",
+            status: "LOCAL_PRESENT",
             scope: MEDIA_SCOPES.CANONICAL_PROJECT_MEDIA,
             owners: [{ entityType: "project", entityId: "proj-1", assetRole: "cover" }]
           }
@@ -388,6 +391,7 @@ async function runMasterGateBSuite() {
             mimeType: "image/webp",
             byteSize: 1000,
             sha256: "ccc",
+            status: "LOCAL_PRESENT",
             scope: MEDIA_SCOPES.CANONICAL_PROJECT_MEDIA,
             owners: [{ entityType: "project", entityId: "project-alpha", assetRole: "cover" }]
           }
@@ -419,6 +423,7 @@ async function runMasterGateBSuite() {
     // -------------------------------------------------------------------------
     const disposableProjDb = path.join(tmpDir, "disposable-projects.sqlite");
     try {
+      initializeProjectSchema(disposableProjDb);
       const canonicalProjects = extractCanonicalProjects();
       const res = await runLocalProjectSeed(canonicalProjects, {
         dbPath: disposableProjDb,
@@ -1107,23 +1112,320 @@ async function runMasterGateBSuite() {
     }
 
     // -------------------------------------------------------------------------
-    // TEST 27: Host Local Database Invariance Check
+    // TEST 27: Atomic Transaction Rollback Proof (Negative fixture fails closed with zero residual mutations)
+    // -------------------------------------------------------------------------
+    try {
+      const rollbackDb = path.join(tmpDir, "scenario-atomic-rollback.sqlite");
+      initializeProjectSchema(rollbackDb);
+
+      const db = new DatabaseSync(rollbackDb);
+      // Insert one initial row before running importer
+      db.prepare(
+        `INSERT INTO projects (
+          id, slug, status, workspace, featured, featured_order, sort_order,
+          client_name, year, live_url, source_url, initials, cover_image_url,
+          thumbnail_url, desktop_icon_url, og_image_url, desktop_thumbnail_json,
+          desktop_position_x, desktop_position_y, window_width, window_height,
+          tags_json, created_at, updated_at
+        ) VALUES (
+          'pre-existing-foreign-proj', 'foreign-project-slug', 'published', 'design', 0, 0, 1,
+          'Foreign Client', '2025', NULL, NULL, 'FP', NULL, NULL, NULL, NULL, NULL,
+          25, 25, 820, 600, '[]', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z'
+        )`
+      ).run();
+
+      const getSnapshot = (d) => ({
+        projects: d.prepare("SELECT COUNT(*) as c FROM projects").get().c,
+        translations: d.prepare("SELECT COUNT(*) as c FROM project_translations").get().c,
+        media: d.prepare("SELECT COUNT(*) as c FROM project_media").get().c,
+        categories: d.prepare("SELECT COUNT(*) as c FROM categories").get().c,
+        project_categories: d.prepare("SELECT COUNT(*) as c FROM project_categories").get().c,
+        revisions: d.prepare("SELECT COUNT(*) as c FROM project_revisions").get().c,
+        publishing_events: d.prepare("SELECT COUNT(*) as c FROM publishing_events").get().c
+      });
+
+      const beforeSnapshot = getSnapshot(db);
+      db.close();
+
+      const canonicalProjects = extractCanonicalProjects();
+      let caughtError = null;
+
+      try {
+        await runLocalProjectSeed(canonicalProjects, {
+          dbPath: rollbackDb,
+          isDryRun: false,
+          isForce: false,
+          isStrictAdmission: true
+        });
+      } catch (err) {
+        caughtError = err;
+      }
+
+      const verifyDb = new DatabaseSync(rollbackDb);
+      const afterSnapshot = getSnapshot(verifyDb);
+      const remainingRows = verifyDb.prepare("SELECT id, slug FROM projects").all();
+      verifyDb.close();
+
+      const didThrowStrict = caughtError && caughtError.message.includes("STRICT_ADMISSION_FAILED");
+      const zeroResidualMutations =
+        beforeSnapshot.projects === afterSnapshot.projects &&
+        beforeSnapshot.translations === afterSnapshot.translations &&
+        beforeSnapshot.media === afterSnapshot.media &&
+        beforeSnapshot.categories === afterSnapshot.categories &&
+        beforeSnapshot.project_categories === afterSnapshot.project_categories &&
+        beforeSnapshot.revisions === afterSnapshot.revisions &&
+        beforeSnapshot.publishing_events === afterSnapshot.publishing_events &&
+        remainingRows.length === 1 &&
+        remainingRows[0].id === "pre-existing-foreign-proj";
+
+      if (didThrowStrict && zeroResidualMutations) {
+        recordTest(
+          "GATEB-27",
+          "Atomic Transaction Rollback Proof (Negative fixture fails closed with zero residual mutations)",
+          "PASS",
+          "Strict admission failure triggered atomic rollback: 0 projects inserted, 0 translations, 0 media, 0 categories, 0 revisions, 0 publishing events committed."
+        );
+      } else {
+        recordTest(
+          "GATEB-27",
+          "Atomic Transaction Rollback Proof",
+          "FAIL",
+          `didThrowStrict=${Boolean(didThrowStrict)}, zeroResidualMutations=${zeroResidualMutations}, before=${JSON.stringify(beforeSnapshot)}, after=${JSON.stringify(afterSnapshot)}`
+        );
+      }
+    } catch (err) {
+      recordTest("GATEB-27", "Atomic Transaction Rollback Proof", "FAIL", err.message);
+    }
+
+    // -------------------------------------------------------------------------
+    // TEST 28: Complete Media Attributes Deep Parity (All 14 attributes checked)
+    // -------------------------------------------------------------------------
+    try {
+      const mediaParityDb = createScenarioDb("scenario-media-parity.sqlite");
+      const canonicalProjects = extractCanonicalProjects();
+      const firstProj = canonicalProjects[0];
+
+      // Mutate one media attribute: byte_size
+      const db = new DatabaseSync(mediaParityDb);
+      db.prepare(
+        "UPDATE project_media SET byte_size = 999999 WHERE project_id = ? AND sort_order = 1"
+      ).run(firstProj.id);
+      db.close();
+
+      const verifyDb = new DatabaseSync(mediaParityDb);
+      const composite = getCompositeProjectRecord(verifyDb, firstProj.id);
+      const diffs = compareCanonicalWithProjectRecord(firstProj, composite);
+      verifyDb.close();
+
+      const hasByteSizeDiff = diffs.some(
+        (d) => d.domain === "media" && d.field === "item_1_byte_size" && d.actual === 999999
+      );
+
+      if (hasByteSizeDiff) {
+        recordTest(
+          "GATEB-28",
+          "Complete Media Attributes Deep Parity (All 14 attributes checked for strict fidelity)",
+          "PASS",
+          "Binary byte_size tampering correctly detected as media relational parity diff."
+        );
+      } else {
+        recordTest("GATEB-28", "Complete Media Attributes Deep Parity", "FAIL", `Diffs: ${JSON.stringify(diffs)}`);
+      }
+    } catch (err) {
+      recordTest("GATEB-28", "Complete Media Attributes Deep Parity", "FAIL", err.message);
+    }
+
+    // -------------------------------------------------------------------------
+    // TEST 29: Historical Integrity & Category Association Parity
+    // -------------------------------------------------------------------------
+    try {
+      const historyDb = createScenarioDb("scenario-history-parity.sqlite");
+      const canonicalProjects = extractCanonicalProjects();
+      const targetProj = canonicalProjects[0];
+
+      const db = new DatabaseSync(historyDb);
+
+      // Part A: Delete initial seed migration revision
+      db.prepare("DELETE FROM project_revisions WHERE project_id = ? AND revision_number = 1").run(targetProj.id);
+      let composite = getCompositeProjectRecord(db, targetProj.id);
+      let diffsA = compareCanonicalWithProjectRecord(targetProj, composite);
+      const caughtMissingRev = diffsA.some((d) => d.domain === "history" && d.field === "initial_seed_revision");
+
+      // Restore revision 1 and delete publishing event
+      db.prepare(
+        `INSERT INTO project_revisions (id, project_id, revision_number, action, snapshot_json, actor_email, created_at)
+         VALUES (?, ?, 1, 'seed_migration', '{}', 'system@keremmihci.com', '2026-01-01T00:00:00Z')`
+      ).run(`rev-${targetProj.id}-1`, targetProj.id);
+      db.prepare("DELETE FROM publishing_events WHERE project_id = ?").run(targetProj.id);
+      composite = getCompositeProjectRecord(db, targetProj.id);
+      let diffsB = compareCanonicalWithProjectRecord(targetProj, composite);
+      const caughtMissingPub = diffsB.some((d) => d.domain === "history" && d.field === "initial_publishing_event");
+
+      // Restore publishing event and add owner edit revision 2
+      db.prepare(
+        `INSERT INTO publishing_events (id, project_id, event_type, previous_status, new_status, actor_email, notes, created_at)
+         VALUES (?, ?, 'publish', NULL, 'published', 'system@keremmihci.com', 'Initial publish', '2026-01-01T00:00:00Z')`
+      ).run(`pub-${targetProj.id}-1`, targetProj.id);
+      db.prepare(
+        `INSERT INTO project_revisions (id, project_id, revision_number, action, snapshot_json, actor_email, created_at)
+         VALUES (?, ?, 2, 'owner_update', '{}', 'owner@keremmihci.com', '2026-01-02T00:00:00Z')`
+      ).run(`rev-${targetProj.id}-2`, targetProj.id);
+      composite = getCompositeProjectRecord(db, targetProj.id);
+      let diffsC = compareCanonicalWithProjectRecord(targetProj, composite);
+      const ownerHistoryPreserved = !diffsC.some((d) => d.domain === "history");
+
+      // Part D: Add extraneous second category
+      db.prepare(
+        `INSERT OR IGNORE INTO categories (id, slug, workspace, label_tr, label_en, sort_order, created_at)
+         VALUES ('cat-extra', 'extra-cat', 'design', 'Ekstra', 'Extra', 99, '2026-01-01T00:00:00Z')`
+      ).run();
+      db.prepare("INSERT INTO project_categories (project_id, category_id) VALUES (?, 'cat-extra')").run(targetProj.id);
+      composite = getCompositeProjectRecord(db, targetProj.id);
+      let diffsD = compareCanonicalWithProjectRecord(targetProj, composite);
+      const extraCategoryCaught = diffsD.some((d) => d.domain === "category" && d.field === "categoryAssignments");
+
+      db.close();
+
+      if (caughtMissingRev && caughtMissingPub && ownerHistoryPreserved && extraCategoryCaught) {
+        recordTest(
+          "GATEB-29",
+          "Historical Integrity & Category Association Parity (Initial revision/publishing required, owner edits retained, extra category rejected)",
+          "PASS",
+          "Missing initial revision/publish events caught as history diffs, owner edit history retained without false conflict, and extra category assignment strictly rejected."
+        );
+      } else {
+        recordTest(
+          "GATEB-29",
+          "Historical Integrity & Category Association Parity",
+          "FAIL",
+          `caughtMissingRev=${caughtMissingRev}, caughtMissingPub=${caughtMissingPub}, ownerHistoryPreserved=${ownerHistoryPreserved}, extraCategoryCaught=${extraCategoryCaught}`
+        );
+      }
+    } catch (err) {
+      recordTest("GATEB-29", "Historical Integrity & Category Association Parity", "FAIL", err.message);
+    }
+
+    // -------------------------------------------------------------------------
+    // TEST 30: Strict Namespace Boundaries & Missing Local File Rejection in R2 Simulator
+    // -------------------------------------------------------------------------
+    try {
+      // 30a. Arbitrary non-canonical prefix rejected in ownership validator
+      const arbitraryPrefixFile = {
+        intendedR2Key: "images/projects/yanarsan/cover.webp",
+        mimeType: "image/webp",
+        byteSize: 100,
+        sha256: "abc123",
+        status: "LOCAL_PRESENT",
+        scope: MEDIA_SCOPES.CANONICAL_PROJECT_MEDIA,
+        owners: [{ entityType: "project", entityId: "yanarsan", assetRole: "cover" }]
+      };
+      const errorsA = validateMediaAssetOwnership(arbitraryPrefixFile);
+      const caughtPrefix = errorsA.some((e) => e.reason.includes("Namespace violation"));
+
+      // 30b. Missing local file rejected from upload planning in simulateMediaSync
+      const missingLocalFileManifest = {
+        uniqueFiles: [
+          {
+            intendedR2Key: "projects/yanarsan/missing-asset.webp",
+            mimeType: "image/webp",
+            byteSize: 0,
+            sha256: null,
+            status: "MISSING_LOCAL_FILE",
+            scope: MEDIA_SCOPES.CANONICAL_PROJECT_MEDIA,
+            owners: [{ entityType: "project", entityId: "yanarsan", assetRole: "gallery" }]
+          }
+        ]
+      };
+      const simResults = simulateMediaSync(missingLocalFileManifest, {});
+      const zeroUploadsPlanned = simResults.plannedUploads.length === 0;
+      const recordedMissing = simResults.rejectedMissingFiles.length === 1;
+
+      if (caughtPrefix && zeroUploadsPlanned && recordedMissing) {
+        recordTest(
+          "GATEB-30",
+          "Strict Namespace Boundaries & Missing Local File Rejection in R2 Simulator",
+          "PASS",
+          "Arbitrary key prefix (images/projects/...) rejected as namespace violation, and missing local files strictly rejected from upload planning."
+        );
+      } else {
+        recordTest(
+          "GATEB-30",
+          "Strict Namespace Boundaries & Missing Local File Rejection in R2 Simulator",
+          "FAIL",
+          `caughtPrefix=${caughtPrefix}, zeroUploadsPlanned=${zeroUploadsPlanned}, recordedMissing=${recordedMissing}`
+        );
+      }
+    } catch (err) {
+      recordTest("GATEB-30", "Strict Namespace Boundaries & Missing Local File Rejection in R2 Simulator", "FAIL", err.message);
+    }
+
+    // -------------------------------------------------------------------------
+    // TEST 31: Canonical R2 Key Verification & Transfer Scope Parity
+    // -------------------------------------------------------------------------
+    try {
+      const manifest = buildMediaManifest();
+      const projCandidates = manifest.uniqueFiles.filter(
+        (f) => f.scope === MEDIA_SCOPES.CANONICAL_PROJECT_MEDIA
+      );
+      const vidCandidates = manifest.uniqueFiles.filter(
+        (f) => f.scope === MEDIA_SCOPES.CANONICAL_VIDEO_MEDIA
+      );
+
+      const allProjsStartWithProjects = projCandidates.every((f) => f.intendedR2Key.startsWith("projects/"));
+      const allVidsStartWithVideos = vidCandidates.every((f) => f.intendedR2Key.startsWith("videos/"));
+      const noImagesProjectsPrefix = manifest.uniqueFiles.every((f) => !f.intendedR2Key.startsWith("images/projects/"));
+
+      const transferScopePath = path.join(ROOT, "docs", "reviews", "PORTFOLIO_OS_PHASE6_MEDIA_TRANSFER_SCOPE.json");
+      const scopeContent = JSON.parse(fs.readFileSync(transferScopePath, "utf-8"));
+      const projPrefix = scopeContent.scopes[MEDIA_SCOPES.CANONICAL_PROJECT_MEDIA].r2NamespacePrefix;
+      const vidPrefix = scopeContent.scopes[MEDIA_SCOPES.CANONICAL_VIDEO_MEDIA].r2NamespacePrefix;
+
+      const scopePrefixMatch = projPrefix === "projects/" && vidPrefix === "videos/";
+
+      if (
+        projCandidates.length === 130 &&
+        vidCandidates.length === 42 &&
+        allProjsStartWithProjects &&
+        allVidsStartWithVideos &&
+        noImagesProjectsPrefix &&
+        scopePrefixMatch
+      ) {
+        recordTest(
+          "GATEB-31",
+          "Canonical R2 Key Verification & Transfer Scope Parity (100% projects/ and videos/)",
+          "PASS",
+          "130 project media keys match 'projects/', 42 video keys match 'videos/', and transfer scope specification defines 'projects/'."
+        );
+      } else {
+        recordTest(
+          "GATEB-31",
+          "Canonical R2 Key Verification & Transfer Scope Parity",
+          "FAIL",
+          `projCount=${projCandidates.length}, vidCount=${vidCandidates.length}, allProjs=${allProjsStartWithProjects}, allVids=${allVidsStartWithVideos}, scopeMatch=${scopePrefixMatch}`
+        );
+      }
+    } catch (err) {
+      recordTest("GATEB-31", "Canonical R2 Key Verification & Transfer Scope Parity", "FAIL", err.message);
+    }
+
+    // -------------------------------------------------------------------------
+    // TEST 32: Host Local Database Invariance Check (.local-d1/portfolio.sqlite SHA-256 invariant)
     // -------------------------------------------------------------------------
     try {
       const finalHash = sha256File(hostDbPath);
 
       if (finalHash === EXPECTED_HOST_DB_SHA256) {
         recordTest(
-          "GATEB-27",
+          "GATEB-32",
           "Host Database Checksum Invariance (.local-d1/portfolio.sqlite SHA-256 invariant)",
           "PASS",
           `Checksum strictly invariant: ${finalHash}. Zero development database mutations across all tests.`
         );
       } else {
-        recordTest("GATEB-27", "Host Database Checksum Invariance", "FAIL", `Checksum mutated! Expected ${EXPECTED_HOST_DB_SHA256}, got ${finalHash}`);
+        recordTest("GATEB-32", "Host Database Checksum Invariance", "FAIL", `Checksum mutated! Expected ${EXPECTED_HOST_DB_SHA256}, got ${finalHash}`);
       }
     } catch (err) {
-      recordTest("GATEB-27", "Host Database Checksum Invariance", "FAIL", err.message);
+      recordTest("GATEB-32", "Host Database Checksum Invariance", "FAIL", err.message);
     }
 
   } finally {

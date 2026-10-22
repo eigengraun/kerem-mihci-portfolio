@@ -268,17 +268,27 @@ export function validateMediaAssetOwnership(file, destinationBucket = {}) {
   for (const owner of file.owners || []) {
     // 1. Entity type vs namespace checks
     if (owner.entityType === "project") {
-      if (key.startsWith("videos/") || key.startsWith("profile/") || key.startsWith("cv/")) {
+      if (!key.startsWith("projects/")) {
         errors.push({
           key,
           entityType: owner.entityType,
           entityId: owner.entityId,
           assetRole: owner.assetRole,
-          reason: `Namespace violation: project asset mapped to forbidden prefix '${key.split("/")[0]}'`
+          reason: `Namespace violation: project asset must reside in 'projects/' namespace (got '${key}')`
         });
       }
-      const match = key.match(/^(?:images\/)?projects\/([^/]+)\//);
-      if (match) {
+      const match = key.match(/^projects\/([^/]+)\//);
+      if (!match) {
+        if (key.startsWith("projects/")) {
+          errors.push({
+            key,
+            entityType: owner.entityType,
+            entityId: owner.entityId,
+            assetRole: owner.assetRole,
+            reason: `Namespace violation: project asset missing project slug in path '${key}'`
+          });
+        }
+      } else {
         const pathSlug = match[1];
         if (owner.entityId !== pathSlug && normalizeSlug(owner.entityId) !== pathSlug) {
           errors.push({
@@ -301,7 +311,17 @@ export function validateMediaAssetOwnership(file, destinationBucket = {}) {
         });
       }
       const match = key.match(/^videos\/([^/]+)\//);
-      if (match) {
+      if (!match) {
+        if (key.startsWith("videos/")) {
+          errors.push({
+            key,
+            entityType: owner.entityType,
+            entityId: owner.entityId,
+            assetRole: owner.assetRole,
+            reason: `Namespace violation: video asset missing video slug in path '${key}'`
+          });
+        }
+      } else {
         const pathSlug = match[1];
         if (owner.entityId !== pathSlug && normalizeSlug(owner.entityId) !== pathSlug) {
           errors.push({
@@ -320,9 +340,17 @@ export function validateMediaAssetOwnership(file, destinationBucket = {}) {
           entityType: owner.entityType,
           entityId: owner.entityId,
           assetRole: owner.assetRole,
-          reason: `Namespace violation: personal asset must reside in 'profile/' or 'cv/' namespace`
+          reason: `Namespace violation: personal asset must reside in 'profile/' or 'cv/' namespace (got '${key}')`
         });
       }
+    } else {
+      errors.push({
+        key,
+        entityType: owner.entityType,
+        entityId: owner.entityId,
+        assetRole: owner.assetRole,
+        reason: `Unrecognized owner entity type '${owner.entityType}'`
+      });
     }
 
     // Role validation
@@ -380,6 +408,7 @@ export function simulateMediaSync(manifest, mockDestinationBucket = {}, options 
     conflictsRequiringApproval: [],
     rejectedOwnershipMismatches: [],
     rejectedInvalidMimes: [],
+    rejectedMissingFiles: [],
     rejectedUnapprovedOverwrites: [],
     excludedUnapprovedScopes: [],
     zeroUnexpectedWrites: true
@@ -394,6 +423,17 @@ export function simulateMediaSync(manifest, mockDestinationBucket = {}, options 
         key,
         mimeType: file.mimeType,
         reason: "Disallowed MIME type"
+      });
+      continue;
+    }
+
+    // Check missing local file or unverified hash
+    if (file.status !== "LOCAL_PRESENT" || !file.sha256 || typeof file.byteSize !== "number" || file.byteSize < 0) {
+      syncResults.rejectedMissingFiles.push({
+        key,
+        status: file.status || "UNKNOWN",
+        sha256: file.sha256 || null,
+        reason: "Local file is missing or has unverified hash/byte size; rejected from upload planning"
       });
       continue;
     }
@@ -545,10 +585,11 @@ if (isMain) {
   const wrongEntityManifest = {
     uniqueFiles: [
       {
-        intendedR2Key: "images/projects/project-alpha/cover.webp",
+        intendedR2Key: "projects/project-alpha/cover.webp",
         mimeType: "image/webp",
         byteSize: 1000,
         sha256: "aaa",
+        status: "LOCAL_PRESENT",
         scope: MEDIA_SCOPES.CANONICAL_PROJECT_MEDIA,
         owners: [{ entityType: "project", entityId: "project-beta", assetRole: "cover" }]
       }
@@ -565,6 +606,7 @@ if (isMain) {
         mimeType: "image/webp",
         byteSize: 1000,
         sha256: "bbb",
+        status: "LOCAL_PRESENT",
         scope: MEDIA_SCOPES.CANONICAL_PROJECT_MEDIA,
         owners: [{ entityType: "project", entityId: "proj-1", assetRole: "cover" }]
       }
@@ -575,7 +617,7 @@ if (isMain) {
 
   // Test 8: Destination Key Collision (different owner)
   const collisionMock = {
-    "images/projects/project-alpha/cover.webp": {
+    "projects/project-alpha/cover.webp": {
       byteSize: 1000,
       sha256: "ccc",
       ownerEntityId: "original-owner",
@@ -585,10 +627,11 @@ if (isMain) {
   const collisionManifest = {
     uniqueFiles: [
       {
-        intendedR2Key: "images/projects/project-alpha/cover.webp",
+        intendedR2Key: "projects/project-alpha/cover.webp",
         mimeType: "image/webp",
         byteSize: 1000,
         sha256: "ccc",
+        status: "LOCAL_PRESENT",
         scope: MEDIA_SCOPES.CANONICAL_PROJECT_MEDIA,
         owners: [{ entityType: "project", entityId: "intruder-owner", assetRole: "cover" }]
       }
@@ -596,6 +639,23 @@ if (isMain) {
   };
   const collisionSim = simulateMediaSync(collisionManifest, collisionMock);
   console.log(`  Simulation 8 (Destination Collision): ${collisionSim.rejectedOwnershipMismatches.length} collision rejected.`);
+
+  // Test 9: Missing Local File Rejection (Fail-closed on unverified local presence)
+  const missingFileManifest = {
+    uniqueFiles: [
+      {
+        intendedR2Key: "projects/project-alpha/missing.webp",
+        mimeType: "image/webp",
+        byteSize: 0,
+        sha256: null,
+        status: "MISSING_LOCAL_FILE",
+        scope: MEDIA_SCOPES.CANONICAL_PROJECT_MEDIA,
+        owners: [{ entityType: "project", entityId: "project-alpha", assetRole: "cover" }]
+      }
+    ]
+  };
+  const missingFileSim = simulateMediaSync(missingFileManifest, {});
+  console.log(`  Simulation 9 (Missing Local File Rejection): ${missingFileSim.rejectedMissingFiles.length} missing file(s) rejected from upload planning.`);
 
   // Save manifest artifact
   const manifestOutputPath = path.join(ROOT, "docs", "reviews", "PORTFOLIO_OS_PHASE6_MEDIA_SOURCE_MANIFEST.json");
@@ -629,7 +689,7 @@ if (isMain) {
         decimalMB: manifest.summary.scopes[MEDIA_SCOPES.CANONICAL_PROJECT_MEDIA].decimalMB,
         binaryMiB: manifest.summary.scopes[MEDIA_SCOPES.CANONICAL_PROJECT_MEDIA].binaryMiB,
         defaultTransferAllowed: true,
-        r2NamespacePrefix: "images/projects/"
+        r2NamespacePrefix: "projects/"
       },
       [MEDIA_SCOPES.CANONICAL_VIDEO_MEDIA]: {
         count: manifest.summary.scopes[MEDIA_SCOPES.CANONICAL_VIDEO_MEDIA].count,

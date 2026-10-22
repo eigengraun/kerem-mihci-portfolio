@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-22T14:35:28.583Z",
+  "timestamp": "2026-10-22T15:41:00.495Z",
   "status": "GATEB_MEDIA_SCOPE_SEGREGATED",
   "contract": "PORTFOLIO_OS_GATE_B_MEDIA_TRANSFER_SCOPE_POLICY",
   "summary": {
@@ -24,7 +24,7 @@
       "decimalMB": 11.59,
       "binaryMiB": 11.06,
       "defaultTransferAllowed": true,
-      "r2NamespacePrefix": "images/projects/"
+      "r2NamespacePrefix": "projects/"
     },
     "CANONICAL_VIDEO_MEDIA": {
       "count": 42,

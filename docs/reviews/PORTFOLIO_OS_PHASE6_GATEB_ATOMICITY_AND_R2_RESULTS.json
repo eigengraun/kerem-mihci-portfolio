@@ -1,0 +1,95 @@
+{
+  "timestamp": "2026-10-22T15:46:00.000Z",
+  "contract": "PORTFOLIO_OS_PHASE6_GATEB_ATOMICITY_AND_R2_CONTRACT",
+  "verdict": "GATEB_TRANSACTION_AND_MEDIA_CONTRACT_PASS",
+  "summary": {
+    "totalChecks": 32,
+    "passedChecks": 32,
+    "failedChecks": 0,
+    "passRate": "100%"
+  },
+  "defectsResolved": [
+    {
+      "id": "DEFECT-1",
+      "severity": "P0",
+      "title": "Strict project admission runs after transaction COMMIT",
+      "rootCause": "In scripts/import-canonical-projects-to-d1.mjs, COMMIT was executed prior to evaluating strict admission invariants. Furthermore, 0001_initial_schema.sql was being executed implicitly on write connection.",
+      "resolution": "Enclosed all database writes, post-write relational reconciliation, and strict admission evaluation inside ONE atomic SQLite transaction (BEGIN TRANSACTION ... COMMIT). Eliminated implicit schema execution; required preexisting schema with fail-closed check on 7 tables. Added negative test GATEB-27 proving that a failed strict run triggers ROLLBACK leaving exactly 0 rows, 0 revisions, and 0 publishing events committed.",
+      "verificationTest": "GATEB-27",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "DEFECT-2",
+      "severity": "P0",
+      "title": "Media transfer scope declares images/projects/ but actual keys use projects/",
+      "rootCause": "scripts/generate-media-manifest-and-simulation.mjs declared r2NamespacePrefix: 'images/projects/' in transfer scope payload while canonical project keys were generated with 'projects/'.",
+      "resolution": "Updated CANONICAL_PROJECT_MEDIA r2NamespacePrefix to 'projects/'. Verified that 100% of 130 canonical project media keys match 'projects/' and 42 video media keys match 'videos/'.",
+      "verificationTest": "GATEB-31",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "DEFECT-3",
+      "severity": "P1",
+      "title": "Project relational parity omits attributes and lacks revision/publishing history verification",
+      "rootCause": "compareCanonicalWithProjectRecord() omitted parent sort_order and source_url, checked only 5 of 14 media attributes, allowed extra category assignments, and lacked historical integrity assertions.",
+      "resolution": "Expanded compareCanonicalWithProjectRecord() to verify parent sort_order and source_url; all 14 media attributes (id, kind, media_type, storage_key, public_url, filename, mime_type, byte_size, width, height, alt_tr, alt_en, caption_tr, caption_en, sort_order) plus extra media detection; strict 1:1 category assignments; and historical integrity (initial seed revision 1 with action seed_migration, initial publishing event with event_type publish). Preserved subsequent owner audit history without false conflicts.",
+      "verificationTests": ["GATEB-28", "GATEB-29"],
+      "status": "RESOLVED"
+    },
+    {
+      "id": "DEFECT-4",
+      "severity": "P1",
+      "title": "Ownership validation allows arbitrary project namespaces and simulator plans missing local files",
+      "rootCause": "validateMediaAssetOwnership() did not require key.startsWith('projects/') for projects, and simulateMediaSync() planned uploads without gating on file.status === 'LOCAL_PRESENT' and non-null sha256.",
+      "resolution": "Enforced strict namespace boundaries in validateMediaAssetOwnership() rejecting non-canonical prefixes (images/projects/, misc/, uploads/, other/). Gated simulateMediaSync() on file.status === 'LOCAL_PRESENT' and verified sha256/byteSize, routing missing files to syncResults.rejectedMissingFiles.",
+      "verificationTest": "GATEB-30",
+      "status": "RESOLVED"
+    }
+  ],
+  "verificationSuite": {
+    "testSuiteScript": "scripts/verify-phase6-gateb-local.mjs",
+    "totalTests": 32,
+    "tests": [
+      { "id": "GATEB-01", "name": "Canonical Projects Source Manifest", "status": "PASS" },
+      { "id": "GATEB-02", "name": "Canonical Videos Source Manifest", "status": "PASS" },
+      { "id": "GATEB-03", "name": "Authoritative Media Manifest & Disk Presence", "status": "PASS" },
+      { "id": "GATEB-04", "name": "Media Privacy Segregation", "status": "PASS" },
+      { "id": "GATEB-05", "name": "R2 Sync Simulation — Clean Bucket & Idempotent Sync", "status": "PASS" },
+      { "id": "GATEB-06", "name": "R2 Sync Simulation — Hash Conflict & Protected Overwrite Rejection", "status": "PASS" },
+      { "id": "GATEB-07", "name": "R2 Sync Simulation — Invalid MIME Type Rejection", "status": "PASS" },
+      { "id": "GATEB-08", "name": "R2 Sync Simulation — Ownership, Namespace & Destination Collision Validation", "status": "PASS" },
+      { "id": "GATEB-09", "name": "Disposable Fixture Project Import — Clean Insert", "status": "PASS" },
+      { "id": "GATEB-10", "name": "Project Importer Idempotency & Relational Parity Audit", "status": "PASS" },
+      { "id": "GATEB-11", "name": "Owner-Edit Preservation Scenario A (Parent Field)", "status": "PASS" },
+      { "id": "GATEB-12", "name": "Owner-Edit Preservation Scenario B (Turkish Title)", "status": "PASS" },
+      { "id": "GATEB-13", "name": "Owner-Edit Preservation Scenario C (English Title)", "status": "PASS" },
+      { "id": "GATEB-14", "name": "Owner-Edit Preservation Scenario D (Media Alt Text)", "status": "PASS" },
+      { "id": "GATEB-15", "name": "Owner-Edit Preservation Scenario E (Media Reordering)", "status": "PASS" },
+      { "id": "GATEB-16", "name": "Owner-Edit Preservation Scenario F (Category Change)", "status": "PASS" },
+      { "id": "GATEB-17", "name": "Owner-Edit Preservation Scenario G (Tags JSON Metadata)", "status": "PASS" },
+      { "id": "GATEB-18", "name": "Owner-Edit Preservation Scenario H (Identity Collision Detection)", "status": "PASS" },
+      { "id": "GATEB-19", "name": "Owner-Edit Preservation Scenario I (Non-Canonical Row Detection)", "status": "PASS" },
+      { "id": "GATEB-20", "name": "Strict Admission Negative Verification", "status": "PASS" },
+      { "id": "GATEB-21", "name": "Disposable Fixture Video Import — Clean Insert", "status": "PASS" },
+      { "id": "GATEB-22", "name": "Video Importer Idempotency & Strict Parity Audit", "status": "PASS" },
+      { "id": "GATEB-23", "name": "Honest Dry-Run Reporting", "status": "PASS" },
+      { "id": "GATEB-24", "name": "Remote Production Execution Fail-Closed Enforcement", "status": "PASS" },
+      { "id": "GATEB-25", "name": "Cloudflare Routing Constraints Documented Accurately", "status": "PASS" },
+      { "id": "GATEB-26", "name": "Personal Content Governance Strict Boundary", "status": "PASS" },
+      { "id": "GATEB-27", "name": "Atomic Transaction Rollback Proof (Negative fixture fails closed)", "status": "PASS" },
+      { "id": "GATEB-28", "name": "Complete Media Attributes Deep Parity (All 14 attributes checked)", "status": "PASS" },
+      { "id": "GATEB-29", "name": "Historical Integrity & Category Association Parity", "status": "PASS" },
+      { "id": "GATEB-30", "name": "Strict Namespace Boundaries & Missing Local File Rejection in R2 Simulator", "status": "PASS" },
+      { "id": "GATEB-31", "name": "Canonical R2 Key Verification & Transfer Scope Parity", "status": "PASS" },
+      { "id": "GATEB-32", "name": "Host Database Checksum Invariance (.local-d1/portfolio.sqlite invariant)", "status": "PASS" }
+    ]
+  },
+  "invariants": {
+    "hostDatabaseSha256": "470d8f14ce1237cc557367f0b125be489f086fb99534ffa7fb046ad607182743",
+    "hostDatabaseInvariant": true,
+    "remoteD1Mutations": 0,
+    "remoteR2Mutations": 0,
+    "remoteWorkerDeployments": 0,
+    "mainBranchMutations": 0
+  }
+}

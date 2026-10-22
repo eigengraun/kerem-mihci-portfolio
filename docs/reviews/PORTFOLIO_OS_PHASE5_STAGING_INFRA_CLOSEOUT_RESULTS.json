@@ -1,0 +1,96 @@
+{
+  "suite": "Portfolio OS Phase 5 Staging Infrastructure Closeout & Source Provenance Verification",
+  "project": "eigengraun/kerem-mihci-portfolio",
+  "branch": "feature/portfolio-phase5-notes-profile-cv",
+  "timestamp": "2026-10-22T11:45:00.000Z",
+  "verdict": "STAGING_INFRA_CLOSED",
+  "sourceProvenanceAudit": {
+    "startingReviewedCommit": "80d9b2747b64925c21c5341589909053c49e930f",
+    "verifiedStagingConfigCommit": "a656482d34f2d11aa59f5688d615a4b44d79de6b",
+    "subsequentDocCommit": "3eb2cb120f9435a7808d40ea76d720cc78e0eaeb",
+    "currentGitHead": "3eb2cb120f9435a7808d40ea76d720cc78e0eaeb",
+    "discrepancyInvestigation": {
+      "invalidShaInEarlierReports": "a6564821a42cecb2e3a15233fb1f108f91880a4a",
+      "rootCause": "Documentation transcription suffix hallucination following short 7-character commit prefix a656482",
+      "gitObjectExistence": false,
+      "immutableGitObjectVerified": "a656482d34f2d11aa59f5688d615a4b44d79de6b",
+      "workingTreeAtDeployment": "CLEAN",
+      "provenanceConfidence": "PROVEN_IMMUTABLE_LOG_AND_GIT_PARITY"
+    }
+  },
+  "deployedRuntimeVerification": {
+    "cloudflareAccount": "9791a288e2e99e7f3403590480e3ad6f",
+    "workerName": "kerem-mihci-portfolio-api-staging",
+    "workerUrl": "https://kerem-mihci-portfolio-api-staging.kerem-mihci.workers.dev",
+    "d1DatabaseName": "kerem-portfolio-db-staging",
+    "d1DatabaseUuid": "0efef7a7-cc93-4dc2-8cb7-db28379fe01f",
+    "r2BucketName": "kerem-portfolio-media-staging",
+    "activeDeploymentId": "b35b16d7-aff6-4229-9b31-85ffd9505d57",
+    "activeVersionId": "0f2b8f47-04f1-4103-852e-b241f475bcc3",
+    "trafficAllocation": "100%",
+    "deploymentTimestamp": "2026-10-22T10:38:51.510772Z",
+    "stagingVariables": {
+      "ENVIRONMENT": "staging",
+      "ALLOW_CANONICAL_SEED": "false",
+      "PUBLIC_SITE_ORIGIN": "https://keremmihci.com"
+    }
+  },
+  "remoteDatabaseIntegrity": {
+    "migrationLedger": [
+      { "id": 1, "name": "0001_initial_schema.sql", "appliedAt": "2026-10-19 21:17:15" },
+      { "id": 2, "name": "0002_videos_and_reels_schema.sql", "appliedAt": "2026-10-20 17:35:07" },
+      { "id": 3, "name": "0003_personal_gallery_schema.sql", "appliedAt": "2026-10-21 19:47:34" },
+      { "id": 4, "name": "0004_profile_notes_cv_schema.sql", "appliedAt": "2026-10-22 10:37:53" }
+    ],
+    "pendingMigrationsCount": 0,
+    "phase5TablesCount": 16,
+    "phase5IndexesCount": 13,
+    "phase5ContentRowsCount": 0,
+    "canonicalDataPreservation": {
+      "projectsCount": 31,
+      "canonicalPublishedProjects": 30,
+      "draftProjects": 1,
+      "draftProjectId": "staging-e2e-29cbd44d",
+      "projectMediaCount": 72,
+      "portfolioVideosCount": 21,
+      "portfolioGalleryItemsCount": 0
+    }
+  },
+  "readOnlyApiSmokeVerification": {
+    "script": "scripts/smoke-phase5-staging-readonly.mjs",
+    "totalChecks": 43,
+    "passed": 43,
+    "failed": 0,
+    "passRate": "100.0%",
+    "summary": {
+      "publicHealth": "HTTP_200_OK",
+      "publishedCount": 30,
+      "healthyEmptyProfile": "HTTP_404_PROFILE_NOT_PUBLISHED_NO_STORE",
+      "healthyEmptyCvTr": "HTTP_404_CV_NOT_PUBLISHED_NO_STORE",
+      "healthyEmptyCvEn": "HTTP_404_CV_NOT_PUBLISHED_NO_STORE",
+      "emptyNotesDesign": "HTTP_200_EMPTY_ARRAY",
+      "emptyNotesWeb": "HTTP_200_EMPTY_ARRAY",
+      "emptyNotesMotionAi": "HTTP_200_EMPTY_ARRAY",
+      "emptyExperience": "HTTP_200_EMPTY_ARRAY",
+      "emptyEducation": "HTTP_200_EMPTY_ARRAY",
+      "emptySkills": "HTTP_200_EMPTY_ARRAY",
+      "unauthenticatedAdminGet": "HTTP_401_UNAUTHORIZED",
+      "invalidTokenAdminGet": "HTTP_401_UNAUTHORIZED",
+      "unknownRoute404": "HTTP_404_DISTINCT_CODE"
+    }
+  },
+  "localHostDatabase": {
+    "path": ".local-d1/portfolio.sqlite",
+    "sha256": "470d8f14ce1237cc557367f0b125be489f086fb99534ffa7fb046ad607182743",
+    "invariant": true
+  },
+  "safetyAudit": {
+    "remoteD1WritesInThisTask": 0,
+    "remoteWorkerDeploymentsInThisTask": 0,
+    "remoteR2WritesInThisTask": 0,
+    "remoteSeedingExecuted": false,
+    "personalContentPublished": false,
+    "productionImpact": 0,
+    "mainBranchModified": false
+  }
+}

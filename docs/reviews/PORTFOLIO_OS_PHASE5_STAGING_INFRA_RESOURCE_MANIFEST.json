@@ -3,7 +3,13 @@
   "project": "eigengraun/kerem-mihci-portfolio",
   "branch": "feature/portfolio-phase5-notes-profile-cv",
   "startingGitHead": "80d9b2747b64925c21c5341589909053c49e930f",
-  "deployedCandidateSha": "a6564821a42cecb2e3a15233fb1f108f91880a4a",
+  "deployedCandidateSha": "a656482d34f2d11aa59f5688d615a4b44d79de6b",
+  "subsequentDocCommit": "3eb2cb120f9435a7808d40ea76d720cc78e0eaeb",
+  "errata": {
+    "originallyRecordedCandidateSha": "a6564821a42cecb2e3a15233fb1f108f91880a4a",
+    "verifiedActualCandidateSha": "a656482d34f2d11aa59f5688d615a4b44d79de6b",
+    "explanation": "Suffix transcription hallucination after short commit prefix a656482 in report metadata; true immutable Git object is a656482d34f2d11aa59f5688d615a4b44d79de6b"
+  },
   "timestamp": "2026-10-22T10:41:00.000Z",
   "verdict": "STAGING_INFRA_PASS",
   "authorizationScope": {

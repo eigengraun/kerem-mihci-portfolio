@@ -6,10 +6,14 @@
 **Final Rollout Verdict:** `STAGING_INFRA_PASS`  
 **Git Branch:** `feature/portfolio-phase5-notes-profile-cv`  
 **Starting Audited HEAD:** `80d9b2747b64925c21c5341589909053c49e930f`  
-**Deployed Candidate SHA:** `a6564821a42cecb2e3a15233fb1f108f91880a4a`  
+**Deployed Candidate SHA (Verified):** `a656482d34f2d11aa59f5688d615a4b44d79de6b` *(Original report recorded `a6564821a42cecb2e3a15233fb1f108f91880a4a`; see Erratum below)*<br/>
 **Cloudflare Account ID:** `9791a288e2e99e7f3403590480e3ad6f`  
 **Previous Worker Version ID:** `17c423b0-0b8e-4d6a-b402-ec6aba90616e`  
 **Current Serving Worker Version ID:** `0f2b8f47-04f1-4103-852e-b241f475bcc3` (100% traffic)  
+
+> [!IMPORTANT]
+> **ERRATUM (Source SHA Provenance Correction — 2026-10-22):**
+> In the original rollout documentation, the Deployed Candidate SHA was transcribed as `a6564821a42cecb2e3a15233fb1f108f91880a4a` due to suffix hallucination after the 7-character short hash `a656482`. An independent audit confirmed that the true, immutable Git commit hash in the repository for short commit `a656482` is `a656482d34f2d11aa59f5688d615a4b44d79de6b` (`fix(staging): disable canonical seeding in staging configuration (ALLOW_CANONICAL_SEED=false)`). The subsequent documentation commit was `3eb2cb120f9435a7808d40ea76d720cc78e0eaeb`. Both the original recorded string and the verified Git SHA are preserved in the historical audit trail.
 
 ---
 
@@ -35,7 +39,7 @@ In strict accordance with the user's explicit authorization of **VERDICT A (Infr
 | **Repository** | `eigengraun/kerem-mihci-portfolio` | Verified |
 | **Branch** | `feature/portfolio-phase5-notes-profile-cv` | Up to date with origin |
 | **Starting Audited Commit** | `80d9b2747b64925c21c5341589909053c49e930f` | Verified |
-| **Deployed Candidate Commit** | `a6564821a42cecb2e3a15233fb1f108f91880a4a` | Verified |
+| **Deployed Candidate Commit** | `a656482d34f2d11aa59f5688d615a4b44d79de6b` *(Erroneously recorded as `a6564821a42cecb2e3a15233fb1f108f91880a4a`)* | Verified Git Commit |
 | **Wrangler CLI Version** | `4.151.3` | Verified |
 | **Cloudflare Account ID** | `9791a288e2e99e7f3403590480e3ad6f` | Verified (`Kerem.mihci@ogr.iuc.edu.tr's Account`) |
 | **Staging Worker Name** | `kerem-mihci-portfolio-api-staging` | Verified |

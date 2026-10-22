@@ -2,7 +2,11 @@
   "suite": "Portfolio OS Phase 5 Staging Infrastructure Rollout Verification Battery",
   "project": "eigengraun/kerem-mihci-portfolio",
   "branch": "feature/portfolio-phase5-notes-profile-cv",
-  "commit": "a6564821a42cecb2e3a15233fb1f108f91880a4a",
+  "commit": "a656482d34f2d11aa59f5688d615a4b44d79de6b",
+  "errata": {
+    "originallyRecordedCommit": "a6564821a42cecb2e3a15233fb1f108f91880a4a",
+    "verifiedActualCommit": "a656482d34f2d11aa59f5688d615a4b44d79de6b"
+  },
   "timestamp": "2026-10-22T10:41:30.000Z",
   "verdict": "STAGING_INFRA_PASS",
   "summary": {

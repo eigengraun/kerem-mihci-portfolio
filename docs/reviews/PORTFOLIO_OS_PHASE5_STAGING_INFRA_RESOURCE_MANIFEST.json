@@ -1,0 +1,128 @@
+{
+  "manifest": "Portfolio OS Phase 5 Staging Infrastructure Resource Manifest",
+  "project": "eigengraun/kerem-mihci-portfolio",
+  "branch": "feature/portfolio-phase5-notes-profile-cv",
+  "startingGitHead": "80d9b2747b64925c21c5341589909053c49e930f",
+  "deployedCandidateSha": "a6564821a42cecb2e3a15233fb1f108f91880a4a",
+  "timestamp": "2026-10-22T10:41:00.000Z",
+  "verdict": "STAGING_INFRA_PASS",
+  "authorizationScope": {
+    "approvedAction": "VERDICT A (Infrastructure Rollout Only)",
+    "d1Migration0004": "AUTHORIZED_AND_APPLIED",
+    "stagingWorkerDeploy": "AUTHORIZED_AND_DEPLOYED",
+    "contentSeeding": "FORBIDDEN_ZERO_WRITES",
+    "contentPublication": "FORBIDDEN_ZERO_WRITES",
+    "remoteR2Writes": "FORBIDDEN_ZERO_WRITES",
+    "productionMutations": "FORBIDDEN_ZERO_WRITES"
+  },
+  "cloudflareIdentity": {
+    "accountId": "9791a288e2e99e7f3403590480e3ad6f",
+    "accountName": "Kerem.mihci@ogr.iuc.edu.tr's Account",
+    "workerName": "kerem-mihci-portfolio-api-staging",
+    "workerUrl": "https://kerem-mihci-portfolio-api-staging.kerem-mihci.workers.dev",
+    "d1DatabaseName": "kerem-portfolio-db-staging",
+    "d1DatabaseId": "0efef7a7-cc93-4dc2-8cb7-db28379fe01f",
+    "r2BucketName": "kerem-portfolio-media-staging",
+    "wranglerVersion": "4.151.3"
+  },
+  "workerDeployments": {
+    "previous": {
+      "deploymentId": "6350e919-68dc-4fb8-a29c-e3eb773ca953",
+      "versionId": "17c423b0-0b8e-4d6a-b402-ec6aba90616e",
+      "createdOn": "2026-10-21T19:48:10.053832Z",
+      "trafficPercent": 100
+    },
+    "current": {
+      "deploymentId": "b35b16d7-aff6-4229-9b31-85ffd9505d57",
+      "versionId": "0f2b8f47-04f1-4103-852e-b241f475bcc3",
+      "createdOn": "2026-10-22T10:38:51.510772Z",
+      "trafficPercent": 100
+    }
+  },
+  "stagingConfiguration": {
+    "configFile": "cloudflare/portfolio-api/wrangler.jsonc",
+    "effectiveEnvironment": "staging",
+    "bindings": {
+      "PORTFOLIO_DB": "0efef7a7-cc93-4dc2-8cb7-db28379fe01f",
+      "PORTFOLIO_MEDIA": "kerem-portfolio-media-staging"
+    },
+    "vars": {
+      "ENVIRONMENT": "staging",
+      "PUBLIC_SITE_ORIGIN": "https://keremmihci.com",
+      "R2_PUBLIC_BASE_URL": "",
+      "ALLOW_CANONICAL_SEED": "false"
+    },
+    "canonicalSeedDisabled": true
+  },
+  "preMigrationBackup": {
+    "backupPath": "/Users/keremmihci/.cloudflare/backups/staging-d1-pre-phase5-1792665455.sql",
+    "byteSize": 789067,
+    "sha256": "633e816fe948538d03f136be51a09e73148db2e8cf4062a572c3872ef1a98837",
+    "permissions": "0600",
+    "storedOutsideGit": true,
+    "isolatedSqliteIntegrityCheck": "ok",
+    "isolatedRestorationVerified": true
+  },
+  "migrationLedger": {
+    "migrationsDirectory": "cloudflare/portfolio-api/migrations",
+    "appliedMigrations": [
+      { "id": 1, "name": "0001_initial_schema.sql", "appliedAt": "2026-10-19 21:17:15" },
+      { "id": 2, "name": "0002_videos_and_reels_schema.sql", "appliedAt": "2026-10-20 17:35:07" },
+      { "id": 3, "name": "0003_personal_gallery_schema.sql", "appliedAt": "2026-10-21 19:47:34" },
+      { "id": 4, "name": "0004_profile_notes_cv_schema.sql", "appliedAt": "2026-10-22 10:37:53" }
+    ],
+    "pendingMigrations": []
+  },
+  "schemaVerification": {
+    "phase5TablesCreated": [
+      "portfolio_profile",
+      "portfolio_profile_translations",
+      "portfolio_profile_revisions",
+      "portfolio_workspace_notes",
+      "portfolio_workspace_notes_translations",
+      "portfolio_workspace_notes_revisions",
+      "portfolio_experience",
+      "portfolio_experience_translations",
+      "portfolio_experience_revisions",
+      "portfolio_education",
+      "portfolio_education_translations",
+      "portfolio_education_revisions",
+      "portfolio_skills",
+      "portfolio_skill_translations",
+      "portfolio_cv_documents",
+      "portfolio_cv_revisions"
+    ],
+    "phase5IndexesCreated": [
+      "idx_portfolio_workspace_notes_lookup",
+      "idx_portfolio_workspace_notes_tr_lookup",
+      "idx_portfolio_workspace_notes_rev",
+      "idx_portfolio_experience_status_sort",
+      "idx_portfolio_experience_tr_lookup",
+      "idx_portfolio_experience_rev",
+      "idx_portfolio_education_status_sort",
+      "idx_portfolio_education_tr_lookup",
+      "idx_portfolio_education_rev",
+      "idx_portfolio_skills_category_sort",
+      "idx_portfolio_skill_tr_lookup",
+      "idx_portfolio_cv_locale",
+      "idx_portfolio_cv_rev"
+    ]
+  },
+  "dataPreservationVerification": {
+    "projects": { "pre": 31, "post": 31, "preserved": true },
+    "projectMedia": { "pre": 72, "post": 72, "preserved": true },
+    "portfolioVideos": { "pre": 21, "post": 21, "preserved": true },
+    "portfolioGalleryItems": { "pre": 0, "post": 0, "preserved": true },
+    "portfolioProfile": { "pre": 0, "post": 0, "emptyConfirmed": true },
+    "portfolioWorkspaceNotes": { "pre": 0, "post": 0, "emptyConfirmed": true },
+    "portfolioExperience": { "pre": 0, "post": 0, "emptyConfirmed": true },
+    "portfolioEducation": { "pre": 0, "post": 0, "emptyConfirmed": true },
+    "portfolioSkills": { "pre": 0, "post": 0, "emptyConfirmed": true },
+    "portfolioCvDocuments": { "pre": 0, "post": 0, "emptyConfirmed": true }
+  },
+  "localDatabaseInvariance": {
+    "path": ".local-d1/portfolio.sqlite",
+    "sha256": "470d8f14ce1237cc557367f0b125be489f086fb99534ffa7fb046ad607182743",
+    "mutated": false
+  }
+}

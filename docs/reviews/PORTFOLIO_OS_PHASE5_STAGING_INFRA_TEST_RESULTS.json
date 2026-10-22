@@ -1,0 +1,115 @@
+{
+  "suite": "Portfolio OS Phase 5 Staging Infrastructure Rollout Verification Battery",
+  "project": "eigengraun/kerem-mihci-portfolio",
+  "branch": "feature/portfolio-phase5-notes-profile-cv",
+  "commit": "a6564821a42cecb2e3a15233fb1f108f91880a4a",
+  "timestamp": "2026-10-22T10:41:30.000Z",
+  "verdict": "STAGING_INFRA_PASS",
+  "summary": {
+    "totalChecks": 83,
+    "passed": 83,
+    "failed": 0,
+    "passRate": "100.0%"
+  },
+  "sections": {
+    "stagingSeedDisabledLocalTest": {
+      "script": "scripts/verify-staging-seed-disabled.mjs",
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "checks": [
+        "POST /api/v1/admin/seed rejected with HTTP 403 Forbidden",
+        "Error explicitly cites ALLOW_CANONICAL_SEED=false",
+        "Zero records seeded during disabled attempt"
+      ]
+    },
+    "backupIntegritySelfTests": {
+      "script": "scripts/verify-backup-integrity.mjs --test",
+      "total": 13,
+      "passed": 13,
+      "failed": 0
+    },
+    "preMigrationBackupVerification": {
+      "backupFile": "/Users/keremmihci/.cloudflare/backups/staging-d1-pre-phase5-1792665455.sql",
+      "sha256": "633e816fe948538d03f136be51a09e73148db2e8cf4062a572c3872ef1a98837",
+      "total": 10,
+      "passed": 10,
+      "failed": 0,
+      "checks": [
+        "Backup file exists with non-zero size (789,067 bytes)",
+        "Restrictive permissions 0600 confirmed",
+        "Isolated SQLite restoration completed without errors",
+        "PRAGMA quick_check = ok",
+        "PRAGMA integrity_check = ok",
+        "Exact applied migrations: 0001, 0002, 0003",
+        "Pending migration 0004 NOT in backup",
+        "31 projects present with all 30 canonical slugs verified",
+        "72 project-media records present",
+        "21 portfolio_videos present with all 21 canonical slugs verified"
+      ]
+    },
+    "migrationExecutionAndSchemaIntegrity": {
+      "migration": "0004_profile_notes_cv_schema.sql",
+      "d1Database": "kerem-portfolio-db-staging (0efef7a7-cc93-4dc2-8cb7-db28379fe01f)",
+      "total": 15,
+      "passed": 15,
+      "failed": 0,
+      "checks": [
+        "Migration executed with status OK",
+        "d1_migrations contains 0004 exactly once",
+        "Zero pending migrations remain on remote D1",
+        "portfolio_profile table created",
+        "portfolio_profile_translations table created",
+        "portfolio_profile_revisions table created",
+        "portfolio_workspace_notes table created",
+        "portfolio_workspace_notes_translations table created",
+        "portfolio_workspace_notes_revisions table created",
+        "portfolio_experience table created",
+        "portfolio_education table created",
+        "portfolio_skills table created",
+        "portfolio_cv_documents table created",
+        "13 Phase 5 explicit indexes verified",
+        "Foreign key cascades verified in schema definition"
+      ]
+    },
+    "liveStagingWorkerReadOnlySmokeTests": {
+      "script": "scripts/smoke-phase5-staging-readonly.mjs",
+      "targetUrl": "https://kerem-mihci-portfolio-api-staging.kerem-mihci.workers.dev",
+      "total": 39,
+      "passed": 39,
+      "failed": 0,
+      "categories": {
+        "healthAndServiceBindings": { "total": 5, "passed": 5, "failed": 0 },
+        "existingCanonicalContent": { "total": 6, "passed": 6, "failed": 0 },
+        "phase5HealthyEmptyProfileAndCv": { "total": 9, "passed": 9, "failed": 0 },
+        "phase5HealthyEmptyCollections": { "total": 9, "passed": 9, "failed": 0 },
+        "adminSecurityAndAuthRejection": { "total": 3, "passed": 3, "failed": 0 },
+        "unknownRouteDistinction": { "total": 2, "passed": 2, "failed": 0 },
+        "representativeVideoAndMediaSecurity": { "total": 5, "passed": 5, "failed": 0 }
+      }
+    },
+    "postDeploymentDataPreservation": {
+      "total": 2,
+      "passed": 2,
+      "failed": 0,
+      "checks": [
+        "Canonical projects (30), media (72), videos (21), and gallery (0) 100% identical pre- and post-migration",
+        "All 16 Phase 5 content tables confirmed with exactly 0 rows"
+      ]
+    },
+    "localDatabaseInvariance": {
+      "total": 1,
+      "passed": 1,
+      "failed": 0,
+      "checks": [
+        "Host database .local-d1/portfolio.sqlite SHA-256 invariant (470d8f14ce12...)"
+      ]
+    }
+  },
+  "remoteCrudE2e": "NOT_AUTHORIZED",
+  "contentSeeding": "ZERO_EXECUTED",
+  "contentPublication": "ZERO_EXECUTED",
+  "remoteR2Writes": "ZERO_EXECUTED",
+  "productionMutations": "ZERO_EXECUTED",
+  "mainBranchMutations": "ZERO_EXECUTED"
+}

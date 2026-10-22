@@ -1,78 +1,97 @@
 # Portfolio OS Phase 6 — Production Release Architecture & Cutover Plan
 
-**Document Version:** 2.0.0 (Phase 6 Post-Hardening Comprehensive Specification)
-**Supersedes:** `docs/reviews/CMS_PRODUCTION_CUTOVER_PLAN.md` (Version 1.0 — Stale)
+**Document Version:** 2.1.0 (Phase 6 Final Hardened Operational Runbook)
+**Supersedes:** Version 2.0.0 (Pre-Hardening Draft) and Version 1.0.0 (`CMS_PRODUCTION_CUTOVER_PLAN.md`)
 **Target Environment:** Production (`https://keremmihci.com`)
-**Production Hosting Provider:** Hostinger (Node.js Next.js Application Engine)
+**Hosting Provider:** Hostinger (Node.js Next.js Application Engine)
 **Edge Engine:** Cloudflare Workers, Cloudflare D1, Cloudflare R2
 **Framework Baseline:** Next.js 16.3.0, React 19.2.8, Tailwind CSS v4, Zustand 5
-**Current Release Gate:** `PHASE6_QA_PASS_CONTENT_PENDING` (STOPPED at Production Approval Gate)
+**Current Release Verdict:** `PHASE6_QA_COMPLETE_PRODUCTION_PLAN_REVIEW_READY`
+**Operational Status:** Strictly Gated — No Production Mutations Authorized
 
 > [!CAUTION]
 > **STRICT OPERATIONAL SAFETY BOUNDARY**
-> This document is an architectural blueprint and runbook. **NO PRODUCTION RESOURCES ARE CREATED OR MUTATED IN THIS PHASE.**
-> Live production (`https://keremmihci.com`) currently serves canonical static files on Hostinger.
-> Execution of any step in this plan requires explicit, separate human operator authorization.
+> This document is an authoritative engineering blueprint and executable runbook. **NO PRODUCTION RESOURCES ARE CREATED OR MUTATED IN THIS PHASE.**
+> Live production (`https://keremmihci.com`) currently serves legacy static files on Hostinger.
+> Execution of any provisioning, data migration, or cutover step requires separate, explicit, human-authorized gate approval.
 
 ---
 
-## 1. Authoritative Audit of Current Production Cloudflare Resources
+## 1. Authoritative Audit of Current Production Resources
 
-Based on direct, read-only Cloudflare API inspections:
+Based on direct, read-only Cloudflare API and authoritative DNS inspections:
 
-| Resource Type | Cloudflare Resource Identifier | Current State in Account (`9791a288e2e99e7f...`) |
-| :--- | :--- | :--- |
-| **Worker Script** | `kerem-mihci-portfolio-api` | **DOES NOT EXIST** (`code: 10007`). Pending future provisioning. |
-| **D1 Database** | `kerem-portfolio-db` | **DOES NOT EXIST**. Only staging database (`0efef7a7-cc93-4dc2-8cb7-db28379fe01f`) exists. |
-| **R2 Bucket** | `kerem-portfolio-media` | **EXISTS** (Created `2026-10-19T21:56:28.176Z`). Clean, intact. |
-| **Wrangler Config** | `env.production.d1_databases[0]` | Contains placeholder: `"database_id": "REPLACE_WITH_PRODUCTION_D1_DATABASE_ID"`. |
-
-*Note: Database UUIDs and credentials are never fabricated. When `kerem-portfolio-db` is provisioned by the operator, its authentic UUID will be populated into `wrangler.jsonc`.*
+| Resource Type | Resource Identifier | Current State / Configuration | Release Implication |
+| :--- | :--- | :--- | :--- |
+| **Cloudflare Account** | `9791a288e2e99e7f3403590480e3ad6f` | Verified active (`kerem.mihci@ogr.iuc.edu.tr`). | Target account for all production infrastructure. |
+| **Worker Script** | `kerem-mihci-portfolio-api` | **DOES NOT EXIST** (`code: 10007`). | Provisioning deferred to authorized Gate A. |
+| **D1 Database** | `kerem-portfolio-db` | **DOES NOT EXIST**. Only staging DB exists (`0efef7a7-cc93-4dc2-8cb7-db28379fe01f`). | Creation deferred to authorized Gate A. |
+| **R2 Bucket** | `kerem-portfolio-media` | **EXISTS** (Created `2026-10-19T21:56:28.176Z`). Clean, empty/unseeded. | Production media target exists. |
+| **Wrangler Config** | `env.production` | `"database_id": "REPLACE_WITH_PRODUCTION_D1_DATABASE_ID"`, `"workers_dev": false`. | Unprovisioned placeholder; ingress must be established. |
+| **Apex Domain DNS** | `keremmihci.com` | Delegated to `ns1.dns-parking.com`, `ns2.dns-parking.com` (Hostinger DNS). | Cloudflare does NOT control zone DNS. |
+| **API Domain DNS** | `api.keremmihci.com` | **DOES NOT RESOLVE** (No DNS record). | Requires CNAME setup or `workers.dev` routing. |
+| **Media Domain DNS**| `media.keremmihci.com` | **DOES NOT RESOLVE** (Fictional legacy concept). | **REMOVED**. Next.js proxies media via `/api/media`. |
 
 ---
 
-## 2. Target Production Architecture
+## 2. Target Production Architecture & Ingress Strategy
 
 ```
-                  +-------------------------------------------------------+
-                  |               Public Internet Visitors                |
-                  +---------------------------+---------------------------+
-                                              |
-                   HTTPS (TLS 1.3)            | HTTPS (Static Media / Direct)
-                                              v
-           +----------------------------------+----------------------------------+
-           |                                                                     |
-           v                                                                     v
-+-------------------------------+                                     +---------------------------------+
-|       Hostinger Node.js       |                                     |    Cloudflare R2 Media Bucket   |
-|     Next.js 16 / React 19     |                                     |     `kerem-portfolio-media`     |
-|   `https://keremmihci.com`    |                                     +----------------+----------------+
-+---------------+---------------+                                                      ^
-                |                                                                      |
-                | Server-to-Server Internal Fetch                                      |
-                | (Bearer CLOUDFLARE_API_SERVICE_TOKEN)                                |
-                v                                                                      |
-+---------------+----------------------------------------------------------------------+----------------+
-|                                    Cloudflare Worker API                                              |
-|                              `kerem-mihci-portfolio-api`                                               |
-|                    (Fail-Closed, Rate Limited, Origin-Checked, Scrypt Auth)                           |
-+-----------------------------------------------+-------------------------------------------------------+
-                                                |
-                                                | Bound SQL Interface
-                                                v
-                                +---------------+---------------+
-                                |     Cloudflare D1 Database    |
-                                |      `kerem-portfolio-db`     |
-                                |  (Relational 0001-0004 Schema)|
-                                +-------------------------------+
+                                  +-------------------------------------------------------+
+                                  |               Public Internet Visitors                |
+                                  +---------------------------+---------------------------+
+                                                              |
+                                                              | HTTPS (Port 443 / TLS 1.3)
+                                                              v
+                                  +-------------------------------------------------------+
+                                  |               Hostinger Production Node.js            |
+                                  |                  Next.js 16 / React 19                |
+                                  |                `https://keremmihci.com`               |
+                                  +-------+---------------------------------------+-------+
+                                          |                                       |
+                   Internal Server Fetch  |                                       | Media Proxy Route
+               (CLOUDFLARE_CMS_API_URL    |                                       | `GET /api/media/[...key]`
+                + Service Token Auth)     |                                       | (Byte-Range + 206 Streaming)
+                                          v                                       v
++-------------------------------------------------------------------------------------------------------------------------+
+|                                              Cloudflare Worker Edge API                                                 |
+|                                             `kerem-mihci-portfolio-api`                                                 |
+|                          (Fail-Closed, Rate Limited, Scrypt Auth, ALLOW_CANONICAL_SEED=false)                           |
++---------------------------------------------+-------------------------------------------+-------------------------------+
+                                              |                                           |
+                                              | Bound SQL Interface                       | Native Bound Object Storage
+                                              v                                           v
+                              +---------------+---------------+           +---------------+---------------+
+                              |    Cloudflare D1 Database     |           |  Cloudflare R2 Media Bucket   |
+                              |     `kerem-portfolio-db`      |           |    `kerem-portfolio-media`    |
+                              | (Migrations 0001-0004 Schema) |           | (High Durability Object Store)|
+                              +-------------------------------+           +-------------------------------+
 ```
 
-### Architectural Principles
-1. **Hostinger Next.js Frontend:** Hosts the public application, desktop window manager, SSR metadata, JSON-LD schemas, and Studio OS admin interface.
-2. **Cloudflare Worker API:** Acts as the stateless, durable edge API for D1 queries, R2 asset streaming with byte ranges, admin session lifecycle, and rate limiting.
-3. **Cloudflare D1:** Serverless SQLite database maintaining relational parity across all 9 CMS domains.
-4. **Cloudflare R2:** High-durability object storage for project covers, responsive crops, personal gallery photography, and verified PDF curriculum vitae files.
-5. **Fail-Closed Staging & Production Semantics:** When `CMS_STORAGE_MODE` is `staging` or `production`, the system strictly forbids silent local database fallbacks. Unseeded or missing resources return structured HTTP 404 responses with `Cache-Control: no-store`.
+### 2.1 Production Worker Ingress Options
+Because the apex domain `keremmihci.com` uses Hostinger nameservers, Cloudflare Zone Routes (`*api.keremmihci.com/*`) cannot route traffic automatically. Two verified architectural options exist:
+
+* **Option A — Cloudflare Custom Domain + Hostinger CNAME (Recommended for Branded API):**
+  1. In Cloudflare Dashboard: Worker `kerem-mihci-portfolio-api` -> **Settings** -> **Domains & Routes** -> **Add Custom Domain** -> `api.keremmihci.com`.
+  2. Cloudflare provisions edge TLS certificate for `api.keremmihci.com`.
+  3. In Hostinger DNS Zone Editor: Add CNAME record `api` pointing to `api.keremmihci.com.cdn.cloudflare.net` (or Cloudflare-assigned target).
+  4. Next.js server configuration: `CLOUDFLARE_CMS_API_URL=https://api.keremmihci.com`.
+
+* **Option B — Cloudflare Workers.dev Route (Recommended for Server-to-Server Isolation):**
+  1. Update `wrangler.jsonc` `env.production`: set `"workers_dev": true`.
+  2. Worker is assigned `https://kerem-mihci-portfolio-api.<subdomain>.workers.dev`.
+  3. Next.js server configuration: `CLOUDFLARE_CMS_API_URL=https://kerem-mihci-portfolio-api.<subdomain>.workers.dev`.
+  4. **Benefit:** Zero DNS configuration required in Hostinger; API is completely internal between Hostinger Next.js and Cloudflare edge.
+
+> [!IMPORTANT]
+> **FAIL-CLOSED ROUTING INVARIANT**
+> If `workers_dev` remains `false` without an authorized Custom Domain or Route, the production Worker will have **zero ingress URLs**. In that state, deployment or cutover is strictly rejected by the release gate.
+
+### 2.2 R2 Media Routing Architecture
+- `media.keremmihci.com` is **fictional** and has been **permanently eliminated**.
+- Public media assets (project images, responsive video posters, gallery items, CV PDFs) are fetched through the Next.js streaming proxy route: `src/app/api/media/[...key]/route.ts`.
+- Next.js fetches upstream from `${CLOUDFLARE_CMS_API_URL}/api/v1/public/media/${key}` using HTTP Range requests and streams chunks directly to clients with `Accept-Ranges: bytes` and `Cache-Control: public, max-age=31536000, immutable`.
+- `R2_PUBLIC_BASE_URL` in Hostinger environment must remain empty `""` or set to `https://keremmihci.com/api/media`.
 
 ---
 
@@ -93,170 +112,218 @@ Production D1 database initialization requires applying the exact sequence of 4 
 
 ---
 
-## 4. Phase-by-Phase Production Provisioning Sequence
+## 4. Decoupled Three-Gate Release Model
 
-The production cutover is divided into three strictly gated phases:
-- **Phase A:** Cloudflare Infrastructure Provisioning (Zero Content Mutation)
-- **Phase B:** Canonical Content Seeding & Media Synchronization (Public Cutover Still Inactive)
-- **Phase C:** Hostinger Frontend Release & Public DNS/Cache Activation
+The release sequence is decoupled into three independent gates. No gate may proceed without explicit human authorization:
 
 ```mermaid
 flowchart TD
-    subgraph PhaseA["Phase A: Infrastructure Provisioning"]
-        A1["1. Create Production D1<br>kerem-portfolio-db"] --> A2["2. Apply Migrations 0001-0004"]
-        A2 --> A3["3. Update wrangler.jsonc with authentic UUID"]
-        A3 --> A4["4. Provision Production Service Token"]
-        A4 --> A5["5. Deploy Production Worker<br>kerem-mihci-portfolio-api"]
-        A5 --> A6["6. Verify Infrastructure Health (404 on unseeded, 0 rows)"]
+    subgraph GateA["Gate A: Production Infrastructure Provisioning"]
+        A1["1. Operator Authorizes Gate A"] --> A2["2. Provision Production D1<br>npx wrangler d1 create kerem-portfolio-db"]
+        A2 --> A3["3. Populate Authentic UUID in wrangler.jsonc"]
+        A3 --> A4["4. Apply Migrations 0001-0004"]
+        A4 --> A5["5. Establish Ingress (Custom Domain or workers_dev=true)"]
+        A5 --> A6["6. Put Production Service Token Secret"]
+        A6 --> A7["7. Deploy Worker with ALLOW_CANONICAL_SEED=false"]
+        A7 --> A8["8. Infrastructure Health Smoke Test (All 9 domains return 404/empty)"]
     end
 
-    subgraph PhaseB["Phase B: Canonical Content Migration"]
-        B1["1. Seed 30 Canonical Projects"] --> B2["2. Seed 21 Canonical Videos"]
-        B2 --> B3["3. Sync Binary Media to R2<br>kerem-portfolio-media"]
-        B3 --> B4["4. HUMAN OWNER CONTENT GATE<br>Review Biography, Education, CV"]
-        B4 --> B5["5. Explicit CMS Admin Publish<br>(If and only if approved)"]
+    subgraph GateB["Gate B: Canonical Content Migration"]
+        B1["1. Operator Authorizes Gate B"] --> B2["2. Run Production Project Importer (BLOCKED_PENDING_IMPLEMENTATION)"]
+        B2 --> B3["3. Run Production Video Importer (BLOCKED_PENDING_IMPLEMENTATION)"]
+        B3 --> B4["4. Synchronize Verified R2 Media Binaries"]
+        B4 --> B5["5. HUMAN CONTENT GATE (OWNER_VERIFICATION_REQUIRED)"]
+        B5 --> B6["6. Publish Only Verified Profile/CV Items via Admin CMS"]
     end
 
-    subgraph PhaseC["Phase C: Hostinger Frontend Release"]
-        C1["1. Configure Hostinger Environment Variables"] --> C2["2. Merge feature branch to main"]
-        C2 --> C3["3. Trigger Hostinger Production Build<br>npm run build --webpack"]
-        C3 --> C4["4. PM2 Reload / Zero-Downtime Swap"]
-        C4 --> C5["5. Production Live Health Verification"]
+    subgraph GateC["Gate C: Hostinger Frontend Cutover"]
+        C1["1. Operator Authorizes Gate C"] --> C2["2. Confirm Hostinger Runtime Capabilities"]
+        C2 --> C3["3. Configure Production Environment Variables"]
+        C3 --> C4["4. Deploy Next.js 16 Application (Full npm ci)"]
+        C4 --> C5["5. Live Public Health Smoke Tests on https://keremmihci.com"]
     end
 
-    PhaseA --> PhaseB
-    PhaseB --> PhaseC
+    GateA --> GateB
+    GateB --> GateC
 ```
 
 ---
 
 ## 5. Detailed Operational Runbook
 
-### Step 5.1 — Provision Production D1 Database
+### Gate A: Production Infrastructure Provisioning (Zero Content Seeding)
+
+#### Step A.1 — Create Production D1 Database
 ```bash
 cd cloudflare/portfolio-api
 npx wrangler d1 create kerem-portfolio-db
 ```
-*Action:* Capture the generated UUID from stdout and update `cloudflare/portfolio-api/wrangler.jsonc`:
-```jsonc
-"env": {
-  "production": {
-    "d1_databases": [
-      {
-        "binding": "PORTFOLIO_DB",
-        "database_name": "kerem-portfolio-db",
-        "database_id": "<INSERT-NEW-PRODUCTION-UUID-HERE>",
-        "migrations_dir": "migrations"
-      }
-    ]
-  }
-}
-```
+Capture the generated UUID from stdout (e.g. `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`).
 
-### Step 5.2 — Apply Database Migrations
+#### Step A.2 — Update Production Configuration
+Update `cloudflare/portfolio-api/wrangler.jsonc`:
+1. Replace `"database_id": "REPLACE_WITH_PRODUCTION_D1_DATABASE_ID"` with the authentic D1 UUID.
+2. Select ingress strategy:
+   - For `workers.dev` direct ingress: set `"workers_dev": true` under `"env.production"`.
+   - For Custom Domain: configure domain in Cloudflare dashboard and define `routes` / `custom_domains`.
+
+#### Step A.3 — Apply Migrations 0001–0004 to Remote Production D1
 ```bash
 npx wrangler d1 migrations apply kerem-portfolio-db --env production --remote
 ```
-*Validation:* Verify 4 migrations applied, 0 pending, and exactly 36 tables created.
+*Validation:* Verify output reports 4 migrations applied, 0 errors.
 
-### Step 5.3 — Configure Production Worker Service Token
-Generate a cryptographically secure 64-character secret and store it in Cloudflare Secrets:
+#### Step A.4 — Generate and Store Production Service Token
+Generate a cryptographically secure 64-character token:
 ```bash
-npx wrangler secret put CLOUDFLARE_API_SERVICE_TOKEN --env production
+PROD_SERVICE_TOKEN=$(openssl rand -hex 32)
+echo "$PROD_SERVICE_TOKEN" | npx wrangler secret put CLOUDFLARE_API_SERVICE_TOKEN --env production
 ```
 
-### Step 5.4 — Deploy Production Cloudflare Worker
-Deploy with `ALLOW_CANONICAL_SEED=false`:
+#### Step A.5 — Deploy Production Cloudflare Worker
+Deploy the verified Worker code with `ALLOW_CANONICAL_SEED=false`:
 ```bash
 npx wrangler deploy -c cloudflare/portfolio-api/wrangler.jsonc --env production
 ```
-*Validation:* Execute read-only smoke probe against production Worker URL:
+
+#### Step A.6 — Verify Infrastructure Health (Read-Only)
+Probe the reachable Worker endpoint directly:
 ```bash
-curl -I https://kerem-mihci-portfolio-api.<subdomain>.workers.dev/api/v1/public/health
+# Verify Worker health
+curl -s -f "$PROD_WORKER_URL/api/v1/public/health" | grep '"ok":true'
+
+# Verify unseeded tables return 404 or empty results with no-store
+curl -s -o /dev/null -w "%{http_code}" "$PROD_WORKER_URL/api/v1/public/profile" # Expects 404
+curl -s -o /dev/null -w "%{http_code}" "$PROD_WORKER_URL/api/v1/public/projects" # Expects 200 []
 ```
 
-### Step 5.5 — Seed Canonical Projects and Videos
-Execute task-owned, idempotent CLI seed scripts targeting production:
-```bash
-# Seed 30 Canonical Projects
-CLOUDFLARE_CMS_API_URL=<prod-worker-url> \
-CLOUDFLARE_API_SERVICE_TOKEN=<prod-service-token> \
-npm run cms:migrate
+---
 
-# Seed 21 Canonical Videos
-node scripts/import-canonical-videos-to-d1.mjs --remote-production --execute
-```
-*Validation:* Query production health: `publishedCount: 30`, videos: `21`.
+### Gate B: Canonical Content Migration (Zero Public Frontend Cutover)
 
-### Step 5.6 — Human Owner Content Approval Gate
+#### Step B.1 — Production Project Migration (`BLOCKED_PENDING_IMPLEMENTATION`)
+> [!CAUTION]
+> **REJECTED COMMAND REMOVED**
+> `npm run cms:migrate` has been completely **REMOVED** from the production workflow. Running it mutates local SQLite and attempts to hit `/api/v1/admin/seed` which returns HTTP 403 (`ALLOW_CANONICAL_SEED=false`).
+> **Status:** Project migration is `BLOCKED_PENDING_IMPLEMENTATION` until a dedicated, idempotent production importer (`scripts/import-canonical-projects-to-production-d1.mjs`) is authorized and implemented.
+>
+> **Required Future Importer Specification:**
+> 1. Requires explicit target validation (must strictly check production D1 UUID).
+> 2. Provides mandatory `--dry-run` mode with detailed record diffs.
+> 3. Does not use `/api/v1/admin/seed`; writes via authenticated administrative endpoints or direct D1 batch statements.
+> 4. Idempotently upserts canonical records while strictly preserving editorial revisions.
+> 5. Requires cryptographic validation of source data (`src/data/projects.ts`).
+
+#### Step B.2 — Production Video Migration (`NOT_IMPLEMENTED`)
+> [!CAUTION]
+> **REJECTED COMMAND REMOVED**
+> `node scripts/import-canonical-videos-to-d1.mjs --remote-production --execute` has been completely **REMOVED**. Running it fails closed with `FATAL: Unrecognized CLI argument "--remote-production"`.
+> **Status:** Video migration is `NOT_IMPLEMENTED` until a dedicated production target is authorized in the script.
+>
+> **Required Future Importer Specification:**
+> 1. Validates production Worker and D1 database identifiers against authorized manifest.
+> 2. Enforces `--dry-run` as default; `--execute` requires explicit confirmation flag.
+> 3. Validates 21 canonical video records against `src/data/videos.ts` SHA-256 hash.
+> 4. Non-destructive: will not overwrite existing production editorial records without `--force`.
+
+#### Step B.3 — Production Media Synchronization Contract
+- Source assets: Local canonical images/videos under `public/projects/`, `public/videos/`, `public/gallery/`.
+- Target: Cloudflare R2 bucket `kerem-portfolio-media`.
+- Verification protocol:
+  1. Compute SHA-256 hash and MIME type for each asset in local manifest.
+  2. Perform `HEAD` requests on target R2 keys to check existing ETags.
+  3. Upload only missing or modified objects (idempotent, zero deletion of unrelated objects).
+  4. Perform sample `GET` requests with `Range: bytes=0-1023` to verify partial content streaming.
+
+#### Step B.4 — Human Content Governance Gate (`OWNER_VERIFICATION_REQUIRED`)
 > [!IMPORTANT]
 > **MANDATORY CONTENT APPROVAL**
-> Under NO CIRCUMSTANCES should personal biographical data, education, career experience, or CV PDFs be seeded automatically.
-> The operator must review `docs/reviews/PORTFOLIO_OS_PHASE5_2_CONTENT_APPROVAL_CHECKLIST.md` and only publish approved items through the Studio OS Admin CMS.
+> Personal biographical narrative, education history, work experience, workspace notes, and CV PDFs must NOT be seeded automatically from legacy source files (`src/data/profile.ts`).
+> The human owner must review `docs/reviews/PORTFOLIO_OS_PHASE5_2_CONTENT_APPROVAL_CHECKLIST.md` and explicitly publish approved items via the Studio OS Admin CMS.
 
-### Step 5.7 — Configure Hostinger Environment Variables
-In the Hostinger Application Dashboard or production `.env`:
+---
+
+### Gate C: Hostinger Frontend Cutover & Live DNS
+
+#### Step C.1 — Verify Hostinger Environment Capabilities (`HOSTINGER_CAPABILITY_UNVERIFIED`)
+Before triggering a production deployment on Hostinger, the operator must verify:
+1. **Hosting Plan Type:** VPS vs Cloud vs Shared Hosting.
+2. **Process Manager:** Confirm PM2 or systemd is supported and installed.
+3. **Node.js Engine:** Confirm Node.js >= 20.9.0 is installed.
+4. **Git Auto-Deploy Configuration:** Determine if Hostinger webhooks auto-deploy on push to `main`. If auto-deploy is active, merging PR to `main` triggers immediate build!
+
+#### Step C.2 — Configure Hostinger Production Environment Variables
+In the Hostinger application environment configuration:
 ```env
 NODE_ENV=production
 NEXT_PUBLIC_SITE_URL=https://keremmihci.com
 CMS_STORAGE_MODE=production
 CMS_DATA_SOURCE=cloudflare
-CLOUDFLARE_CMS_API_URL=https://<production-worker-url>
-CLOUDFLARE_API_SERVICE_TOKEN=<production-service-token>
-ADMIN_SESSION_SECRET=<random-64-character-hex-secret>
+CLOUDFLARE_CMS_API_URL=<REACHABLE_PRODUCTION_WORKER_URL>
+CLOUDFLARE_API_SERVICE_TOKEN=<PROD_SERVICE_TOKEN>
+ADMIN_SESSION_SECRET=<SECURE_64_CHAR_HEX>
 ADMIN_ALLOWED_EMAILS=kerem@keremmihci.com
-ADMIN_PASSWORD_HASH=scrypt:<saltHex>:<derivedKeyHex>
-R2_PUBLIC_BASE_URL=https://media.keremmihci.com
+ADMIN_PASSWORD_HASH=<SCRYPT_HASH>
+R2_PUBLIC_BASE_URL=
 ```
+*Note: `R2_PUBLIC_BASE_URL` is deliberately empty. Media is proxied by Next.js.*
 
-### Step 5.8 — Merge, Build, and Deploy on Hostinger
-1. Create Pull Request from `feature/portfolio-phase6-final-qa` into `main`.
-2. Confirm all CI/pre-merge checks pass.
-3. Merge PR into `main`.
-4. On Hostinger server:
+#### Step C.3 — Build and Deploy Next.js Application on Hostinger
+> [!IMPORTANT]
+> **DO NOT USE `--omit=dev` BEFORE BUILD**
+> `next build` requires `typescript` and `@types/*` packages located in `devDependencies`. Stripping devDependencies before building causes TypeScript compilation failure.
+
 ```bash
+# Correct Hostinger deployment sequence:
 git pull origin main
-npm ci --omit=dev
+npm ci
 npm run build
-pm2 reload kerem-portfolio --update-env
+pm2 reload kerem-portfolio --update-env || pm2 start npm --name "kerem-portfolio" -- start
 ```
 
 ---
 
-## 6. Disaster Recovery & Rollback Runbook
+## 6. Corrected Post-Deployment Verification Battery
 
-### Rollback Scenario 1: Worker API Failure
-- **Symptom:** Worker returns HTTP 5xx or times out.
-- **Immediate Mitigation:** Revert Hostinger configuration to legacy static fallback:
-  ```env
-  CMS_DATA_SOURCE=legacy
-  ```
-  Run `pm2 reload kerem-portfolio --update-env`.
-  *Result:* The public site immediately serves authentic static data from `src/data/projects.ts` and `src/data/videos.ts` within seconds with zero user disruption.
+Probe the **actual** endpoints exposed by the Next.js production frontend on `https://keremmihci.com`:
 
-### Rollback Scenario 2: Worker Version Rollback
-- Revert the Worker to the previous stable Version ID:
+| Test Target | Endpoint / Route | Expected HTTP Status & Payload Assertions |
+| :--- | :--- | :--- |
+| **Next.js Turkish Page** | `GET https://keremmihci.com/tr` | HTTP 200, valid HTML, localized metadata. |
+| **Next.js English Page** | `GET https://keremmihci.com/en` | HTTP 200, valid HTML, localized metadata. |
+| **Next.js Media Proxy** | `GET https://keremmihci.com/api/media/projects/...` | HTTP 200 / 206, `Accept-Ranges: bytes`, valid media stream. |
+| **Next.js Public Profile**| `GET https://keremmihci.com/api/v1/public/profile` | HTTP 200 (if approved & published) OR HTTP 404 with `Cache-Control: no-store`. |
+| **Next.js Public Gallery**| `GET https://keremmihci.com/api/v1/public/gallery` | HTTP 200, clean JSON array. |
+| **Next.js Public Projects**| `GET https://keremmihci.com/api/projects` | HTTP 200, returns canonical projects list. |
+| **Next.js Public Videos** | `GET https://keremmihci.com/api/videos` | HTTP 200, returns canonical videos list. |
+| **Next.js Admin Auth** | `POST https://keremmihci.com/api/admin/auth` | Enforces rate limiting, CSRF protection, Scrypt auth. |
+| **Worker Direct Health** | `GET $PROD_WORKER_URL/api/v1/public/health` | HTTP 200, `{"ok":true,"environment":"production"}`. |
+
+*Note: Calling `https://keremmihci.com/api/v1/public/health` directly is intentionally excluded because Next.js has no public health API route; health is verified via page responses and direct Worker health probes.*
+
+---
+
+## 7. Disaster Recovery & Rollback Strategy
+
+### 7.1 Scenario 1: Worker Edge API Failure / Outage
+- **Symptom:** Worker returns HTTP 5xx, 521, or times out.
+- **Fail-Closed Behavior:** Next.js gracefully handles Worker errors, rendering empty CMS states with `Cache-Control: no-store`.
+- **Immediate Fallback Option:** Set `CMS_DATA_SOURCE=legacy` in Hostinger `.env` and restart (`pm2 reload kerem-portfolio --update-env`).
+- **CRITICAL ROLLBACK RISK WARNING:**
+  > [!WARNING]
+  > Falling back to `CMS_DATA_SOURCE=legacy` causes Next.js to read from `src/data/profile.ts`. This file contains legacy biographical claims that have **NOT** been approved under `OWNER_VERIFICATION_REQUIRED`. The operator must be aware that legacy fallback exposes unverified biographical data.
+
+### 7.2 Scenario 2: Worker Version Rollback
+- Revert the Worker script to the previous stable Version ID:
   ```bash
   npx wrangler rollback --env production
   ```
+- **Limitation:** `wrangler rollback` reverts only the Worker script and environment bindings. It does **NOT** rollback D1 database records or R2 bucket media.
 
-### Rollback Scenario 3: Database Restoration
-- Export current D1 state:
-  ```bash
-  npx wrangler d1 export kerem-portfolio-db --env production --output=./backups/prod-emergency-backup.sql
-  ```
-- Restore from verified pre-cutover snapshot using isolated sandbox validation.
-
----
-
-## 7. Post-Deployment Verification Battery
-
-Once public cutover occurs, execute the following assertions:
-1. `GET https://keremmihci.com/api/v1/public/health` -> HTTP 200, `ok: true`.
-2. `GET https://keremmihci.com/api/v1/public/projects` -> HTTP 200, 30 canonical projects.
-3. `GET https://keremmihci.com/api/v1/public/videos` -> HTTP 200, 21 canonical videos.
-4. `GET https://keremmihci.com/api/v1/public/gallery` -> HTTP 200, clean stream.
-5. `GET https://keremmihci.com/api/v1/public/profile` -> Valid published profile OR structured 404 with `no-store` (zero leaking).
-6. Verify Turkish (`/tr`) and English (`/en`) routes in Chrome, Safari, Firefox.
-7. Verify Studio OS Admin login, CSRF tokens, and session expiration.
-8. Verify Google Analytics 4 tracking event fires without blocking main thread.
+### 7.3 Scenario 3: Database Data Corruption / Recovery
+- **Forbidden:** Never restore raw full SQL dumps directly over a populated, live production D1 database.
+- **Safe Recovery Protocol:**
+  1. Export current production state: `npx wrangler d1 export kerem-portfolio-db --env production --output=./backups/prod-snapshot.sql`.
+  2. Inspect state in isolated local SQLite sandbox.
+  3. Formulate targeted, transaction-wrapped reconciliation scripts.
+  4. Apply minimal corrective SQL statements.

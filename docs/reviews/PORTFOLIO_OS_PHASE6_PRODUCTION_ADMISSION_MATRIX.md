@@ -22,8 +22,8 @@
 | **8** | **Schema Compatibility** | 36 tables, 34 indexes, additive DDL only, zero destructive drops. | Schema definitions fully verified against local SQLite and staging D1. | **PASS** | Relational integrity assured. |
 | **9** | **Service Token Presence** | Production `CLOUDFLARE_API_SERVICE_TOKEN` stored in Cloudflare Secrets without exposure. | Secret not yet provisioned in production Worker environment. | **BLOCKED** | Provisioning step in Gate A. |
 | **10** | **Admin Authentication** | Scrypt password hashing, rate limiting, and session revocation ready. | 100% verified in local and staging tests; admin endpoints fail closed without credentials. | **PASS** | Security controls ready. |
-| **11** | **Canonical Content Importer** | Dedicated, idempotent, non-destructive production project & video importers. | `npm run cms:migrate` removed (blocked by `ALLOW_CANONICAL_SEED=false`). Importers `NOT_IMPLEMENTED`. | **BLOCKED** | Gate B implementation required. |
-| **12** | **Media Binary Sync Readiness** | Local asset manifest, SHA-256 validation, range request streaming contract. | Next.js `/api/media` proxy verified; production R2 upload pipeline requires authorization. | **BLOCKED** | Gate B execution required. |
+| **11** | **Canonical Content Importers** | Dedicated, idempotent, non-destructive production project & video importers. | Implemented & locally verified (`import-canonical-projects-to-d1.mjs` & `import-canonical-videos-to-d1.mjs`). 13/13 tests PASS. Remote execution fail-closed. | **READY (LOCAL)** | Awaiting operator Gate B execution sign-off. |
+| **12** | **Media Binary Sync Readiness** | Local asset manifest, SHA-256 validation, range request streaming contract. | Manifest generated (`PORTFOLIO_OS_PHASE6_MEDIA_SOURCE_MANIFEST.json`, 174 unique files, 0 missing, 328.25 MB). R2 sync simulator 5/5 cases PASS. | **READY (LOCAL)** | Awaiting operator Gate B execution sign-off. |
 | **13** | **Hostinger Runtime Support** | Hostinger environment supports Node.js >= 20.9.0, PM2/systemd, and full `npm ci`. | Plan tier, PM2 presence, and terminal access unconfirmed. Marked `HOSTINGER_CAPABILITY_UNVERIFIED`. | **HOLD** | Operator verification required. |
 | **14** | **Git / Main Auto-Deploy** | Hostinger git auto-deploy behavior on `main` branch push/merge must be understood. | If auto-deploy webhook is active, merge to `main` triggers production build prematurely. | **HOLD** | Operator confirmation required. |
 | **15** | **Source & Target Backups** | Local host DB backup and remote D1 pre-cutover export protocol defined. | Local DB SHA-256 recorded; D1 export command documented in runbook. | **PASS** | Backup protocol established. |
@@ -49,12 +49,14 @@
                                              v
 +-----------------------------------------------------------------------------------------+
 | GATE B: Canonical Content Migration                                                     |
-| Status: NOT_AUTHORIZED                                                                  |
-| Blockers:                                                                               |
-|   - Item 11: Production project and video import pipelines are NOT_IMPLEMENTED.         |
-|   - Item 12: Production R2 binary synchronization pending authorization.                |
+| Status: LOCAL_IMPLEMENTATION_READY (Remote Execution NOT_AUTHORIZED)                   |
+| Verified Capabilities:                                                                  |
+|   - Item 11: Production project and video importers IMPLEMENTED (13/13 tests pass).     |
+|   - Item 12: Production R2 media manifest verified (174 unique files, 0 missing).        |
+| Remaining Gate Requirements:                                                            |
+|   - Gate A infrastructure must be provisioned and verified first.                       |
 |   - Item 17: Personal biography/CV strictly OWNER_VERIFICATION_REQUIRED.                |
-| Action: Requires separate Gate B authorization and owner content approval review.       |
+| Action: Await explicit human operator Gate B authorization. Remote writes fail-closed.  |
 +-----------------------------------------------------------------------------------------+
                                              |
                                              v

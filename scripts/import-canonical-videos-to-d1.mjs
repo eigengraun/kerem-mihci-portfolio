@@ -33,6 +33,51 @@ export const APPROVED_STAGING_CONFIG = Object.freeze({
   r2Bucket: "kerem-portfolio-media-staging"
 });
 
+export const APPROVED_PRODUCTION_CONFIG = Object.freeze({
+  workerName: "kerem-mihci-portfolio-api",
+  databaseName: "kerem-portfolio-db",
+  r2Bucket: "kerem-portfolio-media"
+});
+
+export function verifyProductionTargetConfiguration() {
+  const wranglerPath = path.join(ROOT, "cloudflare", "portfolio-api", "wrangler.jsonc");
+  if (!fs.existsSync(wranglerPath)) {
+    throw new Error(`Wrangler configuration file not found at ${wranglerPath}`);
+  }
+  const content = fs.readFileSync(wranglerPath, "utf-8");
+  const cleanJson = content.replace(/\/\*[\s\S]*?\*\/|([^:]|^)\/\/.*$/gm, "");
+  let parsed;
+  try {
+    parsed = JSON.parse(cleanJson);
+  } catch (err) {
+    throw new Error(`Failed to parse wrangler.jsonc: ${err.message}`);
+  }
+
+  const prodEnv = parsed.env?.production;
+  if (!prodEnv) {
+    throw new Error("Missing 'production' environment block in wrangler.jsonc");
+  }
+
+  const d1 = prodEnv.d1_databases?.[0];
+  const r2 = prodEnv.r2_buckets?.[0];
+  const workerName = prodEnv.name;
+
+  if (workerName !== APPROVED_PRODUCTION_CONFIG.workerName) {
+    throw new Error(`Worker name mismatch: expected ${APPROVED_PRODUCTION_CONFIG.workerName}, found ${workerName}`);
+  }
+  if (d1?.database_name !== APPROVED_PRODUCTION_CONFIG.databaseName) {
+    throw new Error(`D1 database name mismatch: expected ${APPROVED_PRODUCTION_CONFIG.databaseName}, found ${d1?.database_name}`);
+  }
+  if (!d1?.database_id || d1?.database_id === "REPLACE_WITH_PRODUCTION_D1_DATABASE_ID" || d1?.database_id.startsWith("local-")) {
+    throw new Error(`Production D1 database is unprovisioned (found placeholder '${d1?.database_id}').`);
+  }
+  if (r2?.bucket_name !== APPROVED_PRODUCTION_CONFIG.r2Bucket) {
+    throw new Error(`R2 bucket mismatch: expected ${APPROVED_PRODUCTION_CONFIG.r2Bucket}, found ${r2?.bucket_name}`);
+  }
+
+  return { workerName, d1, r2 };
+}
+
 function verifyStagingTargetConfiguration() {
   const wranglerPath = path.join(ROOT, "cloudflare", "portfolio-api", "wrangler.jsonc");
   if (!fs.existsSync(wranglerPath)) {
@@ -80,6 +125,7 @@ function verifyStagingTargetConfiguration() {
 // 1. Strict Fail-Closed CLI Argument Parsing (When run directly)
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
 
+let isRemoteProduction = false;
 let isRemoteStaging = false;
 let isLocal = true;
 let isForce = false;
@@ -95,6 +141,8 @@ if (isMain) {
     "--target=local",
     "--remote-staging",
     "--target=remote-staging",
+    "--remote-production",
+    "--target=remote-production",
     "--dry-run",
     "--strict",
     "--strict-admission",
@@ -113,17 +161,36 @@ if (isMain) {
     }
     if (!VALID_FLAGS.has(arg)) {
       console.error(`FATAL: Unrecognized CLI argument "${arg}".`);
-      console.error("Allowed flags: --local, --remote-staging, --dry-run, --strict-admission, --force, --execute, --db=<path>.");
+      console.error("Allowed flags: --local, --remote-staging, --remote-production, --dry-run, --strict-admission, --force, --execute, --db=<path>.");
       process.exit(1);
     }
   }
 
+  isRemoteProduction = rawArgs.includes("--remote-production") || rawArgs.includes("--target=remote-production");
   isRemoteStaging = rawArgs.includes("--remote-staging") || rawArgs.includes("--target=remote-staging");
-  isLocal = rawArgs.includes("--local") || rawArgs.includes("--target=local") || !isRemoteStaging;
+  isLocal = rawArgs.includes("--local") || rawArgs.includes("--target=local") || (!isRemoteProduction && !isRemoteStaging);
   isForce = rawArgs.includes("--force");
   isExecute = rawArgs.includes("--execute");
   isDryRun = rawArgs.includes("--dry-run") || (!isExecute && !isForce);
   isStrictAdmission = rawArgs.includes("--strict-admission") || rawArgs.includes("--strict");
+
+  if (isRemoteProduction) {
+    verifyProductionTargetConfiguration();
+
+    if (isExecute) {
+      console.error("\nFATAL: Production remote execution is strictly NOT_AUTHORIZED.");
+      console.error("Gate B release approval has not been granted by the human operator.");
+      console.error("Execution halted fail-closed.");
+      process.exit(1);
+    }
+
+    if (isForce) {
+      console.error("FATAL: --force overwrite is strictly prohibited against production. Production seeding must be non-destructive.");
+      process.exit(1);
+    }
+
+    console.log("Production target validated (dry-run mode). Remote writes strictly forbidden.");
+  }
 
   if (isRemoteStaging) {
     const FORBIDDEN_OVERRIDE_VARS = [

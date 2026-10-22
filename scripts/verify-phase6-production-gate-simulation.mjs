@@ -207,14 +207,18 @@ async function runSimulation() {
     });
 
     const exitedWithError = spawnRes.status !== 0;
-    const hasFatalOutput = spawnRes.stderr.includes("FATAL: Unrecognized CLI argument") || spawnRes.stderr.includes("Production identifiers detected");
+    const hasFatalOutput =
+      spawnRes.stderr.includes("FATAL: Unrecognized CLI argument") ||
+      spawnRes.stderr.includes("Production identifiers detected") ||
+      spawnRes.stderr.includes("Production D1 database is unprovisioned") ||
+      spawnRes.stderr.includes("Production remote execution is strictly NOT_AUTHORIZED");
 
     if (exitedWithError && hasFatalOutput) {
       recordTest(
         "GATE-SIM-06",
         "Unsupported Video Importer Flag Rejection (--remote-production)",
         "PASS",
-        `Execution failed closed as expected (exit code ${spawnRes.status}): "${spawnRes.stderr.trim().split("\n")[0]}". NOT_IMPLEMENTED confirmed.`
+        `Execution failed closed as expected (exit code ${spawnRes.status}): "${spawnRes.stderr.trim().split("\n")[0]}". Production safety verified.`
       );
     } else {
       recordTest("GATE-SIM-06", "Unsupported Video Importer Flag Rejection", "FAIL", `Unexpected exit code ${spawnRes.status}: ${spawnRes.stdout}`);

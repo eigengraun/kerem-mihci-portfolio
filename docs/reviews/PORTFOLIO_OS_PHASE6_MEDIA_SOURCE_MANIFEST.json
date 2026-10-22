@@ -1,0 +1,5381 @@
+{
+  "timestamp": "2026-10-22T13:44:08.406Z",
+  "summary": {
+    "totalReferences": 234,
+    "totalUniqueFiles": 174,
+    "localPresentCount": 174,
+    "missingCount": 0,
+    "externalCount": 0,
+    "privateCount": 2,
+    "totalPayloadBytes": 344199189,
+    "totalPayloadMB": 328.25
+  },
+  "uniqueFiles": [
+    {
+      "sourcePath": "public/projects/yanarsan-yangin-website-tasarimi/cover.webp",
+      "intendedR2Key": "projects/yanarsan-yangin-website-tasarimi/cover.webp",
+      "mimeType": "image/webp",
+      "byteSize": 61396,
+      "sha256": "3905cfdd6d8c7cde7041b4a989f14027ea707e316aa7946fa5a7d48328ab22ad",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "yanarsan-yangin-website-tasarimi",
+          "assetRole": "cover"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/yanarsan-yangin-website-tasarimi/thumbnail.webp",
+      "intendedR2Key": "projects/yanarsan-yangin-website-tasarimi/thumbnail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 20846,
+      "sha256": "7be485ad4f4bc2cbf4c5c9838b147e30e85e2a8b470185032a1393b17a588c2e",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "yanarsan-yangin-website-tasarimi",
+          "assetRole": "thumbnail"
+        },
+        {
+          "entityType": "project",
+          "entityId": "yanarsan-yangin-website-tasarimi",
+          "assetRole": "desktopIcon"
+        },
+        {
+          "entityType": "project",
+          "entityId": "yanarsan-yangin-website-tasarimi",
+          "assetRole": "desktopThumbnail"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/yanarsan-yangin-website-tasarimi/media/02-homepage-browser.webp",
+      "intendedR2Key": "projects/yanarsan-yangin-website-tasarimi/media/02-homepage-browser.webp",
+      "mimeType": "image/webp",
+      "byteSize": 53432,
+      "sha256": "77b0765d18a21d98c56bda05050e24077c9b8dd2b71c9989d4feb7a6aee08e48",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "yanarsan-yangin-website-tasarimi",
+          "assetRole": "media_gallery_1"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/yanarsan-yangin-website-tasarimi/media/01-laptop-presentation.webp",
+      "intendedR2Key": "projects/yanarsan-yangin-website-tasarimi/media/01-laptop-presentation.webp",
+      "mimeType": "image/webp",
+      "byteSize": 61396,
+      "sha256": "3905cfdd6d8c7cde7041b4a989f14027ea707e316aa7946fa5a7d48328ab22ad",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "yanarsan-yangin-website-tasarimi",
+          "assetRole": "media_gallery_2"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/yanarsan-yangin-website-tasarimi/media/03-hero-detail.webp",
+      "intendedR2Key": "projects/yanarsan-yangin-website-tasarimi/media/03-hero-detail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 81198,
+      "sha256": "159b9aca3ef7c8095e3ffd9c3c6b511a7f17ac1679255f7de09f55fd64afa237",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "yanarsan-yangin-website-tasarimi",
+          "assetRole": "media_gallery_3"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/yanarsan-yangin-website-tasarimi/media/04-fire-safety-presentation.webp",
+      "intendedR2Key": "projects/yanarsan-yangin-website-tasarimi/media/04-fire-safety-presentation.webp",
+      "mimeType": "image/webp",
+      "byteSize": 157538,
+      "sha256": "f1d3b045a7dbde426b0073fea7fd62e5b58b5014255d2d1977dad664b69839b9",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "yanarsan-yangin-website-tasarimi",
+          "assetRole": "media_gallery_4"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/yanarsan-yangin-website-tasarimi/media/05-service-product-structure.webp",
+      "intendedR2Key": "projects/yanarsan-yangin-website-tasarimi/media/05-service-product-structure.webp",
+      "mimeType": "image/webp",
+      "byteSize": 91212,
+      "sha256": "5877d6e910b444cb35c8b701439bc2b35bd22d2e68bc625355fd894030755331",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "yanarsan-yangin-website-tasarimi",
+          "assetRole": "media_gallery_5"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/eigestore-website-tasarimi/cover.webp",
+      "intendedR2Key": "projects/eigestore-website-tasarimi/cover.webp",
+      "mimeType": "image/webp",
+      "byteSize": 78848,
+      "sha256": "ba4a93438aa30fa8f75b770badf1ec8e2cade9a664143981d2d7e2f9f6210ec2",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "eigestore-website-tasarimi",
+          "assetRole": "cover"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/eigestore-website-tasarimi/thumbnail.webp",
+      "intendedR2Key": "projects/eigestore-website-tasarimi/thumbnail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 22200,
+      "sha256": "cef74ce64282c83a2a2402651a4fc4c98151f49d628efd71334b300c27a7a248",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "eigestore-website-tasarimi",
+          "assetRole": "thumbnail"
+        },
+        {
+          "entityType": "project",
+          "entityId": "eigestore-website-tasarimi",
+          "assetRole": "desktopIcon"
+        },
+        {
+          "entityType": "project",
+          "entityId": "eigestore-website-tasarimi",
+          "assetRole": "desktopThumbnail"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/eigestore-website-tasarimi/media/01-homepage-storefront.webp",
+      "intendedR2Key": "projects/eigestore-website-tasarimi/media/01-homepage-storefront.webp",
+      "mimeType": "image/webp",
+      "byteSize": 52758,
+      "sha256": "c34b4f3657f6cda39044310e98aa922d4c9cf4f32b00f99b11ea36507d851a97",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "eigestore-website-tasarimi",
+          "assetRole": "media_gallery_1"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/eigestore-website-tasarimi/media/01-laptop-presentation.webp",
+      "intendedR2Key": "projects/eigestore-website-tasarimi/media/01-laptop-presentation.webp",
+      "mimeType": "image/webp",
+      "byteSize": 78848,
+      "sha256": "ba4a93438aa30fa8f75b770badf1ec8e2cade9a664143981d2d7e2f9f6210ec2",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "eigestore-website-tasarimi",
+          "assetRole": "media_gallery_2"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/eigestore-website-tasarimi/media/02-hero-detail.webp",
+      "intendedR2Key": "projects/eigestore-website-tasarimi/media/02-hero-detail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 87512,
+      "sha256": "c5383273471687abf65dee56355f93dfcace51025c2c691dbcb4f54e44555749",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "eigestore-website-tasarimi",
+          "assetRole": "media_gallery_3"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/eigestore-website-tasarimi/media/03-ecommerce-presentation.webp",
+      "intendedR2Key": "projects/eigestore-website-tasarimi/media/03-ecommerce-presentation.webp",
+      "mimeType": "image/webp",
+      "byteSize": 91012,
+      "sha256": "8d10546e79374ab807aa9dacfa412bbede9efb1fdf0d702049ab8f965eebb905",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "eigestore-website-tasarimi",
+          "assetRole": "media_gallery_4"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/eigestore-website-tasarimi/media/04-shopping-experience.webp",
+      "intendedR2Key": "projects/eigestore-website-tasarimi/media/04-shopping-experience.webp",
+      "mimeType": "image/webp",
+      "byteSize": 90918,
+      "sha256": "e56a2470bbc65ab2b30ed8611c2e446d5510962db11f7ad90a5c7a3730eb5bdd",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "eigestore-website-tasarimi",
+          "assetRole": "media_gallery_5"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/kagestudio-website-tasarimi/cover.webp",
+      "intendedR2Key": "projects/kagestudio-website-tasarimi/cover.webp",
+      "mimeType": "image/webp",
+      "byteSize": 48406,
+      "sha256": "d3ed6b99008e73fac54d981cf0695519535d16993216424b162862e44ba5f342",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "kagestudio-website-tasarimi",
+          "assetRole": "cover"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/kagestudio-website-tasarimi/thumbnail.webp",
+      "intendedR2Key": "projects/kagestudio-website-tasarimi/thumbnail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 10570,
+      "sha256": "02a1ff1b0a0331c2c6ef86a0b14af529508464f2a19a56e212c7413da5fea35e",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "kagestudio-website-tasarimi",
+          "assetRole": "thumbnail"
+        },
+        {
+          "entityType": "project",
+          "entityId": "kagestudio-website-tasarimi",
+          "assetRole": "desktopIcon"
+        },
+        {
+          "entityType": "project",
+          "entityId": "kagestudio-website-tasarimi",
+          "assetRole": "desktopThumbnail"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/kagestudio-website-tasarimi/media/02-homepage-browser.webp",
+      "intendedR2Key": "projects/kagestudio-website-tasarimi/media/02-homepage-browser.webp",
+      "mimeType": "image/webp",
+      "byteSize": 25878,
+      "sha256": "c9273bec26bdd7196c70501cf97685d807a5ca2e8b3edde35272fabfd9b7b7c2",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "kagestudio-website-tasarimi",
+          "assetRole": "media_gallery_1"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/kagestudio-website-tasarimi/media/01-combat-laptop-mockup.webp",
+      "intendedR2Key": "projects/kagestudio-website-tasarimi/media/01-combat-laptop-mockup.webp",
+      "mimeType": "image/webp",
+      "byteSize": 48406,
+      "sha256": "d3ed6b99008e73fac54d981cf0695519535d16993216424b162862e44ba5f342",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "kagestudio-website-tasarimi",
+          "assetRole": "media_gallery_2"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/kagestudio-website-tasarimi/media/03-hero-detail.webp",
+      "intendedR2Key": "projects/kagestudio-website-tasarimi/media/03-hero-detail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 39502,
+      "sha256": "237ae1e881d651563713ee039b21d67923796f5bc3d6cfa305876e8f72635a23",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "kagestudio-website-tasarimi",
+          "assetRole": "media_gallery_3"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/kagestudio-website-tasarimi/media/04-premium-presentation.webp",
+      "intendedR2Key": "projects/kagestudio-website-tasarimi/media/04-premium-presentation.webp",
+      "mimeType": "image/webp",
+      "byteSize": 114788,
+      "sha256": "0e6395a8a1f31dbe4fc94c0eda53337a7be8c9de7ebd71c09d04e208fbfc5885",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "kagestudio-website-tasarimi",
+          "assetRole": "media_gallery_4"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/deva-yangin-website-tasarimi/cover.webp",
+      "intendedR2Key": "projects/deva-yangin-website-tasarimi/cover.webp",
+      "mimeType": "image/webp",
+      "byteSize": 39258,
+      "sha256": "0a7f7d77c4729ce0fa3be9a6c7d88b5a50f7c3f83191b01eaafa31daa54b1f70",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "deva-yangin-website-tasarimi",
+          "assetRole": "cover"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/deva-yangin-website-tasarimi/thumbnail.webp",
+      "intendedR2Key": "projects/deva-yangin-website-tasarimi/thumbnail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 20672,
+      "sha256": "68ab9686025663c59a4bfc266c2dda45077c028fcfae7d6290613e05a4576f72",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "deva-yangin-website-tasarimi",
+          "assetRole": "thumbnail"
+        },
+        {
+          "entityType": "project",
+          "entityId": "deva-yangin-website-tasarimi",
+          "assetRole": "desktopIcon"
+        },
+        {
+          "entityType": "project",
+          "entityId": "deva-yangin-website-tasarimi",
+          "assetRole": "desktopThumbnail"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/deva-yangin-website-tasarimi/media/02-homepage-browser.webp",
+      "intendedR2Key": "projects/deva-yangin-website-tasarimi/media/02-homepage-browser.webp",
+      "mimeType": "image/webp",
+      "byteSize": 55140,
+      "sha256": "677969695ce85eaec71b2ee905e5b6fc4236b7c7a869e8afea3476f7d9424e95",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "deva-yangin-website-tasarimi",
+          "assetRole": "media_gallery_1"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/deva-yangin-website-tasarimi/media/01-laptop-presentation.webp",
+      "intendedR2Key": "projects/deva-yangin-website-tasarimi/media/01-laptop-presentation.webp",
+      "mimeType": "image/webp",
+      "byteSize": 39258,
+      "sha256": "0a7f7d77c4729ce0fa3be9a6c7d88b5a50f7c3f83191b01eaafa31daa54b1f70",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "deva-yangin-website-tasarimi",
+          "assetRole": "media_gallery_2"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/deva-yangin-website-tasarimi/media/03-hero-detail.webp",
+      "intendedR2Key": "projects/deva-yangin-website-tasarimi/media/03-hero-detail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 79970,
+      "sha256": "12473e05bb27399e6374d67aff192490c3257f530fe220b3c1a6235517f06378",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "deva-yangin-website-tasarimi",
+          "assetRole": "media_gallery_3"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/deva-yangin-website-tasarimi/media/04-fire-safety-presentation.webp",
+      "intendedR2Key": "projects/deva-yangin-website-tasarimi/media/04-fire-safety-presentation.webp",
+      "mimeType": "image/webp",
+      "byteSize": 138350,
+      "sha256": "30e1e4dbbdd837be2af04880cd414e3d9b6c4f3a2edca1dcbdf583922939605a",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "deva-yangin-website-tasarimi",
+          "assetRole": "media_gallery_4"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/deva-yangin-website-tasarimi/media/05-service-architecture.webp",
+      "intendedR2Key": "projects/deva-yangin-website-tasarimi/media/05-service-architecture.webp",
+      "mimeType": "image/webp",
+      "byteSize": 81928,
+      "sha256": "afd1549854ab243845babc8d3adbc5b5bdf38da0839aa6e09bd73da7db743045",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "deva-yangin-website-tasarimi",
+          "assetRole": "media_gallery_5"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/emix-creative-website-tasarimi/cover.webp",
+      "intendedR2Key": "projects/emix-creative-website-tasarimi/cover.webp",
+      "mimeType": "image/webp",
+      "byteSize": 71278,
+      "sha256": "ce07d30a10455a0bddc989e2f737cfa1745726e36a014bf49dcfa91a2a42e8d9",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "emix-creative-website-tasarimi",
+          "assetRole": "cover"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/emix-creative-website-tasarimi/thumbnail.webp",
+      "intendedR2Key": "projects/emix-creative-website-tasarimi/thumbnail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 22058,
+      "sha256": "2bf1e9d8562977d7716376d0b09edc55b624d4f636c47f9f2148269f9c8695ff",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "emix-creative-website-tasarimi",
+          "assetRole": "thumbnail"
+        },
+        {
+          "entityType": "project",
+          "entityId": "emix-creative-website-tasarimi",
+          "assetRole": "desktopIcon"
+        },
+        {
+          "entityType": "project",
+          "entityId": "emix-creative-website-tasarimi",
+          "assetRole": "desktopThumbnail"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/emix-creative-website-tasarimi/media/02-dark-agency-homepage.webp",
+      "intendedR2Key": "projects/emix-creative-website-tasarimi/media/02-dark-agency-homepage.webp",
+      "mimeType": "image/webp",
+      "byteSize": 58418,
+      "sha256": "5b21c08e2b18303fffab31a8a88bcadbf2855c01080cd0ea67af024667caa72f",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "emix-creative-website-tasarimi",
+          "assetRole": "media_gallery_1"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/emix-creative-website-tasarimi/media/01-agency-laptop-presentation.webp",
+      "intendedR2Key": "projects/emix-creative-website-tasarimi/media/01-agency-laptop-presentation.webp",
+      "mimeType": "image/webp",
+      "byteSize": 71278,
+      "sha256": "ce07d30a10455a0bddc989e2f737cfa1745726e36a014bf49dcfa91a2a42e8d9",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "emix-creative-website-tasarimi",
+          "assetRole": "media_gallery_2"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/emix-creative-website-tasarimi/media/03-service-hero-detail.webp",
+      "intendedR2Key": "projects/emix-creative-website-tasarimi/media/03-service-hero-detail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 76316,
+      "sha256": "d76b5561fee647364407176449706614a85a968cffc982dea1fdd5412e959b00",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "emix-creative-website-tasarimi",
+          "assetRole": "media_gallery_3"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/emix-creative-website-tasarimi/media/04-agency-presentation.webp",
+      "intendedR2Key": "projects/emix-creative-website-tasarimi/media/04-agency-presentation.webp",
+      "mimeType": "image/webp",
+      "byteSize": 109592,
+      "sha256": "7e499f5d4fa81473b2ef2a7d203b22daac3a3ea68c2fb117481d89495a4d077f",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "emix-creative-website-tasarimi",
+          "assetRole": "media_gallery_4"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/emix-creative-website-tasarimi/media/05-service-ecosystem.webp",
+      "intendedR2Key": "projects/emix-creative-website-tasarimi/media/05-service-ecosystem.webp",
+      "mimeType": "image/webp",
+      "byteSize": 80664,
+      "sha256": "cc7ae313b3a0438e130df78c22737be820a8ef877e2993ed86017dc68a7d7ca1",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "emix-creative-website-tasarimi",
+          "assetRole": "media_gallery_5"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/iuckmk-website-tasarimi/cover.webp",
+      "intendedR2Key": "projects/iuckmk-website-tasarimi/cover.webp",
+      "mimeType": "image/webp",
+      "byteSize": 51422,
+      "sha256": "1378c3f3b6b5d0e0a88c9fdeb30f044d14bdf29ff3f451f2704702cdd3244794",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "iuckmk-website-tasarimi",
+          "assetRole": "cover"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/iuckmk-website-tasarimi/thumbnail.webp",
+      "intendedR2Key": "projects/iuckmk-website-tasarimi/thumbnail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 22350,
+      "sha256": "0b8a24b4714f3e7f8a8d8758d3be01a5b1862a994c508fee0c6480fcee657ad1",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "iuckmk-website-tasarimi",
+          "assetRole": "thumbnail"
+        },
+        {
+          "entityType": "project",
+          "entityId": "iuckmk-website-tasarimi",
+          "assetRole": "desktopIcon"
+        },
+        {
+          "entityType": "project",
+          "entityId": "iuckmk-website-tasarimi",
+          "assetRole": "desktopThumbnail"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/iuckmk-website-tasarimi/media/02-homepage-browser.webp",
+      "intendedR2Key": "projects/iuckmk-website-tasarimi/media/02-homepage-browser.webp",
+      "mimeType": "image/webp",
+      "byteSize": 57228,
+      "sha256": "32e330a80e6a347c95678ea35214f44e36e754c5a012e516d5013ac3817bee16",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "iuckmk-website-tasarimi",
+          "assetRole": "media_gallery_1"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/iuckmk-website-tasarimi/media/01-imac-presentation.webp",
+      "intendedR2Key": "projects/iuckmk-website-tasarimi/media/01-imac-presentation.webp",
+      "mimeType": "image/webp",
+      "byteSize": 51422,
+      "sha256": "1378c3f3b6b5d0e0a88c9fdeb30f044d14bdf29ff3f451f2704702cdd3244794",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "iuckmk-website-tasarimi",
+          "assetRole": "media_gallery_2"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/iuckmk-website-tasarimi/media/03-navigation-detail.webp",
+      "intendedR2Key": "projects/iuckmk-website-tasarimi/media/03-navigation-detail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 82252,
+      "sha256": "160fd767f940f1d39bbeb6d29afc4a32cc2ee206b18ad67e1d0410f6f27c018b",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "iuckmk-website-tasarimi",
+          "assetRole": "media_gallery_3"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/iuckmk-website-tasarimi/media/04-community-presentation.webp",
+      "intendedR2Key": "projects/iuckmk-website-tasarimi/media/04-community-presentation.webp",
+      "mimeType": "image/webp",
+      "byteSize": 119672,
+      "sha256": "2783c9e21f079decaab287d463cfc1e6b088e19a6fbbda23b6002f040101cb03",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "iuckmk-website-tasarimi",
+          "assetRole": "media_gallery_4"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/iuckmk-website-tasarimi/media/05-content-architecture.webp",
+      "intendedR2Key": "projects/iuckmk-website-tasarimi/media/05-content-architecture.webp",
+      "mimeType": "image/webp",
+      "byteSize": 89112,
+      "sha256": "416de18bd0edea4d864dbe3e45b9cfbdae20639320588cc4b64c22979cf90bed",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "iuckmk-website-tasarimi",
+          "assetRole": "media_gallery_5"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/engin-perde-website-optimizasyonu/cover.webp",
+      "intendedR2Key": "projects/engin-perde-website-optimizasyonu/cover.webp",
+      "mimeType": "image/webp",
+      "byteSize": 92868,
+      "sha256": "6012f5bdbe11b599d198e5a823727f241fb35f4069a5c83ee98be98b7e7f4333",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "engin-perde-website-optimizasyonu",
+          "assetRole": "cover"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/engin-perde-website-optimizasyonu/thumbnail.webp",
+      "intendedR2Key": "projects/engin-perde-website-optimizasyonu/thumbnail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 24092,
+      "sha256": "f8ab2392514db9c592c8ad64ec66690769d835f075915111a985d5166e5e837b",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "engin-perde-website-optimizasyonu",
+          "assetRole": "thumbnail"
+        },
+        {
+          "entityType": "project",
+          "entityId": "engin-perde-website-optimizasyonu",
+          "assetRole": "desktopIcon"
+        },
+        {
+          "entityType": "project",
+          "entityId": "engin-perde-website-optimizasyonu",
+          "assetRole": "desktopThumbnail"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/engin-perde-website-optimizasyonu/media/02-homepage.webp",
+      "intendedR2Key": "projects/engin-perde-website-optimizasyonu/media/02-homepage.webp",
+      "mimeType": "image/webp",
+      "byteSize": 81416,
+      "sha256": "2a54f774239b70ddc8fad6ba7154beccb0322bfd48181cc3e0fadfd52b33c53e",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "engin-perde-website-optimizasyonu",
+          "assetRole": "media_gallery_1"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/engin-perde-website-optimizasyonu/media/01-product-detail-mockup.webp",
+      "intendedR2Key": "projects/engin-perde-website-optimizasyonu/media/01-product-detail-mockup.webp",
+      "mimeType": "image/webp",
+      "byteSize": 92868,
+      "sha256": "6012f5bdbe11b599d198e5a823727f241fb35f4069a5c83ee98be98b7e7f4333",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "engin-perde-website-optimizasyonu",
+          "assetRole": "media_gallery_2"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/engin-perde-website-optimizasyonu/media/03-pricing-system-showcase.webp",
+      "intendedR2Key": "projects/engin-perde-website-optimizasyonu/media/03-pricing-system-showcase.webp",
+      "mimeType": "image/webp",
+      "byteSize": 93730,
+      "sha256": "591406bd27468683f8dce77fe478ea1fb3308228a0e5eb51bb7d4c4b26b06aa7",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "engin-perde-website-optimizasyonu",
+          "assetRole": "media_gallery_3"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/engin-perde-website-optimizasyonu/media/04-website-presentation.webp",
+      "intendedR2Key": "projects/engin-perde-website-optimizasyonu/media/04-website-presentation.webp",
+      "mimeType": "image/webp",
+      "byteSize": 113440,
+      "sha256": "1c1e40bc2a8122172d76654dc1f6c4d36d42d91369901c84e4ffbb8ca7966520",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "engin-perde-website-optimizasyonu",
+          "assetRole": "media_gallery_4"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/sanda-yachting-website-ceviri-calismasi/cover.webp",
+      "intendedR2Key": "projects/sanda-yachting-website-ceviri-calismasi/cover.webp",
+      "mimeType": "image/webp",
+      "byteSize": 104886,
+      "sha256": "72a7bfacb1a9cb35161a2d0e9de26a765588ffa1aa26df1cfc0a57f349054b2c",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "sanda-yachting-website-ceviri-calismasi",
+          "assetRole": "cover"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/sanda-yachting-website-ceviri-calismasi/thumbnail.webp",
+      "intendedR2Key": "projects/sanda-yachting-website-ceviri-calismasi/thumbnail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 26488,
+      "sha256": "d7413298dab1324fedc2e564e3e2f5dd933e5ffcd29282923133670c48e6ff42",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "sanda-yachting-website-ceviri-calismasi",
+          "assetRole": "thumbnail"
+        },
+        {
+          "entityType": "project",
+          "entityId": "sanda-yachting-website-ceviri-calismasi",
+          "assetRole": "desktopIcon"
+        },
+        {
+          "entityType": "project",
+          "entityId": "sanda-yachting-website-ceviri-calismasi",
+          "assetRole": "desktopThumbnail"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/sanda-yachting-website-ceviri-calismasi/media/02-homepage-screenshot.webp",
+      "intendedR2Key": "projects/sanda-yachting-website-ceviri-calismasi/media/02-homepage-screenshot.webp",
+      "mimeType": "image/webp",
+      "byteSize": 84340,
+      "sha256": "66074032d06343232956a2f1376acd819a6cbecccdd0f345c199e7de98e6552a",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "sanda-yachting-website-ceviri-calismasi",
+          "assetRole": "media_gallery_1"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/sanda-yachting-website-ceviri-calismasi/media/01-laptop-mockup.webp",
+      "intendedR2Key": "projects/sanda-yachting-website-ceviri-calismasi/media/01-laptop-mockup.webp",
+      "mimeType": "image/webp",
+      "byteSize": 104886,
+      "sha256": "72a7bfacb1a9cb35161a2d0e9de26a765588ffa1aa26df1cfc0a57f349054b2c",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "sanda-yachting-website-ceviri-calismasi",
+          "assetRole": "media_gallery_2"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/sanda-yachting-website-ceviri-calismasi/media/03-content-localization-showcase.webp",
+      "intendedR2Key": "projects/sanda-yachting-website-ceviri-calismasi/media/03-content-localization-showcase.webp",
+      "mimeType": "image/webp",
+      "byteSize": 122448,
+      "sha256": "4f59ac54b514cae91fefa8a3428a4490e34e2ab6a79f7804ad1892842df12ebc",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "sanda-yachting-website-ceviri-calismasi",
+          "assetRole": "media_gallery_3"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/sanda-yachting-website-ceviri-calismasi/media/04-website-presentation.webp",
+      "intendedR2Key": "projects/sanda-yachting-website-ceviri-calismasi/media/04-website-presentation.webp",
+      "mimeType": "image/webp",
+      "byteSize": 121524,
+      "sha256": "e7a9253cdf48541642d22c4dd2ab7d627c318dd8cc3b11537631581783ea887f",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "sanda-yachting-website-ceviri-calismasi",
+          "assetRole": "media_gallery_4"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/ceylanlar-site-yonetimi-website-tasarimi/cover.webp",
+      "intendedR2Key": "projects/ceylanlar-site-yonetimi-website-tasarimi/cover.webp",
+      "mimeType": "image/webp",
+      "byteSize": 30816,
+      "sha256": "ab6e07d7e70d09282d8938f5c9ba5fbe6bae6672c825ebc3cc6619b5205e6203",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "ceylanlar-site-yonetimi-website-tasarimi",
+          "assetRole": "cover"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/ceylanlar-site-yonetimi-website-tasarimi/thumbnail.webp",
+      "intendedR2Key": "projects/ceylanlar-site-yonetimi-website-tasarimi/thumbnail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 28060,
+      "sha256": "43f4f6397c81b90bc215fdd1bdb2e424424c90c9d14028a37d677882154ca949",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "ceylanlar-site-yonetimi-website-tasarimi",
+          "assetRole": "thumbnail"
+        },
+        {
+          "entityType": "project",
+          "entityId": "ceylanlar-site-yonetimi-website-tasarimi",
+          "assetRole": "desktopIcon"
+        },
+        {
+          "entityType": "project",
+          "entityId": "ceylanlar-site-yonetimi-website-tasarimi",
+          "assetRole": "desktopThumbnail"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/ceylanlar-site-yonetimi-website-tasarimi/media/02-homepage-browser.webp",
+      "intendedR2Key": "projects/ceylanlar-site-yonetimi-website-tasarimi/media/02-homepage-browser.webp",
+      "mimeType": "image/webp",
+      "byteSize": 72738,
+      "sha256": "45c86efbb9a72fa44abb4ed8f3d565dfd55bb20ec03d14865afaab9584d56bb8",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "ceylanlar-site-yonetimi-website-tasarimi",
+          "assetRole": "media_gallery_1"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/ceylanlar-site-yonetimi-website-tasarimi/media/01-lifestyle-laptop.webp",
+      "intendedR2Key": "projects/ceylanlar-site-yonetimi-website-tasarimi/media/01-lifestyle-laptop.webp",
+      "mimeType": "image/webp",
+      "byteSize": 30816,
+      "sha256": "ab6e07d7e70d09282d8938f5c9ba5fbe6bae6672c825ebc3cc6619b5205e6203",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "ceylanlar-site-yonetimi-website-tasarimi",
+          "assetRole": "media_gallery_2"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/ceylanlar-site-yonetimi-website-tasarimi/media/03-hero-detail.webp",
+      "intendedR2Key": "projects/ceylanlar-site-yonetimi-website-tasarimi/media/03-hero-detail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 112882,
+      "sha256": "1a8c7573c4ea78784f854dbd17457827aad5ba49a98c6085f56dbb51b84eadd2",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "ceylanlar-site-yonetimi-website-tasarimi",
+          "assetRole": "media_gallery_3"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/ceylanlar-site-yonetimi-website-tasarimi/media/04-corporate-presentation.webp",
+      "intendedR2Key": "projects/ceylanlar-site-yonetimi-website-tasarimi/media/04-corporate-presentation.webp",
+      "mimeType": "image/webp",
+      "byteSize": 134506,
+      "sha256": "542b075e59e36dc5ab88ea0c69898d872177c3c87202ee2efc85e5951d146f8c",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "ceylanlar-site-yonetimi-website-tasarimi",
+          "assetRole": "media_gallery_4"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/ceylanlar-site-yonetimi-website-tasarimi/media/05-service-experience.webp",
+      "intendedR2Key": "projects/ceylanlar-site-yonetimi-website-tasarimi/media/05-service-experience.webp",
+      "mimeType": "image/webp",
+      "byteSize": 88068,
+      "sha256": "c06fdb8127ebf81cfdfa1d38207df9c44381322c994984f6eebe93b9bed986b2",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "ceylanlar-site-yonetimi-website-tasarimi",
+          "assetRole": "media_gallery_5"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/alchemia-subat-2025-dergi-tasarimi/cover.webp",
+      "intendedR2Key": "projects/alchemia-subat-2025-dergi-tasarimi/cover.webp",
+      "mimeType": "image/webp",
+      "byteSize": 46838,
+      "sha256": "e2c475ea5c2cb941350a36971ee5ce310e579ce89edd5a64d95c22aefd7f959d",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "alchemia-subat-2025-dergi-tasarimi",
+          "assetRole": "cover"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/alchemia-subat-2025-dergi-tasarimi/thumbnail.webp",
+      "intendedR2Key": "projects/alchemia-subat-2025-dergi-tasarimi/thumbnail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 28334,
+      "sha256": "32981212f5f68c1e44a9610af0be6ddaa3fd9f5bfa78ed561a7ea2fdd1d5a012",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "alchemia-subat-2025-dergi-tasarimi",
+          "assetRole": "thumbnail"
+        },
+        {
+          "entityType": "project",
+          "entityId": "alchemia-subat-2025-dergi-tasarimi",
+          "assetRole": "desktopIcon"
+        },
+        {
+          "entityType": "project",
+          "entityId": "alchemia-subat-2025-dergi-tasarimi",
+          "assetRole": "desktopThumbnail"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/alchemia-subat-2025-dergi-tasarimi/media/01-magazine-cover-mockup.webp",
+      "intendedR2Key": "projects/alchemia-subat-2025-dergi-tasarimi/media/01-magazine-cover-mockup.webp",
+      "mimeType": "image/webp",
+      "byteSize": 46838,
+      "sha256": "e2c475ea5c2cb941350a36971ee5ce310e579ce89edd5a64d95c22aefd7f959d",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "alchemia-subat-2025-dergi-tasarimi",
+          "assetRole": "media_gallery_1"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/alchemia-subat-2025-dergi-tasarimi/media/02-cover-detail.webp",
+      "intendedR2Key": "projects/alchemia-subat-2025-dergi-tasarimi/media/02-cover-detail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 93370,
+      "sha256": "9741814ae47f02c7c6f81a82be1422a42fa52fea76e240c990bb0051b69d13ca",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "alchemia-subat-2025-dergi-tasarimi",
+          "assetRole": "media_gallery_2"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/alchemia-subat-2025-dergi-tasarimi/media/03-editorial-presentation.webp",
+      "intendedR2Key": "projects/alchemia-subat-2025-dergi-tasarimi/media/03-editorial-presentation.webp",
+      "mimeType": "image/webp",
+      "byteSize": 88404,
+      "sha256": "a55934c5bf8f14dbac976f30150029e0a7036b07c7a434c45f2d142396fe0dc1",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "alchemia-subat-2025-dergi-tasarimi",
+          "assetRole": "media_gallery_3"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/alchemia-subat-2025-dergi-tasarimi/media/04-publication-system.webp",
+      "intendedR2Key": "projects/alchemia-subat-2025-dergi-tasarimi/media/04-publication-system.webp",
+      "mimeType": "image/webp",
+      "byteSize": 88262,
+      "sha256": "7729eaba923ac69094fc0fac482bb50c62f865500ca9ec7777660c8c9a998163",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "alchemia-subat-2025-dergi-tasarimi",
+          "assetRole": "media_gallery_4"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/kmz-2025/cover.webp",
+      "intendedR2Key": "projects/kmz-2025/cover.webp",
+      "mimeType": "image/webp",
+      "byteSize": 107106,
+      "sha256": "826fe07ea45a12fbec84b8693778e83fc17cea42d98e2cb96461a5bc68eb9c8d",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "kmz-2025",
+          "assetRole": "cover"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/kmz-2025/thumbnail.webp",
+      "intendedR2Key": "projects/kmz-2025/thumbnail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 38078,
+      "sha256": "f933138d377c6d178de3cc408bc163d20c88089ff1e05852735ec779f242a5f2",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "kmz-2025",
+          "assetRole": "thumbnail"
+        },
+        {
+          "entityType": "project",
+          "entityId": "kmz-2025",
+          "assetRole": "desktopIcon"
+        },
+        {
+          "entityType": "project",
+          "entityId": "kmz-2025",
+          "assetRole": "desktopThumbnail"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/kmz-2025/media/01-kmz-2025-primary-poster.webp",
+      "intendedR2Key": "projects/kmz-2025/media/01-kmz-2025-primary-poster.webp",
+      "mimeType": "image/webp",
+      "byteSize": 107106,
+      "sha256": "826fe07ea45a12fbec84b8693778e83fc17cea42d98e2cb96461a5bc68eb9c8d",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "kmz-2025",
+          "assetRole": "media_gallery_1"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/fling-arena/cover.webp",
+      "intendedR2Key": "projects/fling-arena/cover.webp",
+      "mimeType": "image/webp",
+      "byteSize": 153568,
+      "sha256": "4121e21791bab7c6c155c5721e97f773be273cf01086de1df25ee405502af74a",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "fling-arena",
+          "assetRole": "cover"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/fling-arena/thumbnail.webp",
+      "intendedR2Key": "projects/fling-arena/thumbnail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 63832,
+      "sha256": "079cfc347287f495a6fbfec233b2890734eefc86cb73b9f03853b6c4529c40dd",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "fling-arena",
+          "assetRole": "thumbnail"
+        },
+        {
+          "entityType": "project",
+          "entityId": "fling-arena",
+          "assetRole": "desktopIcon"
+        },
+        {
+          "entityType": "project",
+          "entityId": "fling-arena",
+          "assetRole": "desktopThumbnail"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/fling-arena/media/01-fling-arena-identity.webp",
+      "intendedR2Key": "projects/fling-arena/media/01-fling-arena-identity.webp",
+      "mimeType": "image/webp",
+      "byteSize": 153568,
+      "sha256": "4121e21791bab7c6c155c5721e97f773be273cf01086de1df25ee405502af74a",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "fling-arena",
+          "assetRole": "media_gallery_1"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/kagestudio-marka-kimligi/cover.webp",
+      "intendedR2Key": "projects/kagestudio-marka-kimligi/cover.webp",
+      "mimeType": "image/webp",
+      "byteSize": 68476,
+      "sha256": "854879e25482d847056f838ae7189a90dcebd249cd6cf849f44d4280b2a61e57",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "kagestudio-marka-kimligi",
+          "assetRole": "cover"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/kagestudio-marka-kimligi/thumbnail.webp",
+      "intendedR2Key": "projects/kagestudio-marka-kimligi/thumbnail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 28702,
+      "sha256": "0e21e064c115b96a229bab2587f1f6ef49f2d953668643ffe1358f83e197357d",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "kagestudio-marka-kimligi",
+          "assetRole": "thumbnail"
+        },
+        {
+          "entityType": "project",
+          "entityId": "kagestudio-marka-kimligi",
+          "assetRole": "desktopIcon"
+        },
+        {
+          "entityType": "project",
+          "entityId": "kagestudio-marka-kimligi",
+          "assetRole": "desktopThumbnail"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/kagestudio-marka-kimligi/media/01-kagestudio-brand-identity.webp",
+      "intendedR2Key": "projects/kagestudio-marka-kimligi/media/01-kagestudio-brand-identity.webp",
+      "mimeType": "image/webp",
+      "byteSize": 68476,
+      "sha256": "854879e25482d847056f838ae7189a90dcebd249cd6cf849f44d4280b2a61e57",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "kagestudio-marka-kimligi",
+          "assetRole": "media_gallery_1"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/eigestore-marka-kimligi/cover.webp",
+      "intendedR2Key": "projects/eigestore-marka-kimligi/cover.webp",
+      "mimeType": "image/webp",
+      "byteSize": 71638,
+      "sha256": "c0886c30fac2fdae16cc8856923059074cadf898a84ec7eaf5e1c2c84294a1c8",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "eigestore-marka-kimligi",
+          "assetRole": "cover"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/eigestore-marka-kimligi/thumbnail.webp",
+      "intendedR2Key": "projects/eigestore-marka-kimligi/thumbnail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 71638,
+      "sha256": "c0886c30fac2fdae16cc8856923059074cadf898a84ec7eaf5e1c2c84294a1c8",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "eigestore-marka-kimligi",
+          "assetRole": "thumbnail"
+        },
+        {
+          "entityType": "project",
+          "entityId": "eigestore-marka-kimligi",
+          "assetRole": "desktopIcon"
+        },
+        {
+          "entityType": "project",
+          "entityId": "eigestore-marka-kimligi",
+          "assetRole": "desktopThumbnail"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/eigestore-marka-kimligi/media/01-eigestore-logo.webp",
+      "intendedR2Key": "projects/eigestore-marka-kimligi/media/01-eigestore-logo.webp",
+      "mimeType": "image/webp",
+      "byteSize": 13414,
+      "sha256": "606c6b49c8e27109cfcaa3867786d0bbc260c1edd16f70a7dac66d3037b929f8",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "eigestore-marka-kimligi",
+          "assetRole": "media_gallery_1"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/eigestore-marka-kimligi/media/02-eigestore-business-card.webp",
+      "intendedR2Key": "projects/eigestore-marka-kimligi/media/02-eigestore-business-card.webp",
+      "mimeType": "image/webp",
+      "byteSize": 71638,
+      "sha256": "c0886c30fac2fdae16cc8856923059074cadf898a84ec7eaf5e1c2c84294a1c8",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "eigestore-marka-kimligi",
+          "assetRole": "media_gallery_2"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/hizir-yangin-marka-kimligi/cover.webp",
+      "intendedR2Key": "projects/hizir-yangin-marka-kimligi/cover.webp",
+      "mimeType": "image/webp",
+      "byteSize": 298244,
+      "sha256": "f9560c5b1327a34a0eb8feb7999341dcc82cbee0f0c9a5b19226a721b079bbfc",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "hizir-yangin-marka-kimligi",
+          "assetRole": "cover"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/hizir-yangin-marka-kimligi/thumbnail.webp",
+      "intendedR2Key": "projects/hizir-yangin-marka-kimligi/thumbnail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 298244,
+      "sha256": "f9560c5b1327a34a0eb8feb7999341dcc82cbee0f0c9a5b19226a721b079bbfc",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "hizir-yangin-marka-kimligi",
+          "assetRole": "thumbnail"
+        },
+        {
+          "entityType": "project",
+          "entityId": "hizir-yangin-marka-kimligi",
+          "assetRole": "desktopIcon"
+        },
+        {
+          "entityType": "project",
+          "entityId": "hizir-yangin-marka-kimligi",
+          "assetRole": "desktopThumbnail"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/hizir-yangin-marka-kimligi/media/01-hizir-yangin-tabela-mockup.webp",
+      "intendedR2Key": "projects/hizir-yangin-marka-kimligi/media/01-hizir-yangin-tabela-mockup.webp",
+      "mimeType": "image/webp",
+      "byteSize": 298244,
+      "sha256": "f9560c5b1327a34a0eb8feb7999341dcc82cbee0f0c9a5b19226a721b079bbfc",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "hizir-yangin-marka-kimligi",
+          "assetRole": "media_gallery_1"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/hizir-yangin-marka-kimligi/media/02-hizir-yangin-kartvizit-mockup.webp",
+      "intendedR2Key": "projects/hizir-yangin-marka-kimligi/media/02-hizir-yangin-kartvizit-mockup.webp",
+      "mimeType": "image/webp",
+      "byteSize": 73206,
+      "sha256": "4cf5fde62c4a62644891c61f282c6f3b32155a0924abce60beed4b732f86ae69",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "hizir-yangin-marka-kimligi",
+          "assetRole": "media_gallery_2"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/emix-qr-menu/cover.webp",
+      "intendedR2Key": "projects/emix-qr-menu/cover.webp",
+      "mimeType": "image/webp",
+      "byteSize": 57678,
+      "sha256": "8291dde024d8b69b2cf34c4d6d5ddf0fea83efad758dd04960ac0f5ee637e5a5",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "emix-qr-menu",
+          "assetRole": "cover"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/emix-qr-menu/thumbnail.webp",
+      "intendedR2Key": "projects/emix-qr-menu/thumbnail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 57678,
+      "sha256": "8291dde024d8b69b2cf34c4d6d5ddf0fea83efad758dd04960ac0f5ee637e5a5",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "emix-qr-menu",
+          "assetRole": "thumbnail"
+        },
+        {
+          "entityType": "project",
+          "entityId": "emix-qr-menu",
+          "assetRole": "desktopIcon"
+        },
+        {
+          "entityType": "project",
+          "entityId": "emix-qr-menu",
+          "assetRole": "desktopThumbnail"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/emix-qr-menu/media/01-emix-qr-menu-website.webp",
+      "intendedR2Key": "projects/emix-qr-menu/media/01-emix-qr-menu-website.webp",
+      "mimeType": "image/webp",
+      "byteSize": 57678,
+      "sha256": "8291dde024d8b69b2cf34c4d6d5ddf0fea83efad758dd04960ac0f5ee637e5a5",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "emix-qr-menu",
+          "assetRole": "media_gallery_1"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/emix-qr-menu/media/02-emix-qr-menu-admin-dashboard.webp",
+      "intendedR2Key": "projects/emix-qr-menu/media/02-emix-qr-menu-admin-dashboard.webp",
+      "mimeType": "image/webp",
+      "byteSize": 31728,
+      "sha256": "e793d753f06dc9e5badcfaa6a7804c0de2234f90b248332983c95160fae4a293",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "emix-qr-menu",
+          "assetRole": "media_gallery_2"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/planfiq-logo-tasarimi/cover.webp",
+      "intendedR2Key": "projects/planfiq-logo-tasarimi/cover.webp",
+      "mimeType": "image/webp",
+      "byteSize": 47236,
+      "sha256": "da72135868a73f096a873af25ac9876e75442d43fcafbb30df82d8a231ba7960",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "planfiq-logo-tasarimi",
+          "assetRole": "cover"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/planfiq-logo-tasarimi/thumbnail.webp",
+      "intendedR2Key": "projects/planfiq-logo-tasarimi/thumbnail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 47236,
+      "sha256": "da72135868a73f096a873af25ac9876e75442d43fcafbb30df82d8a231ba7960",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "planfiq-logo-tasarimi",
+          "assetRole": "thumbnail"
+        },
+        {
+          "entityType": "project",
+          "entityId": "planfiq-logo-tasarimi",
+          "assetRole": "desktopIcon"
+        },
+        {
+          "entityType": "project",
+          "entityId": "planfiq-logo-tasarimi",
+          "assetRole": "desktopThumbnail"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/planfiq-logo-tasarimi/media/01-planfiq-logo-presentation.webp",
+      "intendedR2Key": "projects/planfiq-logo-tasarimi/media/01-planfiq-logo-presentation.webp",
+      "mimeType": "image/webp",
+      "byteSize": 47236,
+      "sha256": "da72135868a73f096a873af25ac9876e75442d43fcafbb30df82d8a231ba7960",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "planfiq-logo-tasarimi",
+          "assetRole": "media_gallery_1"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/ceylanlar-site-yonetimi-marka-kimligi/cover.webp",
+      "intendedR2Key": "projects/ceylanlar-site-yonetimi-marka-kimligi/cover.webp",
+      "mimeType": "image/webp",
+      "byteSize": 18102,
+      "sha256": "dc0899d2c6be1ed4ae01bdfc1ef9413897350e3422262ca9f7e325a986d40d33",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "ceylanlar-site-yonetimi-marka-kimligi",
+          "assetRole": "cover"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/ceylanlar-site-yonetimi-marka-kimligi/thumbnail.webp",
+      "intendedR2Key": "projects/ceylanlar-site-yonetimi-marka-kimligi/thumbnail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 18102,
+      "sha256": "dc0899d2c6be1ed4ae01bdfc1ef9413897350e3422262ca9f7e325a986d40d33",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "ceylanlar-site-yonetimi-marka-kimligi",
+          "assetRole": "thumbnail"
+        },
+        {
+          "entityType": "project",
+          "entityId": "ceylanlar-site-yonetimi-marka-kimligi",
+          "assetRole": "desktopIcon"
+        },
+        {
+          "entityType": "project",
+          "entityId": "ceylanlar-site-yonetimi-marka-kimligi",
+          "assetRole": "desktopThumbnail"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/ceylanlar-site-yonetimi-marka-kimligi/media/01-ceylanlar-brand-identity.webp",
+      "intendedR2Key": "projects/ceylanlar-site-yonetimi-marka-kimligi/media/01-ceylanlar-brand-identity.webp",
+      "mimeType": "image/webp",
+      "byteSize": 18102,
+      "sha256": "dc0899d2c6be1ed4ae01bdfc1ef9413897350e3422262ca9f7e325a986d40d33",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "ceylanlar-site-yonetimi-marka-kimligi",
+          "assetRole": "media_gallery_1"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/deva-yangin-marka-kimligi/cover.webp",
+      "intendedR2Key": "projects/deva-yangin-marka-kimligi/cover.webp",
+      "mimeType": "image/webp",
+      "byteSize": 186384,
+      "sha256": "64c6565a9b231381dc9fa298af8e7b5540a5756fd71f0ae58fe0ad75af07d22c",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "deva-yangin-marka-kimligi",
+          "assetRole": "cover"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/deva-yangin-marka-kimligi/thumbnail.webp",
+      "intendedR2Key": "projects/deva-yangin-marka-kimligi/thumbnail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 186384,
+      "sha256": "64c6565a9b231381dc9fa298af8e7b5540a5756fd71f0ae58fe0ad75af07d22c",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "deva-yangin-marka-kimligi",
+          "assetRole": "thumbnail"
+        },
+        {
+          "entityType": "project",
+          "entityId": "deva-yangin-marka-kimligi",
+          "assetRole": "desktopIcon"
+        },
+        {
+          "entityType": "project",
+          "entityId": "deva-yangin-marka-kimligi",
+          "assetRole": "desktopThumbnail"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/deva-yangin-marka-kimligi/media/01-deva-yangin-brand-identity.webp",
+      "intendedR2Key": "projects/deva-yangin-marka-kimligi/media/01-deva-yangin-brand-identity.webp",
+      "mimeType": "image/webp",
+      "byteSize": 186384,
+      "sha256": "64c6565a9b231381dc9fa298af8e7b5540a5756fd71f0ae58fe0ad75af07d22c",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "deva-yangin-marka-kimligi",
+          "assetRole": "media_gallery_1"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/goobzy-logo-tasarimi/cover.webp",
+      "intendedR2Key": "projects/goobzy-logo-tasarimi/cover.webp",
+      "mimeType": "image/webp",
+      "byteSize": 18674,
+      "sha256": "0803ee9ac8fcec621fa9635b47eae196b5971e7388e6a3122b51158c85844e1e",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "goobzy-logo-tasarimi",
+          "assetRole": "cover"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/goobzy-logo-tasarimi/thumbnail.webp",
+      "intendedR2Key": "projects/goobzy-logo-tasarimi/thumbnail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 18674,
+      "sha256": "0803ee9ac8fcec621fa9635b47eae196b5971e7388e6a3122b51158c85844e1e",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "goobzy-logo-tasarimi",
+          "assetRole": "thumbnail"
+        },
+        {
+          "entityType": "project",
+          "entityId": "goobzy-logo-tasarimi",
+          "assetRole": "desktopIcon"
+        },
+        {
+          "entityType": "project",
+          "entityId": "goobzy-logo-tasarimi",
+          "assetRole": "desktopThumbnail"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/goobzy-logo-tasarimi/media/01-goobzy-logo-application.webp",
+      "intendedR2Key": "projects/goobzy-logo-tasarimi/media/01-goobzy-logo-application.webp",
+      "mimeType": "image/webp",
+      "byteSize": 18674,
+      "sha256": "0803ee9ac8fcec621fa9635b47eae196b5971e7388e6a3122b51158c85844e1e",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "goobzy-logo-tasarimi",
+          "assetRole": "media_gallery_1"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/yanarsan-yangin-logo-tasarimi/cover.webp",
+      "intendedR2Key": "projects/yanarsan-yangin-logo-tasarimi/cover.webp",
+      "mimeType": "image/webp",
+      "byteSize": 225482,
+      "sha256": "c97d06ad8cb5e7b687e482974257986383b87843c75e7473dc92963b4087feb3",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "yanarsan-yangin-logo-tasarimi",
+          "assetRole": "cover"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/yanarsan-yangin-logo-tasarimi/thumbnail.webp",
+      "intendedR2Key": "projects/yanarsan-yangin-logo-tasarimi/thumbnail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 225482,
+      "sha256": "c97d06ad8cb5e7b687e482974257986383b87843c75e7473dc92963b4087feb3",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "yanarsan-yangin-logo-tasarimi",
+          "assetRole": "thumbnail"
+        },
+        {
+          "entityType": "project",
+          "entityId": "yanarsan-yangin-logo-tasarimi",
+          "assetRole": "desktopIcon"
+        },
+        {
+          "entityType": "project",
+          "entityId": "yanarsan-yangin-logo-tasarimi",
+          "assetRole": "desktopThumbnail"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/yanarsan-yangin-logo-tasarimi/media/01-yanarsan-logo-application.webp",
+      "intendedR2Key": "projects/yanarsan-yangin-logo-tasarimi/media/01-yanarsan-logo-application.webp",
+      "mimeType": "image/webp",
+      "byteSize": 225482,
+      "sha256": "c97d06ad8cb5e7b687e482974257986383b87843c75e7473dc92963b4087feb3",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "yanarsan-yangin-logo-tasarimi",
+          "assetRole": "media_gallery_1"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/emix-creative-logo-tasarimi/cover.webp",
+      "intendedR2Key": "projects/emix-creative-logo-tasarimi/cover.webp",
+      "mimeType": "image/webp",
+      "byteSize": 367676,
+      "sha256": "b029f9dce51ee5f2d373611aacb0cd5733839cf542c6cb4655ff5a2528688f3e",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "emix-creative-logo-tasarimi",
+          "assetRole": "cover"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/emix-creative-logo-tasarimi/thumbnail.webp",
+      "intendedR2Key": "projects/emix-creative-logo-tasarimi/thumbnail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 367676,
+      "sha256": "b029f9dce51ee5f2d373611aacb0cd5733839cf542c6cb4655ff5a2528688f3e",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "emix-creative-logo-tasarimi",
+          "assetRole": "thumbnail"
+        },
+        {
+          "entityType": "project",
+          "entityId": "emix-creative-logo-tasarimi",
+          "assetRole": "desktopIcon"
+        },
+        {
+          "entityType": "project",
+          "entityId": "emix-creative-logo-tasarimi",
+          "assetRole": "desktopThumbnail"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/emix-creative-logo-tasarimi/media/01-emix-creative-logo-application.webp",
+      "intendedR2Key": "projects/emix-creative-logo-tasarimi/media/01-emix-creative-logo-application.webp",
+      "mimeType": "image/webp",
+      "byteSize": 367676,
+      "sha256": "b029f9dce51ee5f2d373611aacb0cd5733839cf542c6cb4655ff5a2528688f3e",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "emix-creative-logo-tasarimi",
+          "assetRole": "media_gallery_1"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/kixogames-logo-tasarimi/cover.webp",
+      "intendedR2Key": "projects/kixogames-logo-tasarimi/cover.webp",
+      "mimeType": "image/webp",
+      "byteSize": 82768,
+      "sha256": "0bda80d5966662b108554a7ae2232ad3ef30c5266c7f7f52588c8efbddb3eb63",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "kixogames-logo-tasarimi",
+          "assetRole": "cover"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/kixogames-logo-tasarimi/thumbnail.webp",
+      "intendedR2Key": "projects/kixogames-logo-tasarimi/thumbnail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 82768,
+      "sha256": "0bda80d5966662b108554a7ae2232ad3ef30c5266c7f7f52588c8efbddb3eb63",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "kixogames-logo-tasarimi",
+          "assetRole": "thumbnail"
+        },
+        {
+          "entityType": "project",
+          "entityId": "kixogames-logo-tasarimi",
+          "assetRole": "desktopIcon"
+        },
+        {
+          "entityType": "project",
+          "entityId": "kixogames-logo-tasarimi",
+          "assetRole": "desktopThumbnail"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/kixogames-logo-tasarimi/media/01-kixogames-logo-identity.webp",
+      "intendedR2Key": "projects/kixogames-logo-tasarimi/media/01-kixogames-logo-identity.webp",
+      "mimeType": "image/webp",
+      "byteSize": 82768,
+      "sha256": "0bda80d5966662b108554a7ae2232ad3ef30c5266c7f7f52588c8efbddb3eb63",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "kixogames-logo-tasarimi",
+          "assetRole": "media_gallery_1"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/kiyris-games-logo-tasarimi/cover.webp",
+      "intendedR2Key": "projects/kiyris-games-logo-tasarimi/cover.webp",
+      "mimeType": "image/webp",
+      "byteSize": 86750,
+      "sha256": "b3482bb4f30dbbe38368e4e4a7a57b9f4d069a3e7c5c7f1ab2c53d635109db5e",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "kiyris-games-logo-tasarimi",
+          "assetRole": "cover"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/kiyris-games-logo-tasarimi/thumbnail.webp",
+      "intendedR2Key": "projects/kiyris-games-logo-tasarimi/thumbnail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 86750,
+      "sha256": "b3482bb4f30dbbe38368e4e4a7a57b9f4d069a3e7c5c7f1ab2c53d635109db5e",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "kiyris-games-logo-tasarimi",
+          "assetRole": "thumbnail"
+        },
+        {
+          "entityType": "project",
+          "entityId": "kiyris-games-logo-tasarimi",
+          "assetRole": "desktopIcon"
+        },
+        {
+          "entityType": "project",
+          "entityId": "kiyris-games-logo-tasarimi",
+          "assetRole": "desktopThumbnail"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/kiyris-games-logo-tasarimi/media/01-kiyris-games-logo-identity.webp",
+      "intendedR2Key": "projects/kiyris-games-logo-tasarimi/media/01-kiyris-games-logo-identity.webp",
+      "mimeType": "image/webp",
+      "byteSize": 86750,
+      "sha256": "b3482bb4f30dbbe38368e4e4a7a57b9f4d069a3e7c5c7f1ab2c53d635109db5e",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "kiyris-games-logo-tasarimi",
+          "assetRole": "media_gallery_1"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/alchemia-ocak-2025-dergi-tasarimi/cover.webp",
+      "intendedR2Key": "projects/alchemia-ocak-2025-dergi-tasarimi/cover.webp",
+      "mimeType": "image/webp",
+      "byteSize": 126446,
+      "sha256": "c00cebf03c4b29b8e61ea3ed3583485a7e667aedd830cf15517ea1996b25d708",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "alchemia-ocak-2025-dergi-tasarimi",
+          "assetRole": "cover"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/alchemia-ocak-2025-dergi-tasarimi/thumbnail.webp",
+      "intendedR2Key": "projects/alchemia-ocak-2025-dergi-tasarimi/thumbnail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 126446,
+      "sha256": "c00cebf03c4b29b8e61ea3ed3583485a7e667aedd830cf15517ea1996b25d708",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "alchemia-ocak-2025-dergi-tasarimi",
+          "assetRole": "thumbnail"
+        },
+        {
+          "entityType": "project",
+          "entityId": "alchemia-ocak-2025-dergi-tasarimi",
+          "assetRole": "desktopIcon"
+        },
+        {
+          "entityType": "project",
+          "entityId": "alchemia-ocak-2025-dergi-tasarimi",
+          "assetRole": "desktopThumbnail"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/alchemia-ocak-2025-dergi-tasarimi/media/01-alchemia-ocak-2025-cover.webp",
+      "intendedR2Key": "projects/alchemia-ocak-2025-dergi-tasarimi/media/01-alchemia-ocak-2025-cover.webp",
+      "mimeType": "image/webp",
+      "byteSize": 126446,
+      "sha256": "c00cebf03c4b29b8e61ea3ed3583485a7e667aedd830cf15517ea1996b25d708",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "alchemia-ocak-2025-dergi-tasarimi",
+          "assetRole": "media_gallery_1"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/alchemia-aralik-2024-dergi-tasarimi/cover.webp",
+      "intendedR2Key": "projects/alchemia-aralik-2024-dergi-tasarimi/cover.webp",
+      "mimeType": "image/webp",
+      "byteSize": 56824,
+      "sha256": "1c44481879ed8b03792b5a220d3265f1e497d2886ca9b791788bd6bf93f9cf18",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "alchemia-aralik-2024-dergi-tasarimi",
+          "assetRole": "cover"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/alchemia-aralik-2024-dergi-tasarimi/thumbnail.webp",
+      "intendedR2Key": "projects/alchemia-aralik-2024-dergi-tasarimi/thumbnail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 56824,
+      "sha256": "1c44481879ed8b03792b5a220d3265f1e497d2886ca9b791788bd6bf93f9cf18",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "alchemia-aralik-2024-dergi-tasarimi",
+          "assetRole": "thumbnail"
+        },
+        {
+          "entityType": "project",
+          "entityId": "alchemia-aralik-2024-dergi-tasarimi",
+          "assetRole": "desktopIcon"
+        },
+        {
+          "entityType": "project",
+          "entityId": "alchemia-aralik-2024-dergi-tasarimi",
+          "assetRole": "desktopThumbnail"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/alchemia-aralik-2024-dergi-tasarimi/media/01-alchemia-aralik-2024-cover.webp",
+      "intendedR2Key": "projects/alchemia-aralik-2024-dergi-tasarimi/media/01-alchemia-aralik-2024-cover.webp",
+      "mimeType": "image/webp",
+      "byteSize": 56824,
+      "sha256": "1c44481879ed8b03792b5a220d3265f1e497d2886ca9b791788bd6bf93f9cf18",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "alchemia-aralik-2024-dergi-tasarimi",
+          "assetRole": "media_gallery_1"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/alchemia-kasim-2024-dergi-tasarimi/cover.webp",
+      "intendedR2Key": "projects/alchemia-kasim-2024-dergi-tasarimi/cover.webp",
+      "mimeType": "image/webp",
+      "byteSize": 140768,
+      "sha256": "9ca49733dcc52915af6131a427f93cc4c6130dd8cf44858e2493b00b62c6b674",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "alchemia-kasim-2024-dergi-tasarimi",
+          "assetRole": "cover"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/alchemia-kasim-2024-dergi-tasarimi/thumbnail.webp",
+      "intendedR2Key": "projects/alchemia-kasim-2024-dergi-tasarimi/thumbnail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 140768,
+      "sha256": "9ca49733dcc52915af6131a427f93cc4c6130dd8cf44858e2493b00b62c6b674",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "alchemia-kasim-2024-dergi-tasarimi",
+          "assetRole": "thumbnail"
+        },
+        {
+          "entityType": "project",
+          "entityId": "alchemia-kasim-2024-dergi-tasarimi",
+          "assetRole": "desktopIcon"
+        },
+        {
+          "entityType": "project",
+          "entityId": "alchemia-kasim-2024-dergi-tasarimi",
+          "assetRole": "desktopThumbnail"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/alchemia-kasim-2024-dergi-tasarimi/media/01-alchemia-kasim-2024-editorial-spread.webp",
+      "intendedR2Key": "projects/alchemia-kasim-2024-dergi-tasarimi/media/01-alchemia-kasim-2024-editorial-spread.webp",
+      "mimeType": "image/webp",
+      "byteSize": 140768,
+      "sha256": "9ca49733dcc52915af6131a427f93cc4c6130dd8cf44858e2493b00b62c6b674",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "alchemia-kasim-2024-dergi-tasarimi",
+          "assetRole": "media_gallery_1"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/alchemia-nisan-2025-dergi-tasarimi/cover.webp",
+      "intendedR2Key": "projects/alchemia-nisan-2025-dergi-tasarimi/cover.webp",
+      "mimeType": "image/webp",
+      "byteSize": 62124,
+      "sha256": "67568a81bba008e2e9a0c14326e8676f867819494b89c7f7b9a89fbbc6b4d515",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "alchemia-nisan-2025-dergi-tasarimi",
+          "assetRole": "cover"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/alchemia-nisan-2025-dergi-tasarimi/thumbnail.webp",
+      "intendedR2Key": "projects/alchemia-nisan-2025-dergi-tasarimi/thumbnail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 62124,
+      "sha256": "67568a81bba008e2e9a0c14326e8676f867819494b89c7f7b9a89fbbc6b4d515",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "alchemia-nisan-2025-dergi-tasarimi",
+          "assetRole": "thumbnail"
+        },
+        {
+          "entityType": "project",
+          "entityId": "alchemia-nisan-2025-dergi-tasarimi",
+          "assetRole": "desktopIcon"
+        },
+        {
+          "entityType": "project",
+          "entityId": "alchemia-nisan-2025-dergi-tasarimi",
+          "assetRole": "desktopThumbnail"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/alchemia-nisan-2025-dergi-tasarimi/media/01-alchemia-nisan-2025-cover.webp",
+      "intendedR2Key": "projects/alchemia-nisan-2025-dergi-tasarimi/media/01-alchemia-nisan-2025-cover.webp",
+      "mimeType": "image/webp",
+      "byteSize": 62124,
+      "sha256": "67568a81bba008e2e9a0c14326e8676f867819494b89c7f7b9a89fbbc6b4d515",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "alchemia-nisan-2025-dergi-tasarimi",
+          "assetRole": "media_gallery_1"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/planfiq-website-web-uygulamasi/cover.webp",
+      "intendedR2Key": "projects/planfiq-website-web-uygulamasi/cover.webp",
+      "mimeType": "image/webp",
+      "byteSize": 40838,
+      "sha256": "c610d3239cad696e7f1c2562138eb2c740fda723a667e5e4f0fd4f91c582cbcc",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "planfiq-website-web-uygulamasi",
+          "assetRole": "cover"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/planfiq-website-web-uygulamasi/thumbnail.webp",
+      "intendedR2Key": "projects/planfiq-website-web-uygulamasi/thumbnail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 40838,
+      "sha256": "c610d3239cad696e7f1c2562138eb2c740fda723a667e5e4f0fd4f91c582cbcc",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "planfiq-website-web-uygulamasi",
+          "assetRole": "thumbnail"
+        },
+        {
+          "entityType": "project",
+          "entityId": "planfiq-website-web-uygulamasi",
+          "assetRole": "desktopIcon"
+        },
+        {
+          "entityType": "project",
+          "entityId": "planfiq-website-web-uygulamasi",
+          "assetRole": "desktopThumbnail"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/planfiq-website-web-uygulamasi/media/01-planfiq-control-panel.webp",
+      "intendedR2Key": "projects/planfiq-website-web-uygulamasi/media/01-planfiq-control-panel.webp",
+      "mimeType": "image/webp",
+      "byteSize": 40838,
+      "sha256": "c610d3239cad696e7f1c2562138eb2c740fda723a667e5e4f0fd4f91c582cbcc",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "planfiq-website-web-uygulamasi",
+          "assetRole": "media_gallery_1"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/planfiq-website-web-uygulamasi/media/02-planfiq-finans.webp",
+      "intendedR2Key": "projects/planfiq-website-web-uygulamasi/media/02-planfiq-finans.webp",
+      "mimeType": "image/webp",
+      "byteSize": 47696,
+      "sha256": "a11a59fbc0d2ea6716abdefe23e4fcf3ee54e7a50e6a9a82b1742ebf6ee4092e",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "planfiq-website-web-uygulamasi",
+          "assetRole": "media_gallery_2"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/solo-leveling-manga-website/cover.webp",
+      "intendedR2Key": "projects/solo-leveling-manga-website/cover.webp",
+      "mimeType": "image/webp",
+      "byteSize": 95808,
+      "sha256": "c3e5b60296130598d4759a9468b7d2c98d125da18bc897f829aebeb3206359dd",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "solo-leveling-manga-website",
+          "assetRole": "cover"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/solo-leveling-manga-website/thumbnail.webp",
+      "intendedR2Key": "projects/solo-leveling-manga-website/thumbnail.webp",
+      "mimeType": "image/webp",
+      "byteSize": 95808,
+      "sha256": "c3e5b60296130598d4759a9468b7d2c98d125da18bc897f829aebeb3206359dd",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "solo-leveling-manga-website",
+          "assetRole": "thumbnail"
+        },
+        {
+          "entityType": "project",
+          "entityId": "solo-leveling-manga-website",
+          "assetRole": "desktopIcon"
+        },
+        {
+          "entityType": "project",
+          "entityId": "solo-leveling-manga-website",
+          "assetRole": "desktopThumbnail"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/projects/solo-leveling-manga-website/media/01-solo-leveling-homepage.webp",
+      "intendedR2Key": "projects/solo-leveling-manga-website/media/01-solo-leveling-homepage.webp",
+      "mimeType": "image/webp",
+      "byteSize": 95808,
+      "sha256": "c3e5b60296130598d4759a9468b7d2c98d125da18bc897f829aebeb3206359dd",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "project",
+          "entityId": "solo-leveling-manga-website",
+          "assetRole": "media_gallery_1"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/ai-moda-kombin-reels/video.mp4",
+      "intendedR2Key": "videos/ai-moda-kombin-reels/video.mp4",
+      "mimeType": "video/mp4",
+      "byteSize": 6657395,
+      "sha256": "2f2766cbcdd5d89ac0e2017c7213956b1579209b55d9e23f33593896947c58d2",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "ai-moda-kombin-reels",
+          "assetRole": "video_mp4"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/ai-moda-kombin-reels/poster.webp",
+      "intendedR2Key": "videos/ai-moda-kombin-reels/poster.webp",
+      "mimeType": "image/webp",
+      "byteSize": 120124,
+      "sha256": "0d64d86a5f8ecdb70e7c2e93e608eeb920e864b32f3d58ad847674600c81188c",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "ai-moda-kombin-reels",
+          "assetRole": "video_poster"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/la-ruota-pizza-artigianale-reels/video.mp4",
+      "intendedR2Key": "videos/la-ruota-pizza-artigianale-reels/video.mp4",
+      "mimeType": "video/mp4",
+      "byteSize": 5449324,
+      "sha256": "cf33373671982279503bdb193cc42b9a5ac94de9ce495baa5f92a5498977442f",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "la-ruota-pizza-artigianale-reels",
+          "assetRole": "video_mp4"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/la-ruota-pizza-artigianale-reels/poster.webp",
+      "intendedR2Key": "videos/la-ruota-pizza-artigianale-reels/poster.webp",
+      "mimeType": "image/webp",
+      "byteSize": 83704,
+      "sha256": "f8a74899b8a7b2875498fec1f6c58197cc88b4e04715b6417227230dd87ea26c",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "la-ruota-pizza-artigianale-reels",
+          "assetRole": "video_poster"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/la-ruota-pizza-yapim-reels/video.mp4",
+      "intendedR2Key": "videos/la-ruota-pizza-yapim-reels/video.mp4",
+      "mimeType": "video/mp4",
+      "byteSize": 18777698,
+      "sha256": "9211970442f92f8c83534c660a206ee7e80f22df0397fb137cec1d8c87da666b",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "la-ruota-pizza-yapim-reels",
+          "assetRole": "video_mp4"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/la-ruota-pizza-yapim-reels/poster.webp",
+      "intendedR2Key": "videos/la-ruota-pizza-yapim-reels/poster.webp",
+      "mimeType": "image/webp",
+      "byteSize": 202120,
+      "sha256": "42f59e8136347d90b6681582351fae4db4906eea2557ee9e8638e7cc16a30bbb",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "la-ruota-pizza-yapim-reels",
+          "assetRole": "video_poster"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/it-works-alum-stick-roll-on-reels/video.mp4",
+      "intendedR2Key": "videos/it-works-alum-stick-roll-on-reels/video.mp4",
+      "mimeType": "video/mp4",
+      "byteSize": 58451752,
+      "sha256": "7aa4369c9b616a3d2a882ba811541756b581064d944f9b9cf299691b745985d7",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "it-works-alum-stick-roll-on-reels",
+          "assetRole": "video_mp4"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/it-works-alum-stick-roll-on-reels/poster.webp",
+      "intendedR2Key": "videos/it-works-alum-stick-roll-on-reels/poster.webp",
+      "mimeType": "image/webp",
+      "byteSize": 102924,
+      "sha256": "6a4c1e6f95e7ef3b6fc6d492d90f0e441791c057b6d3087b31ba3d700ca8de1e",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "it-works-alum-stick-roll-on-reels",
+          "assetRole": "video_poster"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/liorwell-kadin-streetwear-ai-reels/video.mp4",
+      "intendedR2Key": "videos/liorwell-kadin-streetwear-ai-reels/video.mp4",
+      "mimeType": "video/mp4",
+      "byteSize": 3393715,
+      "sha256": "bd841df224a59f1bdd518b818b563b412f5011574d3ad830245d18c888fc8136",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "liorwell-kadin-streetwear-ai-reels",
+          "assetRole": "video_mp4"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/liorwell-kadin-streetwear-ai-reels/poster.webp",
+      "intendedR2Key": "videos/liorwell-kadin-streetwear-ai-reels/poster.webp",
+      "mimeType": "image/webp",
+      "byteSize": 63212,
+      "sha256": "9989681200f4493f8c4aafcdd8cc826402701ba7ac403e08f872fd14b1e9db09",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "liorwell-kadin-streetwear-ai-reels",
+          "assetRole": "video_poster"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/yavrumsa-cocuk-giyim-ai-reels/video.mp4",
+      "intendedR2Key": "videos/yavrumsa-cocuk-giyim-ai-reels/video.mp4",
+      "mimeType": "video/mp4",
+      "byteSize": 3675041,
+      "sha256": "d2788d71d8e0a7180eaae9057d5a59781e14a39cb4fdd65e717dd94b00700607",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "yavrumsa-cocuk-giyim-ai-reels",
+          "assetRole": "video_mp4"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/yavrumsa-cocuk-giyim-ai-reels/poster.webp",
+      "intendedR2Key": "videos/yavrumsa-cocuk-giyim-ai-reels/poster.webp",
+      "mimeType": "image/webp",
+      "byteSize": 77008,
+      "sha256": "423ae52da0da81be28c6f5633064c2cac3568bd574950e21992b586f2007962e",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "yavrumsa-cocuk-giyim-ai-reels",
+          "assetRole": "video_poster"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/bosnak-dilek-boregi-uretim-reels/video.mp4",
+      "intendedR2Key": "videos/bosnak-dilek-boregi-uretim-reels/video.mp4",
+      "mimeType": "video/mp4",
+      "byteSize": 5127239,
+      "sha256": "ce4f7544ef25cf20543cd2c3b4ce196ece3e1c1da44cc29ade23563dfba67c25",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "bosnak-dilek-boregi-uretim-reels",
+          "assetRole": "video_mp4"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/bosnak-dilek-boregi-uretim-reels/poster.webp",
+      "intendedR2Key": "videos/bosnak-dilek-boregi-uretim-reels/poster.webp",
+      "mimeType": "image/webp",
+      "byteSize": 78708,
+      "sha256": "92ff0bb762c8940c491c913e6d5ddeab43d64b7c9f452db56370a7314c9e4e1b",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "bosnak-dilek-boregi-uretim-reels",
+          "assetRole": "video_poster"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/liorwell-ai-streetwear-reels/video.mp4",
+      "intendedR2Key": "videos/liorwell-ai-streetwear-reels/video.mp4",
+      "mimeType": "video/mp4",
+      "byteSize": 2798177,
+      "sha256": "9240d3cc68dba1a1427347bc3edc2099cd19b4313f1aa8609c88d0bb89e9ab33",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "liorwell-ai-streetwear-reels",
+          "assetRole": "video_mp4"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/liorwell-ai-streetwear-reels/poster.webp",
+      "intendedR2Key": "videos/liorwell-ai-streetwear-reels/poster.webp",
+      "mimeType": "image/webp",
+      "byteSize": 66130,
+      "sha256": "5a4a4720e4d002c2c3dd66923f5a0d9fd26c24b7aae5762a1a346a9bda6a8039",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "liorwell-ai-streetwear-reels",
+          "assetRole": "video_poster"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/ai-oversize-tshirt-reels/video.mp4",
+      "intendedR2Key": "videos/ai-oversize-tshirt-reels/video.mp4",
+      "mimeType": "video/mp4",
+      "byteSize": 4179355,
+      "sha256": "4424d9bd5c1767810be7a2eca369a9de0f7d8d7cec4645dd679b81dc44e79688",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "ai-oversize-tshirt-reels",
+          "assetRole": "video_mp4"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/ai-oversize-tshirt-reels/poster.webp",
+      "intendedR2Key": "videos/ai-oversize-tshirt-reels/poster.webp",
+      "mimeType": "image/webp",
+      "byteSize": 80178,
+      "sha256": "d586e746084a65d83c75d514bf1d84c3c26d2db92f12059e225827c18a49de1b",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "ai-oversize-tshirt-reels",
+          "assetRole": "video_poster"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/elara-skincare-ai-urun-reels/video.mp4",
+      "intendedR2Key": "videos/elara-skincare-ai-urun-reels/video.mp4",
+      "mimeType": "video/mp4",
+      "byteSize": 2114862,
+      "sha256": "a05c13be4bb958a0d88091155cf467f83294fa47046ac4b731934368a9331184",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "elara-skincare-ai-urun-reels",
+          "assetRole": "video_mp4"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/elara-skincare-ai-urun-reels/poster.webp",
+      "intendedR2Key": "videos/elara-skincare-ai-urun-reels/poster.webp",
+      "mimeType": "image/webp",
+      "byteSize": 31860,
+      "sha256": "dd19a5ac162b417fbb3c7221f9b6611a5a45d454071248d76a99b78ce08679a1",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "elara-skincare-ai-urun-reels",
+          "assetRole": "video_poster"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/thg-yapi-kurumsal-reels/video.mp4",
+      "intendedR2Key": "videos/thg-yapi-kurumsal-reels/video.mp4",
+      "mimeType": "video/mp4",
+      "byteSize": 6093569,
+      "sha256": "fca6b624a3f7296b06dde4d9cbf72cf68ceb1ffbf9f1316c0a9b71e4ed97023c",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "thg-yapi-kurumsal-reels",
+          "assetRole": "video_mp4"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/thg-yapi-kurumsal-reels/poster.webp",
+      "intendedR2Key": "videos/thg-yapi-kurumsal-reels/poster.webp",
+      "mimeType": "image/webp",
+      "byteSize": 199154,
+      "sha256": "eb3855907d9e6e6e3e23e3636f81fab4fc2dd450682392342774acf205bc3f42",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "thg-yapi-kurumsal-reels",
+          "assetRole": "video_poster"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/chofee-kahve-yapim-reels/video.mp4",
+      "intendedR2Key": "videos/chofee-kahve-yapim-reels/video.mp4",
+      "mimeType": "video/mp4",
+      "byteSize": 18165934,
+      "sha256": "fe0f7e9ba600c54b8b6c07540e3921c41954f16a7cbe0c35585c67565390b588",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "chofee-kahve-yapim-reels",
+          "assetRole": "video_mp4"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/chofee-kahve-yapim-reels/poster.webp",
+      "intendedR2Key": "videos/chofee-kahve-yapim-reels/poster.webp",
+      "mimeType": "image/webp",
+      "byteSize": 137966,
+      "sha256": "34f29dba6767ae37be6fbc21cb5b8b78b45d91e7609620f965a9d828483ac6cb",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "chofee-kahve-yapim-reels",
+          "assetRole": "video_poster"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/ai-moda-urun-reels/video.mp4",
+      "intendedR2Key": "videos/ai-moda-urun-reels/video.mp4",
+      "mimeType": "video/mp4",
+      "byteSize": 3263877,
+      "sha256": "03014d6f56b62e60b0e79ee4c93b30d2398ad39ae6da945cf4c27f1fb5692a32",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "ai-moda-urun-reels",
+          "assetRole": "video_mp4"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/ai-moda-urun-reels/poster.webp",
+      "intendedR2Key": "videos/ai-moda-urun-reels/poster.webp",
+      "mimeType": "image/webp",
+      "byteSize": 58214,
+      "sha256": "486323bd26b8b839759e3a5fa56fb20ebe18f78a7fb633bba796186c79c3a2b0",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "ai-moda-urun-reels",
+          "assetRole": "video_poster"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/mythic-bastion-ai-game-ad/video.mp4",
+      "intendedR2Key": "videos/mythic-bastion-ai-game-ad/video.mp4",
+      "mimeType": "video/mp4",
+      "byteSize": 33909561,
+      "sha256": "99c746dac91b2bb9628555aee4f03b9342bedad58469616d615cd8f50ade6ec6",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "mythic-bastion-ai-game-ad",
+          "assetRole": "video_mp4"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/mythic-bastion-ai-game-ad/poster.webp",
+      "intendedR2Key": "videos/mythic-bastion-ai-game-ad/poster.webp",
+      "mimeType": "image/webp",
+      "byteSize": 134546,
+      "sha256": "dc207e3eb22562e999673aad8ae6bd87cb2c648939500a764c575606ab39f742",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "mythic-bastion-ai-game-ad",
+          "assetRole": "video_poster"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/cupistan-ai-tatli-urun-reels/video.mp4",
+      "intendedR2Key": "videos/cupistan-ai-tatli-urun-reels/video.mp4",
+      "mimeType": "video/mp4",
+      "byteSize": 10976512,
+      "sha256": "6be84e50d90201ace41651a281e123030dcc1c2f2b7e3d32e75eeb454533421d",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "cupistan-ai-tatli-urun-reels",
+          "assetRole": "video_mp4"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/cupistan-ai-tatli-urun-reels/poster.webp",
+      "intendedR2Key": "videos/cupistan-ai-tatli-urun-reels/poster.webp",
+      "mimeType": "image/webp",
+      "byteSize": 142180,
+      "sha256": "d8566d3682d810a9a8683bbdeef1e6ada4837ed0778f02eae0cc83fbbe01a31f",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "cupistan-ai-tatli-urun-reels",
+          "assetRole": "video_poster"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/emix-creative-website-design-ad-reels/video.mp4",
+      "intendedR2Key": "videos/emix-creative-website-design-ad-reels/video.mp4",
+      "mimeType": "video/mp4",
+      "byteSize": 44072598,
+      "sha256": "520af9356febbed4f96785c533d61265b1a4be426f563da5f4d8aa6524f61b74",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "emix-creative-website-design-ad-reels",
+          "assetRole": "video_mp4"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/emix-creative-website-design-ad-reels/poster.webp",
+      "intendedR2Key": "videos/emix-creative-website-design-ad-reels/poster.webp",
+      "mimeType": "image/webp",
+      "byteSize": 125684,
+      "sha256": "d6c1bccd4a741e9b37ac8baefb84c24244e254f9a1bec7a5f60012f1a0f16977",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "emix-creative-website-design-ad-reels",
+          "assetRole": "video_poster"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/emix-creative-ai-content-transformation-ad/video.mp4",
+      "intendedR2Key": "videos/emix-creative-ai-content-transformation-ad/video.mp4",
+      "mimeType": "video/mp4",
+      "byteSize": 54760549,
+      "sha256": "34e2506a5f0accb2edba61152ab836a7c7119cc4095316d41e5c414158076770",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "emix-creative-ai-content-transformation-ad",
+          "assetRole": "video_mp4"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/emix-creative-ai-content-transformation-ad/poster.webp",
+      "intendedR2Key": "videos/emix-creative-ai-content-transformation-ad/poster.webp",
+      "mimeType": "image/webp",
+      "byteSize": 150246,
+      "sha256": "48c04e725ed375a17eab24c6e4bbf07c74c107ccedc81c71bbd2dc6c721465c7",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "emix-creative-ai-content-transformation-ad",
+          "assetRole": "video_poster"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/chofee-ai-lifestyle-icecek-reels/video.mp4",
+      "intendedR2Key": "videos/chofee-ai-lifestyle-icecek-reels/video.mp4",
+      "mimeType": "video/mp4",
+      "byteSize": 13414215,
+      "sha256": "d79eef695454b2a6c53b940c9d753b82498cd27a99742df08d0e265adf2bf3a0",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "chofee-ai-lifestyle-icecek-reels",
+          "assetRole": "video_mp4"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/chofee-ai-lifestyle-icecek-reels/poster.webp",
+      "intendedR2Key": "videos/chofee-ai-lifestyle-icecek-reels/poster.webp",
+      "mimeType": "image/webp",
+      "byteSize": 140956,
+      "sha256": "8b413b36f8f1b23ae1202c7c7491047e88ddd5d725010f9fc26859b6a9c41366",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "chofee-ai-lifestyle-icecek-reels",
+          "assetRole": "video_poster"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/cupistan-ai-ekler-urun-reels/video.mp4",
+      "intendedR2Key": "videos/cupistan-ai-ekler-urun-reels/video.mp4",
+      "mimeType": "video/mp4",
+      "byteSize": 10494702,
+      "sha256": "2e8817ae895bbd88111cc2ff33f8c302621cae9f53cd48cf361fa137dda04465",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "cupistan-ai-ekler-urun-reels",
+          "assetRole": "video_mp4"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/cupistan-ai-ekler-urun-reels/poster.webp",
+      "intendedR2Key": "videos/cupistan-ai-ekler-urun-reels/poster.webp",
+      "mimeType": "image/webp",
+      "byteSize": 137368,
+      "sha256": "fe3c93b6c8f7ece4cb6f7e31de2ec23c750483c3ad5f161cde49776a96ee2d4e",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "cupistan-ai-ekler-urun-reels",
+          "assetRole": "video_poster"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/cupistan-ai-tart-tatli-urun-reels/video.mp4",
+      "intendedR2Key": "videos/cupistan-ai-tart-tatli-urun-reels/video.mp4",
+      "mimeType": "video/mp4",
+      "byteSize": 12134438,
+      "sha256": "545445eb1f7381f2b6d77b7c99653d498f5f5bb86deed8690c9265d9cce2813a",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "cupistan-ai-tart-tatli-urun-reels",
+          "assetRole": "video_mp4"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/cupistan-ai-tart-tatli-urun-reels/poster.webp",
+      "intendedR2Key": "videos/cupistan-ai-tart-tatli-urun-reels/poster.webp",
+      "mimeType": "image/webp",
+      "byteSize": 78736,
+      "sha256": "a1f5f4a87d2e006c80b00a604376ec096b6bc0091d52417910769dcb3ed62829",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "cupistan-ai-tart-tatli-urun-reels",
+          "assetRole": "video_poster"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/cupistan-ai-lifestyle-tatli-reels/video.mp4",
+      "intendedR2Key": "videos/cupistan-ai-lifestyle-tatli-reels/video.mp4",
+      "mimeType": "video/mp4",
+      "byteSize": 12257066,
+      "sha256": "74ab68090607b8718d6144c5cd1e9a0f9cec9dcd09fed300b9b22f12bd6bae98",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "cupistan-ai-lifestyle-tatli-reels",
+          "assetRole": "video_mp4"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/videos/cupistan-ai-lifestyle-tatli-reels/poster.webp",
+      "intendedR2Key": "videos/cupistan-ai-lifestyle-tatli-reels/poster.webp",
+      "mimeType": "image/webp",
+      "byteSize": 145640,
+      "sha256": "ea763dbfbbab8283f447fa3e3b9c0bfe16337f27929dd23c560779f437ac5fec",
+      "isExternal": false,
+      "isPrivate": false,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "video",
+          "entityId": "cupistan-ai-lifestyle-tatli-reels",
+          "assetRole": "video_poster"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/profile/kerem-mihci-avatar.webp",
+      "intendedR2Key": "profile/kerem-mihci-avatar.webp",
+      "mimeType": "image/webp",
+      "byteSize": 39010,
+      "sha256": "9bab903baf2416e57098f3558d6918279f1bc6935028e86dbfcced4959e9135e",
+      "isExternal": false,
+      "isPrivate": true,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "profile",
+          "entityId": "owner-profile",
+          "assetRole": "personal_biography_image"
+        }
+      ]
+    },
+    {
+      "sourcePath": "public/profile/kerem-mihci-profile.webp",
+      "intendedR2Key": "profile/kerem-mihci-profile.webp",
+      "mimeType": "image/webp",
+      "byteSize": 43446,
+      "sha256": "750dd86e65e5202a246abda2d22be96467f5d66acaa607490d225922f76f9fc0",
+      "isExternal": false,
+      "isPrivate": true,
+      "status": "LOCAL_PRESENT",
+      "owners": [
+        {
+          "entityType": "profile",
+          "entityId": "owner-profile",
+          "assetRole": "personal_biography_image"
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "relPath": "/projects/yanarsan-yangin-website-tasarimi/cover.webp",
+      "cleanKey": "projects/yanarsan-yangin-website-tasarimi/cover.webp",
+      "entityType": "project",
+      "entityId": "yanarsan-yangin-website-tasarimi",
+      "assetRole": "cover",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/yanarsan-yangin-website-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/yanarsan-yangin-website-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "yanarsan-yangin-website-tasarimi",
+      "assetRole": "thumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/yanarsan-yangin-website-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/yanarsan-yangin-website-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "yanarsan-yangin-website-tasarimi",
+      "assetRole": "desktopIcon",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/yanarsan-yangin-website-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/yanarsan-yangin-website-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "yanarsan-yangin-website-tasarimi",
+      "assetRole": "desktopThumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/yanarsan-yangin-website-tasarimi/media/02-homepage-browser.webp",
+      "cleanKey": "projects/yanarsan-yangin-website-tasarimi/media/02-homepage-browser.webp",
+      "entityType": "project",
+      "entityId": "yanarsan-yangin-website-tasarimi",
+      "assetRole": "media_gallery_1",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/yanarsan-yangin-website-tasarimi/media/01-laptop-presentation.webp",
+      "cleanKey": "projects/yanarsan-yangin-website-tasarimi/media/01-laptop-presentation.webp",
+      "entityType": "project",
+      "entityId": "yanarsan-yangin-website-tasarimi",
+      "assetRole": "media_gallery_2",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/yanarsan-yangin-website-tasarimi/media/03-hero-detail.webp",
+      "cleanKey": "projects/yanarsan-yangin-website-tasarimi/media/03-hero-detail.webp",
+      "entityType": "project",
+      "entityId": "yanarsan-yangin-website-tasarimi",
+      "assetRole": "media_gallery_3",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/yanarsan-yangin-website-tasarimi/media/04-fire-safety-presentation.webp",
+      "cleanKey": "projects/yanarsan-yangin-website-tasarimi/media/04-fire-safety-presentation.webp",
+      "entityType": "project",
+      "entityId": "yanarsan-yangin-website-tasarimi",
+      "assetRole": "media_gallery_4",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/yanarsan-yangin-website-tasarimi/media/05-service-product-structure.webp",
+      "cleanKey": "projects/yanarsan-yangin-website-tasarimi/media/05-service-product-structure.webp",
+      "entityType": "project",
+      "entityId": "yanarsan-yangin-website-tasarimi",
+      "assetRole": "media_gallery_5",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/eigestore-website-tasarimi/cover.webp",
+      "cleanKey": "projects/eigestore-website-tasarimi/cover.webp",
+      "entityType": "project",
+      "entityId": "eigestore-website-tasarimi",
+      "assetRole": "cover",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/eigestore-website-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/eigestore-website-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "eigestore-website-tasarimi",
+      "assetRole": "thumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/eigestore-website-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/eigestore-website-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "eigestore-website-tasarimi",
+      "assetRole": "desktopIcon",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/eigestore-website-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/eigestore-website-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "eigestore-website-tasarimi",
+      "assetRole": "desktopThumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/eigestore-website-tasarimi/media/01-homepage-storefront.webp",
+      "cleanKey": "projects/eigestore-website-tasarimi/media/01-homepage-storefront.webp",
+      "entityType": "project",
+      "entityId": "eigestore-website-tasarimi",
+      "assetRole": "media_gallery_1",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/eigestore-website-tasarimi/media/01-laptop-presentation.webp",
+      "cleanKey": "projects/eigestore-website-tasarimi/media/01-laptop-presentation.webp",
+      "entityType": "project",
+      "entityId": "eigestore-website-tasarimi",
+      "assetRole": "media_gallery_2",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/eigestore-website-tasarimi/media/02-hero-detail.webp",
+      "cleanKey": "projects/eigestore-website-tasarimi/media/02-hero-detail.webp",
+      "entityType": "project",
+      "entityId": "eigestore-website-tasarimi",
+      "assetRole": "media_gallery_3",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/eigestore-website-tasarimi/media/03-ecommerce-presentation.webp",
+      "cleanKey": "projects/eigestore-website-tasarimi/media/03-ecommerce-presentation.webp",
+      "entityType": "project",
+      "entityId": "eigestore-website-tasarimi",
+      "assetRole": "media_gallery_4",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/eigestore-website-tasarimi/media/04-shopping-experience.webp",
+      "cleanKey": "projects/eigestore-website-tasarimi/media/04-shopping-experience.webp",
+      "entityType": "project",
+      "entityId": "eigestore-website-tasarimi",
+      "assetRole": "media_gallery_5",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/kagestudio-website-tasarimi/cover.webp",
+      "cleanKey": "projects/kagestudio-website-tasarimi/cover.webp",
+      "entityType": "project",
+      "entityId": "kagestudio-website-tasarimi",
+      "assetRole": "cover",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/kagestudio-website-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/kagestudio-website-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "kagestudio-website-tasarimi",
+      "assetRole": "thumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/kagestudio-website-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/kagestudio-website-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "kagestudio-website-tasarimi",
+      "assetRole": "desktopIcon",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/kagestudio-website-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/kagestudio-website-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "kagestudio-website-tasarimi",
+      "assetRole": "desktopThumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/kagestudio-website-tasarimi/media/02-homepage-browser.webp",
+      "cleanKey": "projects/kagestudio-website-tasarimi/media/02-homepage-browser.webp",
+      "entityType": "project",
+      "entityId": "kagestudio-website-tasarimi",
+      "assetRole": "media_gallery_1",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/kagestudio-website-tasarimi/media/01-combat-laptop-mockup.webp",
+      "cleanKey": "projects/kagestudio-website-tasarimi/media/01-combat-laptop-mockup.webp",
+      "entityType": "project",
+      "entityId": "kagestudio-website-tasarimi",
+      "assetRole": "media_gallery_2",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/kagestudio-website-tasarimi/media/03-hero-detail.webp",
+      "cleanKey": "projects/kagestudio-website-tasarimi/media/03-hero-detail.webp",
+      "entityType": "project",
+      "entityId": "kagestudio-website-tasarimi",
+      "assetRole": "media_gallery_3",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/kagestudio-website-tasarimi/media/04-premium-presentation.webp",
+      "cleanKey": "projects/kagestudio-website-tasarimi/media/04-premium-presentation.webp",
+      "entityType": "project",
+      "entityId": "kagestudio-website-tasarimi",
+      "assetRole": "media_gallery_4",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/deva-yangin-website-tasarimi/cover.webp",
+      "cleanKey": "projects/deva-yangin-website-tasarimi/cover.webp",
+      "entityType": "project",
+      "entityId": "deva-yangin-website-tasarimi",
+      "assetRole": "cover",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/deva-yangin-website-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/deva-yangin-website-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "deva-yangin-website-tasarimi",
+      "assetRole": "thumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/deva-yangin-website-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/deva-yangin-website-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "deva-yangin-website-tasarimi",
+      "assetRole": "desktopIcon",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/deva-yangin-website-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/deva-yangin-website-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "deva-yangin-website-tasarimi",
+      "assetRole": "desktopThumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/deva-yangin-website-tasarimi/media/02-homepage-browser.webp",
+      "cleanKey": "projects/deva-yangin-website-tasarimi/media/02-homepage-browser.webp",
+      "entityType": "project",
+      "entityId": "deva-yangin-website-tasarimi",
+      "assetRole": "media_gallery_1",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/deva-yangin-website-tasarimi/media/01-laptop-presentation.webp",
+      "cleanKey": "projects/deva-yangin-website-tasarimi/media/01-laptop-presentation.webp",
+      "entityType": "project",
+      "entityId": "deva-yangin-website-tasarimi",
+      "assetRole": "media_gallery_2",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/deva-yangin-website-tasarimi/media/03-hero-detail.webp",
+      "cleanKey": "projects/deva-yangin-website-tasarimi/media/03-hero-detail.webp",
+      "entityType": "project",
+      "entityId": "deva-yangin-website-tasarimi",
+      "assetRole": "media_gallery_3",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/deva-yangin-website-tasarimi/media/04-fire-safety-presentation.webp",
+      "cleanKey": "projects/deva-yangin-website-tasarimi/media/04-fire-safety-presentation.webp",
+      "entityType": "project",
+      "entityId": "deva-yangin-website-tasarimi",
+      "assetRole": "media_gallery_4",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/deva-yangin-website-tasarimi/media/05-service-architecture.webp",
+      "cleanKey": "projects/deva-yangin-website-tasarimi/media/05-service-architecture.webp",
+      "entityType": "project",
+      "entityId": "deva-yangin-website-tasarimi",
+      "assetRole": "media_gallery_5",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/emix-creative-website-tasarimi/cover.webp",
+      "cleanKey": "projects/emix-creative-website-tasarimi/cover.webp",
+      "entityType": "project",
+      "entityId": "emix-creative-website-tasarimi",
+      "assetRole": "cover",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/emix-creative-website-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/emix-creative-website-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "emix-creative-website-tasarimi",
+      "assetRole": "thumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/emix-creative-website-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/emix-creative-website-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "emix-creative-website-tasarimi",
+      "assetRole": "desktopIcon",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/emix-creative-website-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/emix-creative-website-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "emix-creative-website-tasarimi",
+      "assetRole": "desktopThumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/emix-creative-website-tasarimi/media/02-dark-agency-homepage.webp",
+      "cleanKey": "projects/emix-creative-website-tasarimi/media/02-dark-agency-homepage.webp",
+      "entityType": "project",
+      "entityId": "emix-creative-website-tasarimi",
+      "assetRole": "media_gallery_1",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/emix-creative-website-tasarimi/media/01-agency-laptop-presentation.webp",
+      "cleanKey": "projects/emix-creative-website-tasarimi/media/01-agency-laptop-presentation.webp",
+      "entityType": "project",
+      "entityId": "emix-creative-website-tasarimi",
+      "assetRole": "media_gallery_2",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/emix-creative-website-tasarimi/media/03-service-hero-detail.webp",
+      "cleanKey": "projects/emix-creative-website-tasarimi/media/03-service-hero-detail.webp",
+      "entityType": "project",
+      "entityId": "emix-creative-website-tasarimi",
+      "assetRole": "media_gallery_3",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/emix-creative-website-tasarimi/media/04-agency-presentation.webp",
+      "cleanKey": "projects/emix-creative-website-tasarimi/media/04-agency-presentation.webp",
+      "entityType": "project",
+      "entityId": "emix-creative-website-tasarimi",
+      "assetRole": "media_gallery_4",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/emix-creative-website-tasarimi/media/05-service-ecosystem.webp",
+      "cleanKey": "projects/emix-creative-website-tasarimi/media/05-service-ecosystem.webp",
+      "entityType": "project",
+      "entityId": "emix-creative-website-tasarimi",
+      "assetRole": "media_gallery_5",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/iuckmk-website-tasarimi/cover.webp",
+      "cleanKey": "projects/iuckmk-website-tasarimi/cover.webp",
+      "entityType": "project",
+      "entityId": "iuckmk-website-tasarimi",
+      "assetRole": "cover",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/iuckmk-website-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/iuckmk-website-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "iuckmk-website-tasarimi",
+      "assetRole": "thumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/iuckmk-website-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/iuckmk-website-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "iuckmk-website-tasarimi",
+      "assetRole": "desktopIcon",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/iuckmk-website-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/iuckmk-website-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "iuckmk-website-tasarimi",
+      "assetRole": "desktopThumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/iuckmk-website-tasarimi/media/02-homepage-browser.webp",
+      "cleanKey": "projects/iuckmk-website-tasarimi/media/02-homepage-browser.webp",
+      "entityType": "project",
+      "entityId": "iuckmk-website-tasarimi",
+      "assetRole": "media_gallery_1",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/iuckmk-website-tasarimi/media/01-imac-presentation.webp",
+      "cleanKey": "projects/iuckmk-website-tasarimi/media/01-imac-presentation.webp",
+      "entityType": "project",
+      "entityId": "iuckmk-website-tasarimi",
+      "assetRole": "media_gallery_2",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/iuckmk-website-tasarimi/media/03-navigation-detail.webp",
+      "cleanKey": "projects/iuckmk-website-tasarimi/media/03-navigation-detail.webp",
+      "entityType": "project",
+      "entityId": "iuckmk-website-tasarimi",
+      "assetRole": "media_gallery_3",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/iuckmk-website-tasarimi/media/04-community-presentation.webp",
+      "cleanKey": "projects/iuckmk-website-tasarimi/media/04-community-presentation.webp",
+      "entityType": "project",
+      "entityId": "iuckmk-website-tasarimi",
+      "assetRole": "media_gallery_4",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/iuckmk-website-tasarimi/media/05-content-architecture.webp",
+      "cleanKey": "projects/iuckmk-website-tasarimi/media/05-content-architecture.webp",
+      "entityType": "project",
+      "entityId": "iuckmk-website-tasarimi",
+      "assetRole": "media_gallery_5",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/engin-perde-website-optimizasyonu/cover.webp",
+      "cleanKey": "projects/engin-perde-website-optimizasyonu/cover.webp",
+      "entityType": "project",
+      "entityId": "engin-perde-website-optimizasyonu",
+      "assetRole": "cover",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/engin-perde-website-optimizasyonu/thumbnail.webp",
+      "cleanKey": "projects/engin-perde-website-optimizasyonu/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "engin-perde-website-optimizasyonu",
+      "assetRole": "thumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/engin-perde-website-optimizasyonu/thumbnail.webp",
+      "cleanKey": "projects/engin-perde-website-optimizasyonu/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "engin-perde-website-optimizasyonu",
+      "assetRole": "desktopIcon",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/engin-perde-website-optimizasyonu/thumbnail.webp",
+      "cleanKey": "projects/engin-perde-website-optimizasyonu/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "engin-perde-website-optimizasyonu",
+      "assetRole": "desktopThumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/engin-perde-website-optimizasyonu/media/02-homepage.webp",
+      "cleanKey": "projects/engin-perde-website-optimizasyonu/media/02-homepage.webp",
+      "entityType": "project",
+      "entityId": "engin-perde-website-optimizasyonu",
+      "assetRole": "media_gallery_1",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/engin-perde-website-optimizasyonu/media/01-product-detail-mockup.webp",
+      "cleanKey": "projects/engin-perde-website-optimizasyonu/media/01-product-detail-mockup.webp",
+      "entityType": "project",
+      "entityId": "engin-perde-website-optimizasyonu",
+      "assetRole": "media_gallery_2",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/engin-perde-website-optimizasyonu/media/03-pricing-system-showcase.webp",
+      "cleanKey": "projects/engin-perde-website-optimizasyonu/media/03-pricing-system-showcase.webp",
+      "entityType": "project",
+      "entityId": "engin-perde-website-optimizasyonu",
+      "assetRole": "media_gallery_3",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/engin-perde-website-optimizasyonu/media/04-website-presentation.webp",
+      "cleanKey": "projects/engin-perde-website-optimizasyonu/media/04-website-presentation.webp",
+      "entityType": "project",
+      "entityId": "engin-perde-website-optimizasyonu",
+      "assetRole": "media_gallery_4",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/sanda-yachting-website-ceviri-calismasi/cover.webp",
+      "cleanKey": "projects/sanda-yachting-website-ceviri-calismasi/cover.webp",
+      "entityType": "project",
+      "entityId": "sanda-yachting-website-ceviri-calismasi",
+      "assetRole": "cover",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/sanda-yachting-website-ceviri-calismasi/thumbnail.webp",
+      "cleanKey": "projects/sanda-yachting-website-ceviri-calismasi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "sanda-yachting-website-ceviri-calismasi",
+      "assetRole": "thumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/sanda-yachting-website-ceviri-calismasi/thumbnail.webp",
+      "cleanKey": "projects/sanda-yachting-website-ceviri-calismasi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "sanda-yachting-website-ceviri-calismasi",
+      "assetRole": "desktopIcon",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/sanda-yachting-website-ceviri-calismasi/thumbnail.webp",
+      "cleanKey": "projects/sanda-yachting-website-ceviri-calismasi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "sanda-yachting-website-ceviri-calismasi",
+      "assetRole": "desktopThumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/sanda-yachting-website-ceviri-calismasi/media/02-homepage-screenshot.webp",
+      "cleanKey": "projects/sanda-yachting-website-ceviri-calismasi/media/02-homepage-screenshot.webp",
+      "entityType": "project",
+      "entityId": "sanda-yachting-website-ceviri-calismasi",
+      "assetRole": "media_gallery_1",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/sanda-yachting-website-ceviri-calismasi/media/01-laptop-mockup.webp",
+      "cleanKey": "projects/sanda-yachting-website-ceviri-calismasi/media/01-laptop-mockup.webp",
+      "entityType": "project",
+      "entityId": "sanda-yachting-website-ceviri-calismasi",
+      "assetRole": "media_gallery_2",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/sanda-yachting-website-ceviri-calismasi/media/03-content-localization-showcase.webp",
+      "cleanKey": "projects/sanda-yachting-website-ceviri-calismasi/media/03-content-localization-showcase.webp",
+      "entityType": "project",
+      "entityId": "sanda-yachting-website-ceviri-calismasi",
+      "assetRole": "media_gallery_3",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/sanda-yachting-website-ceviri-calismasi/media/04-website-presentation.webp",
+      "cleanKey": "projects/sanda-yachting-website-ceviri-calismasi/media/04-website-presentation.webp",
+      "entityType": "project",
+      "entityId": "sanda-yachting-website-ceviri-calismasi",
+      "assetRole": "media_gallery_4",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/ceylanlar-site-yonetimi-website-tasarimi/cover.webp",
+      "cleanKey": "projects/ceylanlar-site-yonetimi-website-tasarimi/cover.webp",
+      "entityType": "project",
+      "entityId": "ceylanlar-site-yonetimi-website-tasarimi",
+      "assetRole": "cover",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/ceylanlar-site-yonetimi-website-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/ceylanlar-site-yonetimi-website-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "ceylanlar-site-yonetimi-website-tasarimi",
+      "assetRole": "thumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/ceylanlar-site-yonetimi-website-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/ceylanlar-site-yonetimi-website-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "ceylanlar-site-yonetimi-website-tasarimi",
+      "assetRole": "desktopIcon",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/ceylanlar-site-yonetimi-website-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/ceylanlar-site-yonetimi-website-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "ceylanlar-site-yonetimi-website-tasarimi",
+      "assetRole": "desktopThumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/ceylanlar-site-yonetimi-website-tasarimi/media/02-homepage-browser.webp",
+      "cleanKey": "projects/ceylanlar-site-yonetimi-website-tasarimi/media/02-homepage-browser.webp",
+      "entityType": "project",
+      "entityId": "ceylanlar-site-yonetimi-website-tasarimi",
+      "assetRole": "media_gallery_1",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/ceylanlar-site-yonetimi-website-tasarimi/media/01-lifestyle-laptop.webp",
+      "cleanKey": "projects/ceylanlar-site-yonetimi-website-tasarimi/media/01-lifestyle-laptop.webp",
+      "entityType": "project",
+      "entityId": "ceylanlar-site-yonetimi-website-tasarimi",
+      "assetRole": "media_gallery_2",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/ceylanlar-site-yonetimi-website-tasarimi/media/03-hero-detail.webp",
+      "cleanKey": "projects/ceylanlar-site-yonetimi-website-tasarimi/media/03-hero-detail.webp",
+      "entityType": "project",
+      "entityId": "ceylanlar-site-yonetimi-website-tasarimi",
+      "assetRole": "media_gallery_3",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/ceylanlar-site-yonetimi-website-tasarimi/media/04-corporate-presentation.webp",
+      "cleanKey": "projects/ceylanlar-site-yonetimi-website-tasarimi/media/04-corporate-presentation.webp",
+      "entityType": "project",
+      "entityId": "ceylanlar-site-yonetimi-website-tasarimi",
+      "assetRole": "media_gallery_4",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/ceylanlar-site-yonetimi-website-tasarimi/media/05-service-experience.webp",
+      "cleanKey": "projects/ceylanlar-site-yonetimi-website-tasarimi/media/05-service-experience.webp",
+      "entityType": "project",
+      "entityId": "ceylanlar-site-yonetimi-website-tasarimi",
+      "assetRole": "media_gallery_5",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/alchemia-subat-2025-dergi-tasarimi/cover.webp",
+      "cleanKey": "projects/alchemia-subat-2025-dergi-tasarimi/cover.webp",
+      "entityType": "project",
+      "entityId": "alchemia-subat-2025-dergi-tasarimi",
+      "assetRole": "cover",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/alchemia-subat-2025-dergi-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/alchemia-subat-2025-dergi-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "alchemia-subat-2025-dergi-tasarimi",
+      "assetRole": "thumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/alchemia-subat-2025-dergi-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/alchemia-subat-2025-dergi-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "alchemia-subat-2025-dergi-tasarimi",
+      "assetRole": "desktopIcon",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/alchemia-subat-2025-dergi-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/alchemia-subat-2025-dergi-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "alchemia-subat-2025-dergi-tasarimi",
+      "assetRole": "desktopThumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/alchemia-subat-2025-dergi-tasarimi/media/01-magazine-cover-mockup.webp",
+      "cleanKey": "projects/alchemia-subat-2025-dergi-tasarimi/media/01-magazine-cover-mockup.webp",
+      "entityType": "project",
+      "entityId": "alchemia-subat-2025-dergi-tasarimi",
+      "assetRole": "media_gallery_1",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/alchemia-subat-2025-dergi-tasarimi/media/02-cover-detail.webp",
+      "cleanKey": "projects/alchemia-subat-2025-dergi-tasarimi/media/02-cover-detail.webp",
+      "entityType": "project",
+      "entityId": "alchemia-subat-2025-dergi-tasarimi",
+      "assetRole": "media_gallery_2",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/alchemia-subat-2025-dergi-tasarimi/media/03-editorial-presentation.webp",
+      "cleanKey": "projects/alchemia-subat-2025-dergi-tasarimi/media/03-editorial-presentation.webp",
+      "entityType": "project",
+      "entityId": "alchemia-subat-2025-dergi-tasarimi",
+      "assetRole": "media_gallery_3",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/alchemia-subat-2025-dergi-tasarimi/media/04-publication-system.webp",
+      "cleanKey": "projects/alchemia-subat-2025-dergi-tasarimi/media/04-publication-system.webp",
+      "entityType": "project",
+      "entityId": "alchemia-subat-2025-dergi-tasarimi",
+      "assetRole": "media_gallery_4",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/kmz-2025/cover.webp",
+      "cleanKey": "projects/kmz-2025/cover.webp",
+      "entityType": "project",
+      "entityId": "kmz-2025",
+      "assetRole": "cover",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/kmz-2025/thumbnail.webp",
+      "cleanKey": "projects/kmz-2025/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "kmz-2025",
+      "assetRole": "thumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/kmz-2025/thumbnail.webp",
+      "cleanKey": "projects/kmz-2025/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "kmz-2025",
+      "assetRole": "desktopIcon",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/kmz-2025/thumbnail.webp",
+      "cleanKey": "projects/kmz-2025/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "kmz-2025",
+      "assetRole": "desktopThumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/kmz-2025/media/01-kmz-2025-primary-poster.webp",
+      "cleanKey": "projects/kmz-2025/media/01-kmz-2025-primary-poster.webp",
+      "entityType": "project",
+      "entityId": "kmz-2025",
+      "assetRole": "media_gallery_1",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/fling-arena/cover.webp",
+      "cleanKey": "projects/fling-arena/cover.webp",
+      "entityType": "project",
+      "entityId": "fling-arena",
+      "assetRole": "cover",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/fling-arena/thumbnail.webp",
+      "cleanKey": "projects/fling-arena/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "fling-arena",
+      "assetRole": "thumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/fling-arena/thumbnail.webp",
+      "cleanKey": "projects/fling-arena/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "fling-arena",
+      "assetRole": "desktopIcon",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/fling-arena/thumbnail.webp",
+      "cleanKey": "projects/fling-arena/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "fling-arena",
+      "assetRole": "desktopThumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/fling-arena/media/01-fling-arena-identity.webp",
+      "cleanKey": "projects/fling-arena/media/01-fling-arena-identity.webp",
+      "entityType": "project",
+      "entityId": "fling-arena",
+      "assetRole": "media_gallery_1",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/kagestudio-marka-kimligi/cover.webp",
+      "cleanKey": "projects/kagestudio-marka-kimligi/cover.webp",
+      "entityType": "project",
+      "entityId": "kagestudio-marka-kimligi",
+      "assetRole": "cover",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/kagestudio-marka-kimligi/thumbnail.webp",
+      "cleanKey": "projects/kagestudio-marka-kimligi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "kagestudio-marka-kimligi",
+      "assetRole": "thumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/kagestudio-marka-kimligi/thumbnail.webp",
+      "cleanKey": "projects/kagestudio-marka-kimligi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "kagestudio-marka-kimligi",
+      "assetRole": "desktopIcon",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/kagestudio-marka-kimligi/thumbnail.webp",
+      "cleanKey": "projects/kagestudio-marka-kimligi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "kagestudio-marka-kimligi",
+      "assetRole": "desktopThumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/kagestudio-marka-kimligi/media/01-kagestudio-brand-identity.webp",
+      "cleanKey": "projects/kagestudio-marka-kimligi/media/01-kagestudio-brand-identity.webp",
+      "entityType": "project",
+      "entityId": "kagestudio-marka-kimligi",
+      "assetRole": "media_gallery_1",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/eigestore-marka-kimligi/cover.webp",
+      "cleanKey": "projects/eigestore-marka-kimligi/cover.webp",
+      "entityType": "project",
+      "entityId": "eigestore-marka-kimligi",
+      "assetRole": "cover",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/eigestore-marka-kimligi/thumbnail.webp",
+      "cleanKey": "projects/eigestore-marka-kimligi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "eigestore-marka-kimligi",
+      "assetRole": "thumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/eigestore-marka-kimligi/thumbnail.webp",
+      "cleanKey": "projects/eigestore-marka-kimligi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "eigestore-marka-kimligi",
+      "assetRole": "desktopIcon",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/eigestore-marka-kimligi/thumbnail.webp",
+      "cleanKey": "projects/eigestore-marka-kimligi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "eigestore-marka-kimligi",
+      "assetRole": "desktopThumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/eigestore-marka-kimligi/media/01-eigestore-logo.webp",
+      "cleanKey": "projects/eigestore-marka-kimligi/media/01-eigestore-logo.webp",
+      "entityType": "project",
+      "entityId": "eigestore-marka-kimligi",
+      "assetRole": "media_gallery_1",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/eigestore-marka-kimligi/media/02-eigestore-business-card.webp",
+      "cleanKey": "projects/eigestore-marka-kimligi/media/02-eigestore-business-card.webp",
+      "entityType": "project",
+      "entityId": "eigestore-marka-kimligi",
+      "assetRole": "media_gallery_2",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/hizir-yangin-marka-kimligi/cover.webp",
+      "cleanKey": "projects/hizir-yangin-marka-kimligi/cover.webp",
+      "entityType": "project",
+      "entityId": "hizir-yangin-marka-kimligi",
+      "assetRole": "cover",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/hizir-yangin-marka-kimligi/thumbnail.webp",
+      "cleanKey": "projects/hizir-yangin-marka-kimligi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "hizir-yangin-marka-kimligi",
+      "assetRole": "thumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/hizir-yangin-marka-kimligi/thumbnail.webp",
+      "cleanKey": "projects/hizir-yangin-marka-kimligi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "hizir-yangin-marka-kimligi",
+      "assetRole": "desktopIcon",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/hizir-yangin-marka-kimligi/thumbnail.webp",
+      "cleanKey": "projects/hizir-yangin-marka-kimligi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "hizir-yangin-marka-kimligi",
+      "assetRole": "desktopThumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/hizir-yangin-marka-kimligi/media/01-hizir-yangin-tabela-mockup.webp",
+      "cleanKey": "projects/hizir-yangin-marka-kimligi/media/01-hizir-yangin-tabela-mockup.webp",
+      "entityType": "project",
+      "entityId": "hizir-yangin-marka-kimligi",
+      "assetRole": "media_gallery_1",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/hizir-yangin-marka-kimligi/media/02-hizir-yangin-kartvizit-mockup.webp",
+      "cleanKey": "projects/hizir-yangin-marka-kimligi/media/02-hizir-yangin-kartvizit-mockup.webp",
+      "entityType": "project",
+      "entityId": "hizir-yangin-marka-kimligi",
+      "assetRole": "media_gallery_2",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/emix-qr-menu/cover.webp",
+      "cleanKey": "projects/emix-qr-menu/cover.webp",
+      "entityType": "project",
+      "entityId": "emix-qr-menu",
+      "assetRole": "cover",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/emix-qr-menu/thumbnail.webp",
+      "cleanKey": "projects/emix-qr-menu/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "emix-qr-menu",
+      "assetRole": "thumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/emix-qr-menu/thumbnail.webp",
+      "cleanKey": "projects/emix-qr-menu/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "emix-qr-menu",
+      "assetRole": "desktopIcon",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/emix-qr-menu/thumbnail.webp",
+      "cleanKey": "projects/emix-qr-menu/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "emix-qr-menu",
+      "assetRole": "desktopThumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/emix-qr-menu/media/01-emix-qr-menu-website.webp",
+      "cleanKey": "projects/emix-qr-menu/media/01-emix-qr-menu-website.webp",
+      "entityType": "project",
+      "entityId": "emix-qr-menu",
+      "assetRole": "media_gallery_1",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/emix-qr-menu/media/02-emix-qr-menu-admin-dashboard.webp",
+      "cleanKey": "projects/emix-qr-menu/media/02-emix-qr-menu-admin-dashboard.webp",
+      "entityType": "project",
+      "entityId": "emix-qr-menu",
+      "assetRole": "media_gallery_2",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/planfiq-logo-tasarimi/cover.webp",
+      "cleanKey": "projects/planfiq-logo-tasarimi/cover.webp",
+      "entityType": "project",
+      "entityId": "planfiq-logo-tasarimi",
+      "assetRole": "cover",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/planfiq-logo-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/planfiq-logo-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "planfiq-logo-tasarimi",
+      "assetRole": "thumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/planfiq-logo-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/planfiq-logo-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "planfiq-logo-tasarimi",
+      "assetRole": "desktopIcon",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/planfiq-logo-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/planfiq-logo-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "planfiq-logo-tasarimi",
+      "assetRole": "desktopThumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/planfiq-logo-tasarimi/media/01-planfiq-logo-presentation.webp",
+      "cleanKey": "projects/planfiq-logo-tasarimi/media/01-planfiq-logo-presentation.webp",
+      "entityType": "project",
+      "entityId": "planfiq-logo-tasarimi",
+      "assetRole": "media_gallery_1",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/ceylanlar-site-yonetimi-marka-kimligi/cover.webp",
+      "cleanKey": "projects/ceylanlar-site-yonetimi-marka-kimligi/cover.webp",
+      "entityType": "project",
+      "entityId": "ceylanlar-site-yonetimi-marka-kimligi",
+      "assetRole": "cover",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/ceylanlar-site-yonetimi-marka-kimligi/thumbnail.webp",
+      "cleanKey": "projects/ceylanlar-site-yonetimi-marka-kimligi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "ceylanlar-site-yonetimi-marka-kimligi",
+      "assetRole": "thumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/ceylanlar-site-yonetimi-marka-kimligi/thumbnail.webp",
+      "cleanKey": "projects/ceylanlar-site-yonetimi-marka-kimligi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "ceylanlar-site-yonetimi-marka-kimligi",
+      "assetRole": "desktopIcon",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/ceylanlar-site-yonetimi-marka-kimligi/thumbnail.webp",
+      "cleanKey": "projects/ceylanlar-site-yonetimi-marka-kimligi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "ceylanlar-site-yonetimi-marka-kimligi",
+      "assetRole": "desktopThumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/ceylanlar-site-yonetimi-marka-kimligi/media/01-ceylanlar-brand-identity.webp",
+      "cleanKey": "projects/ceylanlar-site-yonetimi-marka-kimligi/media/01-ceylanlar-brand-identity.webp",
+      "entityType": "project",
+      "entityId": "ceylanlar-site-yonetimi-marka-kimligi",
+      "assetRole": "media_gallery_1",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/deva-yangin-marka-kimligi/cover.webp",
+      "cleanKey": "projects/deva-yangin-marka-kimligi/cover.webp",
+      "entityType": "project",
+      "entityId": "deva-yangin-marka-kimligi",
+      "assetRole": "cover",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/deva-yangin-marka-kimligi/thumbnail.webp",
+      "cleanKey": "projects/deva-yangin-marka-kimligi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "deva-yangin-marka-kimligi",
+      "assetRole": "thumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/deva-yangin-marka-kimligi/thumbnail.webp",
+      "cleanKey": "projects/deva-yangin-marka-kimligi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "deva-yangin-marka-kimligi",
+      "assetRole": "desktopIcon",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/deva-yangin-marka-kimligi/thumbnail.webp",
+      "cleanKey": "projects/deva-yangin-marka-kimligi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "deva-yangin-marka-kimligi",
+      "assetRole": "desktopThumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/deva-yangin-marka-kimligi/media/01-deva-yangin-brand-identity.webp",
+      "cleanKey": "projects/deva-yangin-marka-kimligi/media/01-deva-yangin-brand-identity.webp",
+      "entityType": "project",
+      "entityId": "deva-yangin-marka-kimligi",
+      "assetRole": "media_gallery_1",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/goobzy-logo-tasarimi/cover.webp",
+      "cleanKey": "projects/goobzy-logo-tasarimi/cover.webp",
+      "entityType": "project",
+      "entityId": "goobzy-logo-tasarimi",
+      "assetRole": "cover",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/goobzy-logo-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/goobzy-logo-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "goobzy-logo-tasarimi",
+      "assetRole": "thumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/goobzy-logo-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/goobzy-logo-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "goobzy-logo-tasarimi",
+      "assetRole": "desktopIcon",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/goobzy-logo-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/goobzy-logo-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "goobzy-logo-tasarimi",
+      "assetRole": "desktopThumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/goobzy-logo-tasarimi/media/01-goobzy-logo-application.webp",
+      "cleanKey": "projects/goobzy-logo-tasarimi/media/01-goobzy-logo-application.webp",
+      "entityType": "project",
+      "entityId": "goobzy-logo-tasarimi",
+      "assetRole": "media_gallery_1",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/yanarsan-yangin-logo-tasarimi/cover.webp",
+      "cleanKey": "projects/yanarsan-yangin-logo-tasarimi/cover.webp",
+      "entityType": "project",
+      "entityId": "yanarsan-yangin-logo-tasarimi",
+      "assetRole": "cover",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/yanarsan-yangin-logo-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/yanarsan-yangin-logo-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "yanarsan-yangin-logo-tasarimi",
+      "assetRole": "thumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/yanarsan-yangin-logo-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/yanarsan-yangin-logo-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "yanarsan-yangin-logo-tasarimi",
+      "assetRole": "desktopIcon",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/yanarsan-yangin-logo-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/yanarsan-yangin-logo-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "yanarsan-yangin-logo-tasarimi",
+      "assetRole": "desktopThumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/yanarsan-yangin-logo-tasarimi/media/01-yanarsan-logo-application.webp",
+      "cleanKey": "projects/yanarsan-yangin-logo-tasarimi/media/01-yanarsan-logo-application.webp",
+      "entityType": "project",
+      "entityId": "yanarsan-yangin-logo-tasarimi",
+      "assetRole": "media_gallery_1",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/emix-creative-logo-tasarimi/cover.webp",
+      "cleanKey": "projects/emix-creative-logo-tasarimi/cover.webp",
+      "entityType": "project",
+      "entityId": "emix-creative-logo-tasarimi",
+      "assetRole": "cover",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/emix-creative-logo-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/emix-creative-logo-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "emix-creative-logo-tasarimi",
+      "assetRole": "thumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/emix-creative-logo-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/emix-creative-logo-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "emix-creative-logo-tasarimi",
+      "assetRole": "desktopIcon",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/emix-creative-logo-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/emix-creative-logo-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "emix-creative-logo-tasarimi",
+      "assetRole": "desktopThumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/emix-creative-logo-tasarimi/media/01-emix-creative-logo-application.webp",
+      "cleanKey": "projects/emix-creative-logo-tasarimi/media/01-emix-creative-logo-application.webp",
+      "entityType": "project",
+      "entityId": "emix-creative-logo-tasarimi",
+      "assetRole": "media_gallery_1",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/kixogames-logo-tasarimi/cover.webp",
+      "cleanKey": "projects/kixogames-logo-tasarimi/cover.webp",
+      "entityType": "project",
+      "entityId": "kixogames-logo-tasarimi",
+      "assetRole": "cover",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/kixogames-logo-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/kixogames-logo-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "kixogames-logo-tasarimi",
+      "assetRole": "thumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/kixogames-logo-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/kixogames-logo-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "kixogames-logo-tasarimi",
+      "assetRole": "desktopIcon",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/kixogames-logo-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/kixogames-logo-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "kixogames-logo-tasarimi",
+      "assetRole": "desktopThumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/kixogames-logo-tasarimi/media/01-kixogames-logo-identity.webp",
+      "cleanKey": "projects/kixogames-logo-tasarimi/media/01-kixogames-logo-identity.webp",
+      "entityType": "project",
+      "entityId": "kixogames-logo-tasarimi",
+      "assetRole": "media_gallery_1",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/kiyris-games-logo-tasarimi/cover.webp",
+      "cleanKey": "projects/kiyris-games-logo-tasarimi/cover.webp",
+      "entityType": "project",
+      "entityId": "kiyris-games-logo-tasarimi",
+      "assetRole": "cover",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/kiyris-games-logo-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/kiyris-games-logo-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "kiyris-games-logo-tasarimi",
+      "assetRole": "thumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/kiyris-games-logo-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/kiyris-games-logo-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "kiyris-games-logo-tasarimi",
+      "assetRole": "desktopIcon",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/kiyris-games-logo-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/kiyris-games-logo-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "kiyris-games-logo-tasarimi",
+      "assetRole": "desktopThumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/kiyris-games-logo-tasarimi/media/01-kiyris-games-logo-identity.webp",
+      "cleanKey": "projects/kiyris-games-logo-tasarimi/media/01-kiyris-games-logo-identity.webp",
+      "entityType": "project",
+      "entityId": "kiyris-games-logo-tasarimi",
+      "assetRole": "media_gallery_1",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/alchemia-ocak-2025-dergi-tasarimi/cover.webp",
+      "cleanKey": "projects/alchemia-ocak-2025-dergi-tasarimi/cover.webp",
+      "entityType": "project",
+      "entityId": "alchemia-ocak-2025-dergi-tasarimi",
+      "assetRole": "cover",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/alchemia-ocak-2025-dergi-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/alchemia-ocak-2025-dergi-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "alchemia-ocak-2025-dergi-tasarimi",
+      "assetRole": "thumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/alchemia-ocak-2025-dergi-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/alchemia-ocak-2025-dergi-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "alchemia-ocak-2025-dergi-tasarimi",
+      "assetRole": "desktopIcon",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/alchemia-ocak-2025-dergi-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/alchemia-ocak-2025-dergi-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "alchemia-ocak-2025-dergi-tasarimi",
+      "assetRole": "desktopThumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/alchemia-ocak-2025-dergi-tasarimi/media/01-alchemia-ocak-2025-cover.webp",
+      "cleanKey": "projects/alchemia-ocak-2025-dergi-tasarimi/media/01-alchemia-ocak-2025-cover.webp",
+      "entityType": "project",
+      "entityId": "alchemia-ocak-2025-dergi-tasarimi",
+      "assetRole": "media_gallery_1",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/alchemia-aralik-2024-dergi-tasarimi/cover.webp",
+      "cleanKey": "projects/alchemia-aralik-2024-dergi-tasarimi/cover.webp",
+      "entityType": "project",
+      "entityId": "alchemia-aralik-2024-dergi-tasarimi",
+      "assetRole": "cover",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/alchemia-aralik-2024-dergi-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/alchemia-aralik-2024-dergi-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "alchemia-aralik-2024-dergi-tasarimi",
+      "assetRole": "thumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/alchemia-aralik-2024-dergi-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/alchemia-aralik-2024-dergi-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "alchemia-aralik-2024-dergi-tasarimi",
+      "assetRole": "desktopIcon",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/alchemia-aralik-2024-dergi-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/alchemia-aralik-2024-dergi-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "alchemia-aralik-2024-dergi-tasarimi",
+      "assetRole": "desktopThumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/alchemia-aralik-2024-dergi-tasarimi/media/01-alchemia-aralik-2024-cover.webp",
+      "cleanKey": "projects/alchemia-aralik-2024-dergi-tasarimi/media/01-alchemia-aralik-2024-cover.webp",
+      "entityType": "project",
+      "entityId": "alchemia-aralik-2024-dergi-tasarimi",
+      "assetRole": "media_gallery_1",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/alchemia-kasim-2024-dergi-tasarimi/cover.webp",
+      "cleanKey": "projects/alchemia-kasim-2024-dergi-tasarimi/cover.webp",
+      "entityType": "project",
+      "entityId": "alchemia-kasim-2024-dergi-tasarimi",
+      "assetRole": "cover",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/alchemia-kasim-2024-dergi-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/alchemia-kasim-2024-dergi-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "alchemia-kasim-2024-dergi-tasarimi",
+      "assetRole": "thumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/alchemia-kasim-2024-dergi-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/alchemia-kasim-2024-dergi-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "alchemia-kasim-2024-dergi-tasarimi",
+      "assetRole": "desktopIcon",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/alchemia-kasim-2024-dergi-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/alchemia-kasim-2024-dergi-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "alchemia-kasim-2024-dergi-tasarimi",
+      "assetRole": "desktopThumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/alchemia-kasim-2024-dergi-tasarimi/media/01-alchemia-kasim-2024-editorial-spread.webp",
+      "cleanKey": "projects/alchemia-kasim-2024-dergi-tasarimi/media/01-alchemia-kasim-2024-editorial-spread.webp",
+      "entityType": "project",
+      "entityId": "alchemia-kasim-2024-dergi-tasarimi",
+      "assetRole": "media_gallery_1",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/alchemia-nisan-2025-dergi-tasarimi/cover.webp",
+      "cleanKey": "projects/alchemia-nisan-2025-dergi-tasarimi/cover.webp",
+      "entityType": "project",
+      "entityId": "alchemia-nisan-2025-dergi-tasarimi",
+      "assetRole": "cover",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/alchemia-nisan-2025-dergi-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/alchemia-nisan-2025-dergi-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "alchemia-nisan-2025-dergi-tasarimi",
+      "assetRole": "thumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/alchemia-nisan-2025-dergi-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/alchemia-nisan-2025-dergi-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "alchemia-nisan-2025-dergi-tasarimi",
+      "assetRole": "desktopIcon",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/alchemia-nisan-2025-dergi-tasarimi/thumbnail.webp",
+      "cleanKey": "projects/alchemia-nisan-2025-dergi-tasarimi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "alchemia-nisan-2025-dergi-tasarimi",
+      "assetRole": "desktopThumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/alchemia-nisan-2025-dergi-tasarimi/media/01-alchemia-nisan-2025-cover.webp",
+      "cleanKey": "projects/alchemia-nisan-2025-dergi-tasarimi/media/01-alchemia-nisan-2025-cover.webp",
+      "entityType": "project",
+      "entityId": "alchemia-nisan-2025-dergi-tasarimi",
+      "assetRole": "media_gallery_1",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/planfiq-website-web-uygulamasi/cover.webp",
+      "cleanKey": "projects/planfiq-website-web-uygulamasi/cover.webp",
+      "entityType": "project",
+      "entityId": "planfiq-website-web-uygulamasi",
+      "assetRole": "cover",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/planfiq-website-web-uygulamasi/thumbnail.webp",
+      "cleanKey": "projects/planfiq-website-web-uygulamasi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "planfiq-website-web-uygulamasi",
+      "assetRole": "thumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/planfiq-website-web-uygulamasi/thumbnail.webp",
+      "cleanKey": "projects/planfiq-website-web-uygulamasi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "planfiq-website-web-uygulamasi",
+      "assetRole": "desktopIcon",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/planfiq-website-web-uygulamasi/thumbnail.webp",
+      "cleanKey": "projects/planfiq-website-web-uygulamasi/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "planfiq-website-web-uygulamasi",
+      "assetRole": "desktopThumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/planfiq-website-web-uygulamasi/media/01-planfiq-control-panel.webp",
+      "cleanKey": "projects/planfiq-website-web-uygulamasi/media/01-planfiq-control-panel.webp",
+      "entityType": "project",
+      "entityId": "planfiq-website-web-uygulamasi",
+      "assetRole": "media_gallery_1",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/planfiq-website-web-uygulamasi/media/02-planfiq-finans.webp",
+      "cleanKey": "projects/planfiq-website-web-uygulamasi/media/02-planfiq-finans.webp",
+      "entityType": "project",
+      "entityId": "planfiq-website-web-uygulamasi",
+      "assetRole": "media_gallery_2",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/solo-leveling-manga-website/cover.webp",
+      "cleanKey": "projects/solo-leveling-manga-website/cover.webp",
+      "entityType": "project",
+      "entityId": "solo-leveling-manga-website",
+      "assetRole": "cover",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/solo-leveling-manga-website/thumbnail.webp",
+      "cleanKey": "projects/solo-leveling-manga-website/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "solo-leveling-manga-website",
+      "assetRole": "thumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/solo-leveling-manga-website/thumbnail.webp",
+      "cleanKey": "projects/solo-leveling-manga-website/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "solo-leveling-manga-website",
+      "assetRole": "desktopIcon",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/solo-leveling-manga-website/thumbnail.webp",
+      "cleanKey": "projects/solo-leveling-manga-website/thumbnail.webp",
+      "entityType": "project",
+      "entityId": "solo-leveling-manga-website",
+      "assetRole": "desktopThumbnail",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/projects/solo-leveling-manga-website/media/01-solo-leveling-homepage.webp",
+      "cleanKey": "projects/solo-leveling-manga-website/media/01-solo-leveling-homepage.webp",
+      "entityType": "project",
+      "entityId": "solo-leveling-manga-website",
+      "assetRole": "media_gallery_1",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/ai-moda-kombin-reels/video.mp4",
+      "cleanKey": "videos/ai-moda-kombin-reels/video.mp4",
+      "entityType": "video",
+      "entityId": "ai-moda-kombin-reels",
+      "assetRole": "video_mp4",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/ai-moda-kombin-reels/poster.webp",
+      "cleanKey": "videos/ai-moda-kombin-reels/poster.webp",
+      "entityType": "video",
+      "entityId": "ai-moda-kombin-reels",
+      "assetRole": "video_poster",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/la-ruota-pizza-artigianale-reels/video.mp4",
+      "cleanKey": "videos/la-ruota-pizza-artigianale-reels/video.mp4",
+      "entityType": "video",
+      "entityId": "la-ruota-pizza-artigianale-reels",
+      "assetRole": "video_mp4",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/la-ruota-pizza-artigianale-reels/poster.webp",
+      "cleanKey": "videos/la-ruota-pizza-artigianale-reels/poster.webp",
+      "entityType": "video",
+      "entityId": "la-ruota-pizza-artigianale-reels",
+      "assetRole": "video_poster",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/la-ruota-pizza-yapim-reels/video.mp4",
+      "cleanKey": "videos/la-ruota-pizza-yapim-reels/video.mp4",
+      "entityType": "video",
+      "entityId": "la-ruota-pizza-yapim-reels",
+      "assetRole": "video_mp4",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/la-ruota-pizza-yapim-reels/poster.webp",
+      "cleanKey": "videos/la-ruota-pizza-yapim-reels/poster.webp",
+      "entityType": "video",
+      "entityId": "la-ruota-pizza-yapim-reels",
+      "assetRole": "video_poster",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/it-works-alum-stick-roll-on-reels/video.mp4",
+      "cleanKey": "videos/it-works-alum-stick-roll-on-reels/video.mp4",
+      "entityType": "video",
+      "entityId": "it-works-alum-stick-roll-on-reels",
+      "assetRole": "video_mp4",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/it-works-alum-stick-roll-on-reels/poster.webp",
+      "cleanKey": "videos/it-works-alum-stick-roll-on-reels/poster.webp",
+      "entityType": "video",
+      "entityId": "it-works-alum-stick-roll-on-reels",
+      "assetRole": "video_poster",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/liorwell-kadin-streetwear-ai-reels/video.mp4",
+      "cleanKey": "videos/liorwell-kadin-streetwear-ai-reels/video.mp4",
+      "entityType": "video",
+      "entityId": "liorwell-kadin-streetwear-ai-reels",
+      "assetRole": "video_mp4",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/liorwell-kadin-streetwear-ai-reels/poster.webp",
+      "cleanKey": "videos/liorwell-kadin-streetwear-ai-reels/poster.webp",
+      "entityType": "video",
+      "entityId": "liorwell-kadin-streetwear-ai-reels",
+      "assetRole": "video_poster",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/yavrumsa-cocuk-giyim-ai-reels/video.mp4",
+      "cleanKey": "videos/yavrumsa-cocuk-giyim-ai-reels/video.mp4",
+      "entityType": "video",
+      "entityId": "yavrumsa-cocuk-giyim-ai-reels",
+      "assetRole": "video_mp4",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/yavrumsa-cocuk-giyim-ai-reels/poster.webp",
+      "cleanKey": "videos/yavrumsa-cocuk-giyim-ai-reels/poster.webp",
+      "entityType": "video",
+      "entityId": "yavrumsa-cocuk-giyim-ai-reels",
+      "assetRole": "video_poster",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/bosnak-dilek-boregi-uretim-reels/video.mp4",
+      "cleanKey": "videos/bosnak-dilek-boregi-uretim-reels/video.mp4",
+      "entityType": "video",
+      "entityId": "bosnak-dilek-boregi-uretim-reels",
+      "assetRole": "video_mp4",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/bosnak-dilek-boregi-uretim-reels/poster.webp",
+      "cleanKey": "videos/bosnak-dilek-boregi-uretim-reels/poster.webp",
+      "entityType": "video",
+      "entityId": "bosnak-dilek-boregi-uretim-reels",
+      "assetRole": "video_poster",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/liorwell-ai-streetwear-reels/video.mp4",
+      "cleanKey": "videos/liorwell-ai-streetwear-reels/video.mp4",
+      "entityType": "video",
+      "entityId": "liorwell-ai-streetwear-reels",
+      "assetRole": "video_mp4",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/liorwell-ai-streetwear-reels/poster.webp",
+      "cleanKey": "videos/liorwell-ai-streetwear-reels/poster.webp",
+      "entityType": "video",
+      "entityId": "liorwell-ai-streetwear-reels",
+      "assetRole": "video_poster",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/ai-oversize-tshirt-reels/video.mp4",
+      "cleanKey": "videos/ai-oversize-tshirt-reels/video.mp4",
+      "entityType": "video",
+      "entityId": "ai-oversize-tshirt-reels",
+      "assetRole": "video_mp4",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/ai-oversize-tshirt-reels/poster.webp",
+      "cleanKey": "videos/ai-oversize-tshirt-reels/poster.webp",
+      "entityType": "video",
+      "entityId": "ai-oversize-tshirt-reels",
+      "assetRole": "video_poster",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/elara-skincare-ai-urun-reels/video.mp4",
+      "cleanKey": "videos/elara-skincare-ai-urun-reels/video.mp4",
+      "entityType": "video",
+      "entityId": "elara-skincare-ai-urun-reels",
+      "assetRole": "video_mp4",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/elara-skincare-ai-urun-reels/poster.webp",
+      "cleanKey": "videos/elara-skincare-ai-urun-reels/poster.webp",
+      "entityType": "video",
+      "entityId": "elara-skincare-ai-urun-reels",
+      "assetRole": "video_poster",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/thg-yapi-kurumsal-reels/video.mp4",
+      "cleanKey": "videos/thg-yapi-kurumsal-reels/video.mp4",
+      "entityType": "video",
+      "entityId": "thg-yapi-kurumsal-reels",
+      "assetRole": "video_mp4",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/thg-yapi-kurumsal-reels/poster.webp",
+      "cleanKey": "videos/thg-yapi-kurumsal-reels/poster.webp",
+      "entityType": "video",
+      "entityId": "thg-yapi-kurumsal-reels",
+      "assetRole": "video_poster",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/chofee-kahve-yapim-reels/video.mp4",
+      "cleanKey": "videos/chofee-kahve-yapim-reels/video.mp4",
+      "entityType": "video",
+      "entityId": "chofee-kahve-yapim-reels",
+      "assetRole": "video_mp4",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/chofee-kahve-yapim-reels/poster.webp",
+      "cleanKey": "videos/chofee-kahve-yapim-reels/poster.webp",
+      "entityType": "video",
+      "entityId": "chofee-kahve-yapim-reels",
+      "assetRole": "video_poster",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/ai-moda-urun-reels/video.mp4",
+      "cleanKey": "videos/ai-moda-urun-reels/video.mp4",
+      "entityType": "video",
+      "entityId": "ai-moda-urun-reels",
+      "assetRole": "video_mp4",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/ai-moda-urun-reels/poster.webp",
+      "cleanKey": "videos/ai-moda-urun-reels/poster.webp",
+      "entityType": "video",
+      "entityId": "ai-moda-urun-reels",
+      "assetRole": "video_poster",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/mythic-bastion-ai-game-ad/video.mp4",
+      "cleanKey": "videos/mythic-bastion-ai-game-ad/video.mp4",
+      "entityType": "video",
+      "entityId": "mythic-bastion-ai-game-ad",
+      "assetRole": "video_mp4",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/mythic-bastion-ai-game-ad/poster.webp",
+      "cleanKey": "videos/mythic-bastion-ai-game-ad/poster.webp",
+      "entityType": "video",
+      "entityId": "mythic-bastion-ai-game-ad",
+      "assetRole": "video_poster",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/cupistan-ai-tatli-urun-reels/video.mp4",
+      "cleanKey": "videos/cupistan-ai-tatli-urun-reels/video.mp4",
+      "entityType": "video",
+      "entityId": "cupistan-ai-tatli-urun-reels",
+      "assetRole": "video_mp4",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/cupistan-ai-tatli-urun-reels/poster.webp",
+      "cleanKey": "videos/cupistan-ai-tatli-urun-reels/poster.webp",
+      "entityType": "video",
+      "entityId": "cupistan-ai-tatli-urun-reels",
+      "assetRole": "video_poster",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/emix-creative-website-design-ad-reels/video.mp4",
+      "cleanKey": "videos/emix-creative-website-design-ad-reels/video.mp4",
+      "entityType": "video",
+      "entityId": "emix-creative-website-design-ad-reels",
+      "assetRole": "video_mp4",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/emix-creative-website-design-ad-reels/poster.webp",
+      "cleanKey": "videos/emix-creative-website-design-ad-reels/poster.webp",
+      "entityType": "video",
+      "entityId": "emix-creative-website-design-ad-reels",
+      "assetRole": "video_poster",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/emix-creative-ai-content-transformation-ad/video.mp4",
+      "cleanKey": "videos/emix-creative-ai-content-transformation-ad/video.mp4",
+      "entityType": "video",
+      "entityId": "emix-creative-ai-content-transformation-ad",
+      "assetRole": "video_mp4",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/emix-creative-ai-content-transformation-ad/poster.webp",
+      "cleanKey": "videos/emix-creative-ai-content-transformation-ad/poster.webp",
+      "entityType": "video",
+      "entityId": "emix-creative-ai-content-transformation-ad",
+      "assetRole": "video_poster",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/chofee-ai-lifestyle-icecek-reels/video.mp4",
+      "cleanKey": "videos/chofee-ai-lifestyle-icecek-reels/video.mp4",
+      "entityType": "video",
+      "entityId": "chofee-ai-lifestyle-icecek-reels",
+      "assetRole": "video_mp4",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/chofee-ai-lifestyle-icecek-reels/poster.webp",
+      "cleanKey": "videos/chofee-ai-lifestyle-icecek-reels/poster.webp",
+      "entityType": "video",
+      "entityId": "chofee-ai-lifestyle-icecek-reels",
+      "assetRole": "video_poster",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/cupistan-ai-ekler-urun-reels/video.mp4",
+      "cleanKey": "videos/cupistan-ai-ekler-urun-reels/video.mp4",
+      "entityType": "video",
+      "entityId": "cupistan-ai-ekler-urun-reels",
+      "assetRole": "video_mp4",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/cupistan-ai-ekler-urun-reels/poster.webp",
+      "cleanKey": "videos/cupistan-ai-ekler-urun-reels/poster.webp",
+      "entityType": "video",
+      "entityId": "cupistan-ai-ekler-urun-reels",
+      "assetRole": "video_poster",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/cupistan-ai-tart-tatli-urun-reels/video.mp4",
+      "cleanKey": "videos/cupistan-ai-tart-tatli-urun-reels/video.mp4",
+      "entityType": "video",
+      "entityId": "cupistan-ai-tart-tatli-urun-reels",
+      "assetRole": "video_mp4",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/cupistan-ai-tart-tatli-urun-reels/poster.webp",
+      "cleanKey": "videos/cupistan-ai-tart-tatli-urun-reels/poster.webp",
+      "entityType": "video",
+      "entityId": "cupistan-ai-tart-tatli-urun-reels",
+      "assetRole": "video_poster",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/cupistan-ai-lifestyle-tatli-reels/video.mp4",
+      "cleanKey": "videos/cupistan-ai-lifestyle-tatli-reels/video.mp4",
+      "entityType": "video",
+      "entityId": "cupistan-ai-lifestyle-tatli-reels",
+      "assetRole": "video_mp4",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/videos/cupistan-ai-lifestyle-tatli-reels/poster.webp",
+      "cleanKey": "videos/cupistan-ai-lifestyle-tatli-reels/poster.webp",
+      "entityType": "video",
+      "entityId": "cupistan-ai-lifestyle-tatli-reels",
+      "assetRole": "video_poster",
+      "isExternal": false,
+      "isPrivate": false
+    },
+    {
+      "relPath": "/profile/kerem-mihci-avatar.webp",
+      "cleanKey": "profile/kerem-mihci-avatar.webp",
+      "entityType": "profile",
+      "entityId": "owner-profile",
+      "assetRole": "personal_biography_image",
+      "isExternal": false,
+      "isPrivate": true
+    },
+    {
+      "relPath": "/profile/kerem-mihci-profile.webp",
+      "cleanKey": "profile/kerem-mihci-profile.webp",
+      "entityType": "profile",
+      "entityId": "owner-profile",
+      "assetRole": "personal_biography_image",
+      "isExternal": false,
+      "isPrivate": true
+    }
+  ]
+}

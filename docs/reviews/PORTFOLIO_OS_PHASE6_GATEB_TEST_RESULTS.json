@@ -1,0 +1,87 @@
+{
+  "timestamp": "2026-10-22T13:44:10.871Z",
+  "totalChecks": 13,
+  "passedChecks": 13,
+  "failedChecks": 0,
+  "verdict": "GATEB_LOCAL_IMPLEMENTATION_READY",
+  "results": [
+    {
+      "id": "GATEB-01",
+      "name": "Canonical Projects Source Manifest (30 records)",
+      "status": "PASS",
+      "details": "Extracted exactly 30 canonical projects from src/data/projects.ts with full bilingual fields."
+    },
+    {
+      "id": "GATEB-02",
+      "name": "Canonical Videos Source Manifest (21 records: 19 portrait, 2 landscape)",
+      "status": "PASS",
+      "details": "21 canonical video records verified with correct orientation distribution."
+    },
+    {
+      "id": "GATEB-03",
+      "name": "Authoritative Media Manifest & Local Disk Presence",
+      "status": "PASS",
+      "details": "174 unique files (234 references) verified on disk (0 missing, total 328.25 MB)."
+    },
+    {
+      "id": "GATEB-04",
+      "name": "Isolated R2 Synchronization Simulation (5 State-Machine Scenarios)",
+      "status": "PASS",
+      "details": "Clean upload, identical skip, hash conflict, protected overwrite rejection, and invalid MIME rejection validated."
+    },
+    {
+      "id": "GATEB-05",
+      "name": "Disposable Fixture Project Import (Pass 1: 30 projects, 60 translations, 30 revisions)",
+      "status": "PASS",
+      "details": "Inserted 30 projects, 60 bilingual translations, 70 gallery media items, 30 revisions, 30 publishing events."
+    },
+    {
+      "id": "GATEB-06",
+      "name": "Project Importer Idempotency (Pass 2: 0 inserts, 0 updates, 30 skipped)",
+      "status": "PASS",
+      "details": "Second execution produced zero unexpected writes; all 30 records skipped as identical."
+    },
+    {
+      "id": "GATEB-07",
+      "name": "Project Editorial Conflict Protection (Preserves User Edits)",
+      "status": "PASS",
+      "details": "Detected EDITORIAL_CONFLICT on modified project; refused to overwrite canonical data; user client_name preserved."
+    },
+    {
+      "id": "GATEB-08",
+      "name": "Disposable Fixture Video Import (Pass 1: 21 videos, 42 translations, 42 assets)",
+      "status": "PASS",
+      "details": "Inserted 21 videos, 42 bilingual translations, 42 video/poster assets, 21 revisions."
+    },
+    {
+      "id": "GATEB-09",
+      "name": "Video Importer Idempotency (Pass 2: 0 inserts, 21 skipped, strict parity verified)",
+      "status": "PASS",
+      "details": "Second video pass produced zero unexpected writes; all 21 records skipped as identical with strict admission pass."
+    },
+    {
+      "id": "GATEB-10",
+      "name": "Remote Production Execution Fail-Closed Enforcement",
+      "status": "PASS",
+      "details": "Both project and video importers strictly reject --remote-production --execute without release gate authorization."
+    },
+    {
+      "id": "GATEB-11",
+      "name": "Cloudflare Routing Constraints Documented Accurately",
+      "status": "PASS",
+      "details": "Production release plan accurately details Cloudflare zone requirements, CNAME limitations, and workers.dev public routability."
+    },
+    {
+      "id": "GATEB-12",
+      "name": "Personal Content Governance Strict Boundary",
+      "status": "PASS",
+      "details": "Biography, education, experience, notes, and CV remain strictly OWNER_VERIFICATION_REQUIRED. Zero auto-import."
+    },
+    {
+      "id": "GATEB-13",
+      "name": "Host Database Checksum Invariance (.local-d1/portfolio.sqlite)",
+      "status": "PASS",
+      "details": "Checksum strictly invariant: 470d8f14ce1237cc557367f0b125be489f086fb99534ffa7fb046ad607182743. Zero development database mutations."
+    }
+  ]
+}

@@ -68,24 +68,33 @@ Based on direct, read-only Cloudflare API and authoritative DNS inspections:
                               +-------------------------------+           +-------------------------------+
 ```
 
-### 2.1 Production Worker Ingress Options
-Because the apex domain `keremmihci.com` uses Hostinger nameservers, Cloudflare Zone Routes (`*api.keremmihci.com/*`) cannot route traffic automatically. Two verified architectural options exist:
+### 2.1 Production Worker Ingress Options & DNS Architecture Realities
 
-* **Option A — Cloudflare Custom Domain + Hostinger CNAME (Recommended for Branded API):**
-  1. In Cloudflare Dashboard: Worker `kerem-mihci-portfolio-api` -> **Settings** -> **Domains & Routes** -> **Add Custom Domain** -> `api.keremmihci.com`.
-  2. Cloudflare provisions edge TLS certificate for `api.keremmihci.com`.
-  3. In Hostinger DNS Zone Editor: Add CNAME record `api` pointing to `api.keremmihci.com.cdn.cloudflare.net` (or Cloudflare-assigned target).
-  4. Next.js server configuration: `CLOUDFLARE_CMS_API_URL=https://api.keremmihci.com`.
+Authoritative DNS forensics confirm that the apex domain `keremmihci.com` is delegated to Hostinger nameservers (`ns1.dns-parking.com`, `ns2.dns-parking.com`), **not Cloudflare DNS**. This introduces concrete architectural constraints regarding Cloudflare Workers routing:
 
-* **Option B — Cloudflare Workers.dev Route (Recommended for Server-to-Server Isolation):**
-  1. Update `wrangler.jsonc` `env.production`: set `"workers_dev": true`.
-  2. Worker is assigned `https://kerem-mihci-portfolio-api.<subdomain>.workers.dev`.
-  3. Next.js server configuration: `CLOUDFLARE_CMS_API_URL=https://kerem-mihci-portfolio-api.<subdomain>.workers.dev`.
-  4. **Benefit:** Zero DNS configuration required in Hostinger; API is completely internal between Hostinger Next.js and Cloudflare edge.
+> [!WARNING]
+> **CLOUDFLARE ROUTING CONSTRAINTS & REALITIES**
+> 1. **Worker Custom Domains require an active Cloudflare Zone:** Cloudflare's standard "Worker Custom Domain" feature requires that the zone (`keremmihci.com`) is an active zone managed by Cloudflare DNS. A Hostinger DNS CNAME alone does *not* establish an ordinary Worker Custom Domain; attempting to point a CNAME to Cloudflare without an active zone or Cloudflare for SaaS results in HTTP 1000 / 1014 edge rejection.
+> 2. **Cloudflare Partial (CNAME) setup is plan-restricted:** Partial CNAME zone delegation requires a Cloudflare Business or Enterprise plan and must not be assumed available on standard accounts.
+> 3. **`workers.dev` is publicly routable, NOT a private network:** Enabling `"workers_dev": true` creates a deterministic endpoint (`https://kerem-mihci-portfolio-api.<subdomain>.workers.dev`) that is **publicly reachable over the internet**, not a private internal VPC. While Hostinger Next.js communicates with this endpoint server-to-server, edge security relies on strict application controls (Bearer `CLOUDFLARE_API_SERVICE_TOKEN`, origin checks, Scrypt authentication, and D1 rate limiting).
+
+#### Ingress Strategy Options for Operator Decision:
+
+* **Strategy 1 — Cloudflare Workers.dev Route (Immediate, Zero-DNS Overhead):**
+  1. In `wrangler.jsonc` `env.production`: set `"workers_dev": true`.
+  2. Worker is deployed to `https://kerem-mihci-portfolio-api.<subdomain>.workers.dev`.
+  3. Hostinger Next.js server configuration: `CLOUDFLARE_CMS_API_URL=https://kerem-mihci-portfolio-api.<subdomain>.workers.dev`.
+  4. **Security Model:** Endpoint is publicly reachable on the open web, but administrative and mutation endpoints strictly require `CLOUDFLARE_API_SERVICE_TOKEN`, `ALLOW_CANONICAL_SEED=false` blocks raw seed access, and unseeded endpoints return 404 with `Cache-Control: no-store`.
+
+* **Strategy 2 — Full Cloudflare Zone Delegation (Branded Domain Ingress):**
+  1. In registrar / Hostinger Domain Management: Change nameservers for `keremmihci.com` to Cloudflare authoritative nameservers.
+  2. In Cloudflare Dashboard: Replicate existing Hostinger web server A records (`92.113.23.219`, `92.113.16.74`) for apex and `www`.
+  3. Worker Custom Domain: Bind `api.keremmihci.com` natively to `kerem-mihci-portfolio-api`.
+  4. Hostinger Next.js server configuration: `CLOUDFLARE_CMS_API_URL=https://api.keremmihci.com`.
 
 > [!IMPORTANT]
 > **FAIL-CLOSED ROUTING INVARIANT**
-> If `workers_dev` remains `false` without an authorized Custom Domain or Route, the production Worker will have **zero ingress URLs**. In that state, deployment or cutover is strictly rejected by the release gate.
+> If `workers_dev` remains `false` and no active Cloudflare zone or custom domain is established, the production Worker will have **zero ingress URLs**. In that unrouted state, production deployment or cutover is strictly rejected by the release gate. Routing selection remains an explicit human operator decision.
 
 ### 2.2 R2 Media Routing Architecture
 - `media.keremmihci.com` is **fictional** and has been **permanently eliminated**.
@@ -201,39 +210,49 @@ curl -s -o /dev/null -w "%{http_code}" "$PROD_WORKER_URL/api/v1/public/projects"
 
 ### Gate B: Canonical Content Migration (Zero Public Frontend Cutover)
 
-#### Step B.1 — Production Project Migration (`BLOCKED_PENDING_IMPLEMENTATION`)
-> [!CAUTION]
-> **REJECTED COMMAND REMOVED**
-> `npm run cms:migrate` has been completely **REMOVED** from the production workflow. Running it mutates local SQLite and attempts to hit `/api/v1/admin/seed` which returns HTTP 403 (`ALLOW_CANONICAL_SEED=false`).
-> **Status:** Project migration is `BLOCKED_PENDING_IMPLEMENTATION` until a dedicated, idempotent production importer (`scripts/import-canonical-projects-to-production-d1.mjs`) is authorized and implemented.
->
-> **Required Future Importer Specification:**
-> 1. Requires explicit target validation (must strictly check production D1 UUID).
-> 2. Provides mandatory `--dry-run` mode with detailed record diffs.
-> 3. Does not use `/api/v1/admin/seed`; writes via authenticated administrative endpoints or direct D1 batch statements.
-> 4. Idempotently upserts canonical records while strictly preserving editorial revisions.
-> 5. Requires cryptographic validation of source data (`src/data/projects.ts`).
+#### Step B.1 — Production Project Migration (`IMPLEMENTED_LOCAL_READINESS_VERIFIED`)
+The dedicated production-safe project importer has been implemented and locally verified:
+```bash
+# Dry-run target preflight (Read-Only, zero writes)
+node scripts/import-canonical-projects-to-d1.mjs --remote-production --dry-run
 
-#### Step B.2 — Production Video Migration (`NOT_IMPLEMENTED`)
-> [!CAUTION]
-> **REJECTED COMMAND REMOVED**
-> `node scripts/import-canonical-videos-to-d1.mjs --remote-production --execute` has been completely **REMOVED**. Running it fails closed with `FATAL: Unrecognized CLI argument "--remote-production"`.
-> **Status:** Video migration is `NOT_IMPLEMENTED` until a dedicated production target is authorized in the script.
->
-> **Required Future Importer Specification:**
-> 1. Validates production Worker and D1 database identifiers against authorized manifest.
-> 2. Enforces `--dry-run` as default; `--execute` requires explicit confirmation flag.
-> 3. Validates 21 canonical video records against `src/data/videos.ts` SHA-256 hash.
-> 4. Non-destructive: will not overwrite existing production editorial records without `--force`.
+# Authorized execution (strictly blocked until Gate B human operator sign-off)
+node scripts/import-canonical-projects-to-d1.mjs --remote-production --execute
+```
+**Verification Evidence & Implemented Safeguards:**
+1. **Strict Target Validation:** Verifies `wrangler.jsonc` `env.production` against `APPROVED_PRODUCTION_CONFIG` (database name `kerem-portfolio-db`, worker `kerem-mihci-portfolio-api`, detects placeholder UUIDs).
+2. **Editorial Modification Protection:** Non-destructive; detects user revisions in `project_revisions` and skips overwriting modified projects unless `--force` is explicitly provided.
+3. **Record-Level Diffing:** Reports exact field-level diffs across all 30 canonical records.
+4. **Idempotency:** 100% idempotent; verified in disposable SQLite fixtures (Pass 1: 30 inserted; Pass 2: 30 skipped, 0 inserts, 0 updates).
+5. **Fail-Closed Execution:** Rejects remote execution with exit code 1 if invoked prematurely without Gate B release approval.
 
-#### Step B.3 — Production Media Synchronization Contract
-- Source assets: Local canonical images/videos under `public/projects/`, `public/videos/`, `public/gallery/`.
-- Target: Cloudflare R2 bucket `kerem-portfolio-media`.
-- Verification protocol:
-  1. Compute SHA-256 hash and MIME type for each asset in local manifest.
-  2. Perform `HEAD` requests on target R2 keys to check existing ETags.
-  3. Upload only missing or modified objects (idempotent, zero deletion of unrelated objects).
-  4. Perform sample `GET` requests with `Range: bytes=0-1023` to verify partial content streaming.
+#### Step B.2 — Production Video Migration (`IMPLEMENTED_LOCAL_READINESS_VERIFIED`)
+The canonical video importer has been upgraded with production target validation and fail-closed gate enforcement:
+```bash
+# Dry-run target preflight (Read-Only, zero writes)
+node scripts/import-canonical-videos-to-d1.mjs --remote-production --dry-run
+
+# Authorized execution (strictly blocked until Gate B human operator sign-off)
+node scripts/import-canonical-videos-to-d1.mjs --remote-production --execute
+```
+**Verification Evidence & Implemented Safeguards:**
+1. **Target Validation:** Enforces `APPROVED_PRODUCTION_CONFIG` (`kerem-mihci-portfolio-api`, `kerem-portfolio-db`, `kerem-portfolio-media`).
+2. **Strict Parity Invariant:** Validates all 21 canonical videos (19 portrait, 2 landscape) against `src/data/videos.ts`.
+3. **Asset Verification:** Computes SHA-256 digests and confirms all 21 MP4 video files and 21 poster WebP files exist on disk.
+4. **Editorial Preservation:** Preserves existing user revisions and prevents accidental unpublishing.
+5. **Fail-Closed Execution:** Rejects remote execution with exit code 1 if Gate B release approval is missing.
+
+#### Step B.3 — Production Media Synchronization Contract (`MANIFEST_VERIFIED`)
+Authoritative media source manifest generated at `docs/reviews/PORTFOLIO_OS_PHASE6_MEDIA_SOURCE_MANIFEST.json`:
+- **Source Assets:** 174 unique local files on disk (190 project references, 42 video references, 2 profile assets), total payload volume: 328.25 MB.
+- **Disk Presence:** 100% verified locally (0 missing files).
+- **Target Bucket:** Cloudflare R2 bucket `kerem-portfolio-media`.
+- **R2 Sync Simulator Validated:** In-memory simulation tested and passed across 5 state-machine scenarios:
+  1. *Clean bucket:* 174 planned uploads.
+  2. *Synchronized bucket:* 174 skipped identical (zero unexpected writes).
+  3. *Hash mismatch:* Flags conflict, requiring explicit human operator approval.
+  4. *Protected object:* Rejects unapproved overwrites.
+  5. *Invalid MIME type:* Strictly rejects disallowed file types.
 
 #### Step B.4 — Human Content Governance Gate (`OWNER_VERIFICATION_REQUIRED`)
 > [!IMPORTANT]
